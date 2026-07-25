@@ -18,7 +18,7 @@ export function AuthLayout({ cardSide, children }: AuthLayoutProps) {
   return (
     <main
       ref={timelineRef}
-      className="relative flex h-screen w-screen bg-lavender lg:flex-row"
+      className="viewport-fix relative flex w-screen bg-lavender lg:flex-row"
     >
       <div
         className={cn(
@@ -31,7 +31,7 @@ export function AuthLayout({ cardSide, children }: AuthLayoutProps) {
 
       <div
         className={cn(
-          "relative flex h-full w-full items-center justify-center overflow-y-hidden px-6 py-10 sm:px-10 lg:w-1/2",
+          "no-scrollbar relative flex h-full w-full items-center justify-center overflow-y-auto px-6 py-10 sm:px-10 lg:w-1/2 lg:overflow-y-hidden",
           cardSide === "left" ? "order-1" : "order-2"
         )}
       >
@@ -61,11 +61,6 @@ export function AuthLayout({ cardSide, children }: AuthLayoutProps) {
               aria-hidden
               className="brand-glow pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[220px] w-[220px] -translate-x-1/2 -translate-y-1/2 rounded-full"
             />
-
-            {/* Thin brand wave — SVG only, Gold -> Orange -> Violet -> Purple,
-                with a small golden dot on the left end. Scales with width
-                via preserveAspectRatio="none". */}
-            
 
             {/* Logo mark */}
             <Image

@@ -37,8 +37,27 @@
     -webkit-backdrop-filter: blur(28px);
   }
 
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Viewport-safe full-height utility. `100vh` is kept first as a
+     fallback for browsers without `dvh` support; `100dvh` on the line
+     below overrides it wherever supported. This is what actually fixes
+     the Android Chrome bug: `100vh` there is calculated against the
+     *largest* possible viewport (address bar collapsed), which is
+     taller than what's really visible on load — causing content
+     (e.g. the mobile logo/branding block) to render below the fold
+     with no way to scroll to it. `100dvh` tracks the real, current
+     visible viewport as Android's address bar shows/hides. */
+  .viewport-fix {
+    height: 100vh;
+    height: 100dvh;
   }
 
   /* Apple Liquid Glass — layered translucency + specular inset highlights */
@@ -64,30 +83,30 @@
      mark. Layered gold/orange/violet + a soft white core, blurred so it
      dissolves into the page background with no hard edge. CSS only. */
   .brand-glow {
-  background:
-    radial-gradient(
-      circle at 50% 35%,
-      rgba(167, 139, 250, 0.30) 0%,
-      rgba(167, 139, 250, 0) 40%
-    ),
-    radial-gradient(
-      circle at 40% 60%,
-      rgba(139, 92, 246, 0.24) 0%,
-      rgba(139, 92, 246, 0) 55%
-    ),
-    radial-gradient(
-      circle at 60% 50%,
-      rgba(124, 58, 237, 0.20) 10%,
-      rgba(124, 58, 237, 0) 65%
-    ),
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(255, 255, 255, 0.45) 0%,
-      rgba(255, 255, 255, 0) 70%
-    );
+    background:
+      radial-gradient(
+        circle at 50% 35%,
+        rgba(167, 139, 250, 0.30) 0%,
+        rgba(167, 139, 250, 0) 40%
+      ),
+      radial-gradient(
+        circle at 40% 60%,
+        rgba(139, 92, 246, 0.24) 0%,
+        rgba(139, 92, 246, 0) 55%
+      ),
+      radial-gradient(
+        circle at 60% 50%,
+        rgba(124, 58, 237, 0.20) 10%,
+        rgba(124, 58, 237, 0) 65%
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        rgba(255, 255, 255, 0.45) 0%,
+        rgba(255, 255, 255, 0) 70%
+      );
 
-  filter: blur(30px);
-}
+    filter: blur(30px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
