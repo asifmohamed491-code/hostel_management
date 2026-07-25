@@ -50,8 +50,22 @@ export function AuthLayout({ cardSide, children }: AuthLayoutProps) {
         <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-black/5 via-transparent to-black/15" />
 
         {/* Layer 2 — content, always on top */}
-        <div className="relative z-10 flex w-full justify-center">
-          {children}
+        <div className="relative z-10 flex w-full flex-col items-center justify-center gap-6">
+          {/* Mobile-only mark, centered above the card. Hidden at lg and up,
+              where BuildingSection already owns the brand mark. */}
+          <Image
+            src="/assets/logo/oasys-logo-vertical.svg"
+            alt="OASYS"
+            width={150}
+            height={150}
+            priority
+            data-entrance="logo"
+            className="lg:hidden mx-auto"
+          />
+          
+          
+
+          <div className="flex w-full justify-center">{children}</div>
         </div>
       </div>
     </main>
