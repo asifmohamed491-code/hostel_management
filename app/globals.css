@@ -59,6 +59,35 @@
       inset 0 -1px 1px 0 rgba(255, 255, 255, 0.12);
     overflow: hidden;
   }
+
+  /* Mobile brand glow — premium radial gradient bloom behind the OASYS
+     mark. Layered gold/orange/violet + a soft white core, blurred so it
+     dissolves into the page background with no hard edge. CSS only. */
+  .brand-glow {
+  background:
+    radial-gradient(
+      circle at 50% 35%,
+      rgba(167, 139, 250, 0.30) 0%,
+      rgba(167, 139, 250, 0) 40%
+    ),
+    radial-gradient(
+      circle at 40% 60%,
+      rgba(139, 92, 246, 0.24) 0%,
+      rgba(139, 92, 246, 0) 55%
+    ),
+    radial-gradient(
+      circle at 60% 50%,
+      rgba(124, 58, 237, 0.20) 10%,
+      rgba(124, 58, 237, 0) 65%
+    ),
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.45) 0%,
+      rgba(255, 255, 255, 0) 70%
+    );
+
+  filter: blur(30px);
+}
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -79,4 +108,3 @@
     transform: translateX(750px) rotate(12deg);
   }
 }
-

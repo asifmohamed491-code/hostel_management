@@ -51,19 +51,33 @@ export function AuthLayout({ cardSide, children }: AuthLayoutProps) {
 
         {/* Layer 2 — content, always on top */}
         <div className="relative z-10 flex w-full flex-col items-center justify-center gap-6">
-          {/* Mobile-only mark, centered above the card. Hidden at lg and up,
-              where BuildingSection already owns the brand mark. */}
-          <Image
-            src="/assets/logo/oasys-logo-vertical.svg"
-            alt="OASYS"
-            width={150}
-            height={150}
-            priority
-            data-entrance="logo"
-            className="lg:hidden mx-auto"
-          />
-          
-          
+          {/* Mobile-only branding section — logo, wave, and glow.
+              Hidden at lg and up, where BuildingSection already owns
+              the brand mark. Desktop layout/DOM footprint is untouched. */}
+          <div className="relative flex w-full flex-col items-center justify-center lg:hidden">
+            {/* Soft premium glow behind the mark — layered CSS radial
+                gradients only, no image, blends into the page bg. */}
+            <div
+              aria-hidden
+              className="brand-glow pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[220px] w-[220px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+            />
+
+            {/* Thin brand wave — SVG only, Gold -> Orange -> Violet -> Purple,
+                with a small golden dot on the left end. Scales with width
+                via preserveAspectRatio="none". */}
+            
+
+            {/* Logo mark */}
+            <Image
+              src="/assets/logo/oasys-logo-vertical.svg"
+              alt="OASYS"
+              width={150}
+              height={150}
+              priority
+              data-entrance="logo"
+              className="relative z-10"
+            />
+          </div>
 
           <div className="flex w-full justify-center">{children}</div>
         </div>
