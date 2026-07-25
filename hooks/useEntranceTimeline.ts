@@ -30,6 +30,8 @@ export function useEntranceTimeline<T extends HTMLElement>() {
       const buttons = container.querySelectorAll<HTMLElement>('[data-entrance="button"]');
       const footer = container.querySelectorAll<HTMLElement>('[data-entrance="footer"]');
 
+      
+
       const allTargets = [
         logo,
         building,

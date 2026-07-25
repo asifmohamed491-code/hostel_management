@@ -37,6 +37,7 @@ export function SignupForm() {
       boxShadow: "0 12px 28px rgba(110, 66, 245, 0.35)",
       duration: 0.25,
       ease: "power2.out",
+      overwrite: "auto",
     });
   }
 
@@ -46,6 +47,7 @@ export function SignupForm() {
       boxShadow: "0 8px 20px rgba(110, 66, 245, 0.22)",
       duration: 0.25,
       ease: "power2.out",
+      overwrite: "auto",
     });
   }
 
@@ -109,18 +111,27 @@ export function SignupForm() {
           />
         </div>
 
-        <button
-          ref={submitButtonRef}
-          type="submit"
-          disabled={isSubmitting}
-          onMouseEnter={handleButtonEnter}
-          onMouseLeave={handleButtonLeave}
-          data-entrance="button"
-          data-float
-          className="mt-1 w-full rounded-xl bg-gradient-to-r from-primary to-primary-light py-2.5 xl:py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(110,66,245,0.22)] transition-opacity disabled:opacity-70"
-        >
-          {isSubmitting ? "Creating account..." : "Sign Up"}
-        </button>
+        {/*
+          Entrance animation targets THIS wrapper (opacity/y), while hover
+          animation targets the inner button (scale/boxShadow) via ref.
+          Keeping them on separate DOM nodes — same pattern as LoginForm
+          and GoogleButton below — prevents GSAP's overwrite manager from
+          killing the entrance tween mid-flight when the button mounts
+          under the cursor.
+        */}
+        <div data-entrance="button">
+          <button
+            ref={submitButtonRef}
+            type="submit"
+            disabled={isSubmitting}
+            onMouseEnter={handleButtonEnter}
+            onMouseLeave={handleButtonLeave}
+            data-float
+            className="mt-1 w-full rounded-xl bg-gradient-to-r from-primary to-primary-light py-2.5 xl:py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(110,66,245,0.22)] transition-opacity disabled:opacity-70"
+          >
+            {isSubmitting ? "Creating account..." : "Sign Up"}
+          </button>
+        </div>
 
         <div className="flex items-center gap-3 my-0.5 text-xs font-medium text-heading/40">
           <span className="h-px flex-1 bg-heading/15" />
