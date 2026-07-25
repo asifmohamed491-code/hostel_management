@@ -8,6 +8,12 @@
 # production
 /build
 
+# serwist (generated service worker, rebuilt on every `next build`)
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker-*.js
+/public/swe-worker-*.js.map
+
 # misc
 .DS_Store
 *.pem
