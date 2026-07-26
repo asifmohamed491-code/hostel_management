@@ -1,13 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import gsap from "gsap";
 import { AuthCard } from "@/components/AuthCard";
 import { InputField } from "@/components/InputField";
-import { GoogleButton } from "@/components/GoogleButton";
 import { signupSchema, type SignupSchema } from "@/lib/validation";
 
 export function SignupForm() {
@@ -17,7 +15,16 @@ export function SignupForm() {
     formState: { errors, isSubmitting },
   } = useForm<SignupSchema>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { fullName: "", email: "", password: "", confirmPassword: "" },
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phoneNumber: "",
+      department: "",
+      year: "",
+      roomNumber: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
   const submitButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -25,7 +32,7 @@ export function SignupForm() {
   function onSubmit(values: SignupSchema) {
     return new Promise<void>((resolve) => {
       window.setTimeout(() => {
-        console.info("Signup submitted", values);
+        console.info("Create student account submitted", values);
         resolve();
       }, 900);
     });
@@ -53,73 +60,105 @@ export function SignupForm() {
 
   return (
     <AuthCard
-      heading="Create an Account"
-      subtitle="Join the OASYS hostel platform"
-      footer={
-        <p className="text-xs font-medium text-heading/60">
-          Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-primary hover:underline">
-            Login
-          </Link>
-        </p>
-      }
+      heading="Create Student Account"
+      subtitle="Create a hostel student account"
+      footer={null}
     >
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-2.5 sm:gap-3">
-        <div data-entrance="input">
-          <InputField
-            label="Full Name"
-            iconSrc="/assets/icons/user.svg"
-            placeholder="Enter your full name"
-            autoComplete="name"
-            error={errors.fullName?.message}
-            {...register("fullName")}
-          />
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-2">
+        {/* 2-Column Grid Layout for Desktop/Laptops */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5">
+          <div data-entrance="input">
+            <InputField
+              label="Full Name"
+              iconSrc="/assets/icons/user.svg"
+              placeholder="Full name"
+              autoComplete="name"
+              error={errors.fullName?.message}
+              {...register("fullName")}
+            />
+          </div>
+
+          <div data-entrance="input">
+            <InputField
+              label="College Email"
+              iconSrc="/assets/icons/mail.svg"
+              placeholder="email@oasys.edu.in"
+              autoComplete="email"
+              error={errors.email?.message}
+              {...register("email")}
+            />
+          </div>
+
+          <div data-entrance="input">
+            <InputField
+              label="Phone Number"
+              iconSrc="/assets/icons/phone.svg"
+              placeholder="Phone number"
+              autoComplete="tel"
+              error={errors.phoneNumber?.message}
+              {...register("phoneNumber")}
+            />
+          </div>
+
+          <div data-entrance="input">
+            <InputField
+              label="Department"
+              iconSrc="/assets/icons/department.svg"
+              placeholder="Department"
+              autoComplete="off"
+              error={errors.department?.message}
+              {...register("department")}
+            />
+          </div>
+
+          <div data-entrance="input">
+            <InputField
+              label="Year"
+              iconSrc="/assets/icons/calendar.svg"
+              placeholder="Year"
+              autoComplete="off"
+              error={errors.year?.message}
+              {...register("year")}
+            />
+          </div>
+
+          <div data-entrance="input">
+            <InputField 
+              label="Room Number"
+              iconSrc="/assets/dashboard/icons/room-icon.svg"
+              placeholder="Room number"
+              autoComplete="off"
+              error={errors.roomNumber?.message}
+              {...register("roomNumber")}
+            />
+          </div>
+
+          <div data-entrance="input">
+            <InputField
+              label="Password"
+              iconSrc="/assets/icons/lock.svg"
+              placeholder="Create password"
+              autoComplete="new-password"
+              isPassword
+              error={errors.password?.message}
+              {...register("password")}
+            />
+          </div>
+
+          <div data-entrance="input">
+            <InputField
+              label="Confirm Password"
+              iconSrc="/assets/icons/lock.svg"
+              placeholder="Confirm password"
+              autoComplete="new-password"
+              isPassword
+              error={errors.confirmPassword?.message}
+              {...register("confirmPassword")}
+            />
+          </div>
         </div>
 
-        <div data-entrance="input">
-          <InputField
-            label="College Email"
-            iconSrc="/assets/icons/mail.svg"
-            placeholder="name@oasys.edu.in"
-            autoComplete="email"
-            error={errors.email?.message}
-            {...register("email")}
-          />
-        </div>
-
-        <div data-entrance="input">
-          <InputField
-            label="Password"
-            iconSrc="/assets/icons/lock.svg"
-            placeholder="Create a password"
-            autoComplete="new-password"
-            isPassword
-            error={errors.password?.message}
-            {...register("password")}
-          />
-        </div>
-
-        <div data-entrance="input">
-          <InputField
-            label="Confirm Password"
-            iconSrc="/assets/icons/lock.svg"
-            placeholder="Confirm your password"
-            autoComplete="new-password"
-            isPassword
-            error={errors.confirmPassword?.message}
-            {...register("confirmPassword")}
-          />
-        </div>
-
-        {/*
-          Entrance animation targets THIS wrapper (opacity/y), while hover
-          animation targets the inner button (scale/boxShadow) via ref.
-          Keeping them on separate DOM nodes — same pattern as LoginForm
-          and GoogleButton below — prevents GSAP's overwrite manager from
-          killing the entrance tween mid-flight when the button mounts
-          under the cursor.
-        */}
-        <div data-entrance="button">
+        <div data-entrance="button" className="mt-2">
           <button
             ref={submitButtonRef}
             type="submit"
@@ -127,20 +166,10 @@ export function SignupForm() {
             onMouseEnter={handleButtonEnter}
             onMouseLeave={handleButtonLeave}
             data-float
-            className="mt-1 w-full rounded-xl bg-gradient-to-r from-primary to-primary-light py-2.5 xl:py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(110,66,245,0.22)] transition-opacity disabled:opacity-70"
+            className="w-full rounded-xl bg-gradient-to-r from-primary to-primary-light py-3 text-xs font-semibold text-white shadow-[0_6px_16px_rgba(110,66,245,0.22)] transition-opacity disabled:opacity-70"
           >
-            {isSubmitting ? "Creating account..." : "Sign Up"}
+            {isSubmitting ? "Creating student..." : "Create Student"}
           </button>
-        </div>
-
-        <div className="flex items-center gap-3 my-0.5 text-xs font-medium text-heading/40">
-          <span className="h-px flex-1 bg-heading/15" />
-          or
-          <span className="h-px flex-1 bg-heading/15" />
-        </div>
-
-        <div data-entrance="button">
-          <GoogleButton />
         </div>
       </form>
     </AuthCard>

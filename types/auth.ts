@@ -15,9 +15,17 @@ export interface LoginFormValues {
   password: string;
 }
 
+export interface ForgotPasswordFormValues {
+  email: string;
+}
+
 export interface SignupFormValues {
   fullName: string;
   email: string;
+  phoneNumber: string;
+  department: string;
+  year: string;
+  roomNumber: string;
   password: string;
   confirmPassword: string;
 }

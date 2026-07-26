@@ -109,7 +109,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       // "Users" has no dedicated icon in the uploaded asset pack — it
       // reuses the two-person PeopleIcon, same as "Students" above.
-      { label: "Users", href: "/dashboard/users", icon: PeopleIcon },
+      { label: "User Management", href: "/dashboard/users", icon: PeopleIcon },
       { label: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
     ],
   },

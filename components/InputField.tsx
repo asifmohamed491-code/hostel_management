@@ -1,4 +1,3 @@
-// InputField.tsx
 "use client";
 
 import { forwardRef, useState, type InputHTMLAttributes } from "react";
@@ -9,14 +8,14 @@ import { cn } from "@/lib/cn";
 interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   iconSrc: string;
+  iconClassName?: string;
   error?: string;
-  /** Renders a show/hide toggle and masks the value by default. */
   isPassword?: boolean;
 }
 
 export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
   function InputField(
-    { label, iconSrc, error, isPassword = false, id, className, ...rest },
+    { label, iconSrc, iconClassName, error, isPassword = false, id, className, ...rest },
     ref
   ) {
     const [visible, setVisible] = useState(false);
@@ -24,17 +23,17 @@ export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
     const type = isPassword ? (visible ? "text" : "password") : rest.type ?? "text";
 
     return (
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1 text-left">
         <label
           htmlFor={inputId}
-          className="text-sm font-semibold text-heading/90"
+          className="text-[12px] font-semibold text-heading/90"
         >
           {label}
         </label>
         <div
           data-float
           className={cn(
-            "group relative flex items-center rounded-2xl border border-white/50 bg-white/50 px-4 py-3.5 transition-all duration-300",
+            "group relative flex items-center rounded-xl border border-white/60 bg-white/50 px-3 py-2.5 transition-all duration-300",
             "focus-within:border-primary/60 focus-within:bg-white/70 focus-within:shadow-glass",
             error && "border-red-300 focus-within:border-red-400"
           )}
@@ -42,9 +41,12 @@ export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
           <Image
             src={iconSrc}
             alt=""
-            width={18}
-            height={18}
-            className="mr-3 shrink-0 opacity-60"
+            width={16}
+            height={16}
+            className={cn(
+              "mr-2 shrink-0 opacity-80",
+              iconClassName ?? "[filter:invert(32%)_sepia(85%)_saturate(2421%)_hue-rotate(245deg)_brightness(98%)_contrast(98%)]"
+            )}
             aria-hidden
           />
           <input
@@ -52,9 +54,7 @@ export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
             id={inputId}
             type={type}
             className={cn(
-              "w-full bg-transparent text-sm text-heading placeholder:text-heading/35 focus:outline-none",
-              // Neutralize the browser's forced opaque autofill background
-              // so it can't paint a white rectangle behind typed/suggested text.
+              "w-full bg-transparent text-[12.5px] font-medium text-heading placeholder:text-heading/40 focus:outline-none",
               "autofill:bg-transparent autofill:shadow-[0_0_0_1000px_transparent_inset]",
               "[&:-webkit-autofill]:bg-transparent",
               "[&:-webkit-autofill]:shadow-[0_0_0_1000px_transparent_inset]",
@@ -68,15 +68,15 @@ export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
             <button
               type="button"
               onClick={() => setVisible((prev) => !prev)}
-              className="ml-2 shrink-0 text-heading/40 transition-colors hover:text-primary"
+              className="ml-1.5 shrink-0 text-heading/40 transition-colors hover:text-primary"
               aria-label={visible ? "Hide password" : "Show password"}
               tabIndex={-1}
             >
-              {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+              {visible ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           )}
         </div>
-        {error && <p className="text-xs font-medium text-red-500">{error}</p>}
+        {error && <p className="text-[11px] font-medium text-red-500">{error}</p>}
       </div>
     );
   }
