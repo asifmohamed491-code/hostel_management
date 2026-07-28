@@ -2,7 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import gsap from "gsap";
@@ -10,7 +11,16 @@ import { AuthCard } from "@/components/AuthCard";
 import { InputField } from "@/components/InputField";
 import { loginSchema, type LoginSchema } from "@/lib/validation";
 
+const ROLE_REDIRECTS: Record<string, string> = {
+  super_admin: "/dashboard/super-admin",
+  warden: "/dashboard/warden",
+  student: "/dashboard/student",
+};
+
 export function LoginForm() {
+  const router = useRouter();
+  const [formError, setFormError] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -22,13 +32,30 @@ export function LoginForm() {
 
   const submitButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  function onSubmit(values: LoginSchema) {
-    return new Promise<void>((resolve) => {
-      window.setTimeout(() => {
-        console.info("Login submitted", values);
-        resolve();
-      }, 900);
-    });
+  async function onSubmit(values: LoginSchema) {
+    setFormError(null);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setFormError(data?.message ?? "Invalid email or password.");
+        return;
+      }
+
+      const role = data?.user?.role as string | undefined;
+      const destination = (role && ROLE_REDIRECTS[role]) || "/dashboard";
+
+      router.push(destination);
+    } catch {
+      setFormError("Something went wrong. Please try again.");
+    }
   }
 
   function handleButtonEnter() {
@@ -86,6 +113,12 @@ export function LoginForm() {
             Forgot Password?
           </Link>
         </div>
+
+        {formError && (
+          <p role="alert" className="text-xs font-medium text-red-500">
+            {formError}
+          </p>
+        )}
 
         {/*
           Entrance animation targets THIS wrapper (opacity/y), while hover
