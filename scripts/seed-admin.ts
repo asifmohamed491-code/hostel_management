@@ -6,8 +6,8 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import mongoose from "mongoose";
-import { connectToDatabase } from "../../lib/mongodb";
-import { User } from "../../models/User";
+import { connectToDatabase } from "../lib/mongodb";
+import { User } from "../models/User";
 
 const SUPER_ADMIN = {
   fullName: "Hostel Administrator",
