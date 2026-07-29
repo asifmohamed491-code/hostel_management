@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import gsap from "gsap";
@@ -9,9 +9,13 @@ import { InputField } from "@/components/InputField";
 import { signupSchema, type SignupSchema } from "@/lib/validation";
 
 export function SignupForm() {
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<SignupSchema>({
     resolver: zodResolver(signupSchema),
@@ -29,13 +33,29 @@ export function SignupForm() {
 
   const submitButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  function onSubmit(values: SignupSchema) {
-    return new Promise<void>((resolve) => {
-      window.setTimeout(() => {
-        console.info("Create student account submitted", values);
-        resolve();
-      }, 900);
-    });
+  async function onSubmit(values: SignupSchema) {
+    setFormError(null);
+    setFormSuccess(null);
+
+    try {
+      const response = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setFormError(data?.message ?? "Something went wrong. Please try again.");
+        return;
+      }
+
+      setFormSuccess("Student account created successfully.");
+      reset();
+    } catch {
+      setFormError("Something went wrong. Please try again.");
+    }
   }
 
   function handleButtonEnter() {
@@ -157,6 +177,18 @@ export function SignupForm() {
             />
           </div>
         </div>
+
+        {formError && (
+          <p role="alert" className="text-xs font-medium text-red-500">
+            {formError}
+          </p>
+        )}
+
+        {formSuccess && (
+          <p role="status" className="text-xs font-medium text-emerald-600">
+            {formSuccess}
+          </p>
+        )}
 
         <div data-entrance="button" className="mt-2">
           <button
