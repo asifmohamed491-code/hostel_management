@@ -52,6 +52,21 @@ export const signupSchema = z
     path: ["confirmPassword"],
   });
 
+export const wardenSchema = z.object({
+  fullName: z
+    .string()
+    .min(2, "Full name must be at least 2 characters")
+    .max(60, "Full name is too long"),
+  email: collegeEmailSchema,
+  phone: z
+    .string()
+    .min(10, "Enter a valid phone number")
+    .max(15, "Enter a valid phone number")
+    .regex(/^[0-9+\s-]+$/, "Enter a valid phone number"),
+  password: passwordSchema,
+});
+
 export type LoginSchema = z.infer<typeof loginSchema>;
 export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
 export type SignupSchema = z.infer<typeof signupSchema>;
+export type WardenSchema = z.infer<typeof wardenSchema>;
