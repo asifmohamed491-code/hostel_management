@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
+import { DashboardOverview } from "@/components/dashboard/content/DashboardOverview";
 
 export const metadata: Metadata = {
   title: "Warden Dashboard | OASYS Hostel Management",
 };
 
-// Intentionally empty — Sidebar, Top Navigation, and the fixed
-// background are provided by DashboardLayout (app/dashboard/layout.tsx).
-// Dashboard content sections (welcome card, stats, charts, tables,
-// quick actions, etc.) will be added here one at a time later.
+// Sidebar, Top Navigation, and the fixed background are provided by
+// DashboardLayout (app/dashboard/layout.tsx) and are untouched here.
+// Renders the same content as /dashboard via the shared
+// DashboardOverview component — no duplicated JSX, no separate
+// dashboard components.
 export default function WardenDashboardPage() {
-  return  <div className="flex min-h-[60vh] w-full flex-col items-center justify-center gap-2 text-center">
-      <h1 className="text-2xl font-semibold text-white">Warden Admin Dashboard</h1>
-      <p className="text-sm text-white/70">Authentication Successful</p>
-    </div>;
+  return <DashboardOverview />;
 }
