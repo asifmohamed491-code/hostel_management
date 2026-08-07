@@ -82,7 +82,7 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: Users,
         children: [
           { label: "All Students", href: "/dashboard/students" },
-          { label: "Add Student", href: "/dashboard/students/new" },
+          { label: "Add Student", href: "/dashboard/warden/students/create" },
           { label: "Gate Pass", href: "/dashboard/students/gate-pass" },
         ],
       },

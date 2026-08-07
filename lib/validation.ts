@@ -66,7 +66,22 @@ export const wardenSchema = z.object({
   password: passwordSchema,
 });
 
+// Client-only variant of wardenSchema for the "Create Warden" dashboard
+// form (components/dashboard/forms usage). Adds a confirmPassword field
+// purely for UI confirmation — it's stripped before the request body is
+// sent to POST /api/wardens, so the API's own `wardenSchema` above is
+// untouched and still governs what the server accepts.
+export const wardenCreateFormSchema = wardenSchema
+  .extend({
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 export type LoginSchema = z.infer<typeof loginSchema>;
 export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
 export type SignupSchema = z.infer<typeof signupSchema>;
 export type WardenSchema = z.infer<typeof wardenSchema>;
+export type WardenCreateFormSchema = z.infer<typeof wardenCreateFormSchema>;
