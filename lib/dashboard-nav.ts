@@ -24,21 +24,13 @@ import {
   Wrench,
   MessageSquareText,
   Settings as SettingsLucide,
+  ClipboardCheck,
+  DoorOpen,
+  LogOut,
+  FileBarChart,
+  UserCog,
 } from "lucide-react";
 import type { UserRole } from "@/models/User";
-import {
-  DashboardIcon,
-  AttendanceIcon,
-  RoomIcon,
-  PeopleIcon,
-  RulesIcon,
-  FoodMenuIcon,
-  FeedbackIcon,
-  MaintenanceIcon,
-  ReportIcon,
-  SettingsIcon,
-  LogoutIcon,
-} from "@/components/icons/DashboardIcons";
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -64,7 +56,7 @@ export interface NavSection {
 // sits below both, pinned to the bottom of the rail.
 export const NAV_SECTIONS: NavSection[] = [
   {
-    items: [{ label: "Dashboard", href: "/dashboard", icon: DashboardIcon }],
+    items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }],
   },
   {
     label: "Attendance Management",
@@ -72,12 +64,12 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         label: "Student Attendance",
         href: "/dashboard/attendance",
-        icon: AttendanceIcon,
+        icon: ClipboardCheck,
       },
       {
         label: "Rooms",
         href: "/dashboard/rooms",
-        icon: RoomIcon,
+        icon: DoorOpen,
         children: [
           { label: "All Rooms", href: "/dashboard/rooms" },
           { label: "Allotment", href: "/dashboard/rooms/allotment" },
@@ -87,7 +79,7 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         label: "Students",
         href: "/dashboard/students",
-        icon: PeopleIcon,
+        icon: Users,
         children: [
           { label: "All Students", href: "/dashboard/students" },
           { label: "Add Student", href: "/dashboard/students/new" },
@@ -102,18 +94,18 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         label: "Rules & Regulations",
         href: "/dashboard/rules",
-        icon: RulesIcon,
+        icon: BookOpenCheck,
       },
-      { label: "Food Menu", href: "/dashboard/food-menu", icon: FoodMenuIcon },
+      { label: "Food Menu", href: "/dashboard/food-menu", icon: UtensilsCrossed },
       {
         label: "Food Feedback",
         href: "/dashboard/food-feedback",
-        icon: FeedbackIcon,
+        icon: MessageSquareText,
       },
       {
         label: "Maintenance",
         href: "/dashboard/maintenance",
-        icon: MaintenanceIcon,
+        icon: Wrench,
         children: [
           { label: "Open Requests", href: "/dashboard/maintenance" },
           { label: "New Request", href: "/dashboard/maintenance/new" },
@@ -123,17 +115,17 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         label: "Reports",
         href: "/dashboard/reports",
-        icon: ReportIcon,
+        icon: FileBarChart,
         children: [
           { label: "Attendance Report", href: "/dashboard/reports/attendance" },
           { label: "Occupancy Report", href: "/dashboard/reports/occupancy" },
           { label: "Maintenance Report", href: "/dashboard/reports/maintenance" },
         ],
       },
-      // "Users" has no dedicated icon in the uploaded asset pack — it
-      // reuses the two-person PeopleIcon, same as "Students" above.
-      { label: "User Management", href: "/dashboard/users", icon: PeopleIcon },
-      { label: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
+      // Distinct from "Students" above (Users) so the two don't share
+      // an icon now that both come from the same lucide-react set.
+      { label: "User Management", href: "/dashboard/users", icon: UserCog },
+      { label: "Settings", href: "/dashboard/settings", icon: SettingsLucide },
     ],
   },
 ];
@@ -141,7 +133,7 @@ export const NAV_SECTIONS: NavSection[] = [
 export const LOGOUT_ITEM: NavItem = {
   label: "Logout",
   href: "/login",
-  icon: LogoutIcon,
+  icon: LogOut,
 };
 
 // ---------------------------------------------------------------------
