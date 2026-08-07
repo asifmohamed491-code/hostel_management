@@ -9,5 +9,8 @@ export const metadata: Metadata = {
 // Dashboard content sections (welcome card, stats, charts, tables,
 // quick actions, etc.) will be added here one at a time later.
 export default function WardenDashboardPage() {
-  return <div className="min-h-[1px] w-full" />;
+  return  <div className="flex min-h-[60vh] w-full flex-col items-center justify-center gap-2 text-center">
+      <h1 className="text-2xl font-semibold text-white">Warden Admin Dashboard</h1>
+      <p className="text-sm text-white/70">Authentication Successful</p>
+    </div>;
 }

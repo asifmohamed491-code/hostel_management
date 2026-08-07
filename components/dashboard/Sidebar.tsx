@@ -6,7 +6,8 @@
   import { usePathname } from "next/navigation";
   import { ChevronDown } from "lucide-react";
   import { cn } from "@/lib/cn";
-  import { NAV_SECTIONS, LOGOUT_ITEM, type NavItem } from "@/lib/dashboard-nav";
+  import { ROLE_NAV_SECTIONS, NAV_SECTIONS, LOGOUT_ITEM, type NavItem } from "@/lib/dashboard-nav";
+  import { useCurrentUser } from "@/hooks/useCurrentUser";
 
   function NavRow({ item, active }: { item: NavItem; active: boolean }) {
     const [open, setOpen] = useState(active && !!item.children);
@@ -94,6 +95,13 @@
 
   export function Sidebar() {
     const pathname = usePathname();
+    const { user } = useCurrentUser();
+
+    // Same Sidebar markup/design for every role — only the nav items
+    // change, driven entirely by lib/dashboard-nav.ts. Falls back to the
+    // existing Warden nav (today's default) until the current user
+    // loads, so nothing shifts or flashes for the common case.
+    const navSections = user ? ROLE_NAV_SECTIONS[user.role] : NAV_SECTIONS;
 
     const isActive = (item: NavItem) =>
       pathname === item.href ||
@@ -122,7 +130,7 @@
 
           {/* Nav */}
           <nav className="px-3.5 pt-1">
-            {NAV_SECTIONS.map((section, idx) => (
+            {navSections.map((section, idx) => (
               <div key={section.label ?? idx} className={idx === 0 ? "mb-1" : "mt-4"}>
                 {section.label && (
                   <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-heading/35">
