@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Bell, ChevronDown, X } from "lucide-react";
+import { Search, Bell, ChevronDown, X, Menu } from "lucide-react";
+import { useMobileNav } from "@/components/dashboard/MobileNavContext";
 
 const TODAY = new Date().toLocaleDateString("en-US", {
   weekday: "long",
@@ -12,9 +13,23 @@ const TODAY = new Date().toLocaleDateString("en-US", {
 
 export function Topbar() {
   const [searchOpen, setSearchOpen] = useState(false);
+  const { toggle: toggleMobileNav } = useMobileNav();
 
   return (
     <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between gap-2 px-4 sm:h-20 lg:px-8">
+      {/* Hamburger — mobile/tablet only (same breakpoint the Sidebar
+          rail itself uses to hide), opens the existing Sidebar as a
+          slide-in drawer. Not rendered at all visually at `lg` and up,
+          so desktop is unaffected. */}
+      <button
+        type="button"
+        onClick={toggleMobileNav}
+        aria-label="Open navigation menu"
+        className="liquid-glass flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/40 transition-colors hover:bg-white/55 lg:hidden"
+      >
+        <Menu className="h-[18px] w-[18px] text-heading/70" />
+      </button>
+
       {/* Mobile Search - Expanded Overlay */}
       {searchOpen ? (
         <div className="flex flex-1 items-center gap-2 pr-2 md:hidden">
