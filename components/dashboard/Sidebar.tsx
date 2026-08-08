@@ -183,7 +183,16 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "liquid-glass sticky top-0 hidden h-screen max-h-screen w-[260px] shrink-0 flex-col justify-between overflow-hidden rounded-none",
+        "liquid-glass sticky top-0 hidden h-screen max-h-screen w-[260px] shrink-0 flex-col justify-between rounded-none",
+        // Sidebar handles its own vertical overflow independently of
+        // the main content: `overflow-y-auto` lets it scroll when
+        // expanded submenus make it taller than the viewport, and
+        // `overscroll-contain` stops that scroll from chaining to the
+        // main content once the sidebar hits its top/bottom edge (so
+        // hovering the sidebar only ever scrolls the sidebar). Visual
+        // scrollbar is hidden via the same `no-scrollbar` utility the
+        // rest of the dashboard already uses.
+        "overflow-y-auto overflow-x-hidden overscroll-contain no-scrollbar",
         "border-r border-white/40 bg-white/25 py-2 lg:flex" // Ungal Original Glass Background Retention
       )}
       style={{ backdropFilter: "blur(28px) saturate(180%)" }}

@@ -1,20 +1,7 @@
 // dashboard-mock.ts
 //
 // Placeholder UI data for the dashboard content area, mirroring the
-// numbers/labels in the Figma file (node 136:31) as closely as
-// possible. None of this touches auth, routing, or the backend/API
-// layer — swap each export for a real data fetch whenever that's
-// wired up; shapes are kept simple so the swap is a drop-in.
-//
-// Two small content fixes vs. the raw Figma export (layout/spacing/
-// colors untouched, only copy):
-// - The second "Present" mini-stat in the attendance card is relabeled
-//   "Late" — the source file has two chips both labeled "Present"
-//   with different numbers, which reads as a duplicate-label typo.
-// - The recent check-ins / attendance table sub-labels that exactly
-//   repeated the row's own name (e.g. "Aaliyah Khan" / "Sarah Jonn")
-//   were swapped for a room number, since a name duplicated under
-//   itself is almost certainly placeholder-fill, not intended content.
+// numbers/labels in the Figma file.
 
 export interface StatCardData {
   id: string;
@@ -24,7 +11,7 @@ export interface StatCardData {
   shadow?: string;
 }
 
-// Gradients copied 1:1 (angle + color stops) from the Figma node fills.
+// Gradients copied 1:1 from the Figma node fills.
 export const STAT_CARDS: StatCardData[] = [
   {
     id: "total-students",
@@ -92,8 +79,7 @@ export interface WeeklyPoint {
   value: number;
 }
 
-// Shared across the ring / trend-line / bar charts so all three read
-// consistently, same as the three chart cards in the Figma row.
+// Shared across the ring / trend-line / bar charts
 export const WEEKLY_ATTENDANCE: WeeklyPoint[] = [
   { label: "Mon", value: 88 },
   { label: "Tue", value: 92 },
@@ -177,3 +163,10 @@ export const PROGRESS: ProgressItem[] = [
   { id: "occupancy", label: "Room Occupancy", caption: "162 of 180 rooms filled", value: 90, color: "#8B5CF6" },
   { id: "attendance-goal", label: "Monthly Attendance Goal", caption: "94% of 95% target", value: 94, color: "#F0A420" },
 ];
+
+// Optional Helper Configurations for Chart Rendering
+export const CHART_CONFIG = {
+  primaryColor: "#7c5cd6",
+  gridColor: "#e2e8f0",
+  animationDuration: 1.2,
+} as const;

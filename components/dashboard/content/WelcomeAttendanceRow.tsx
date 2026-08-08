@@ -1,33 +1,56 @@
-// WelcomeAttendanceRow.tsx
-//
-// Matches Figma node 135:278 "Welcome + Attendance": a welcome card on
-// the left and a live "Today's Attendance" card on the right, laid out
-// as two roughly-equal glass panels with a 20px radius, same as source.
-//
-// Two copy changes vs. the raw Figma export (see lib/dashboard-mock.ts
-// header comment for the attendance-stat one): the welcome subtitle in
-// the source file is generic "premium SaaS" boilerplate unrelated to a
-// hostel dashboard, so it's swapped for on-topic copy — the card size,
-// position, and typography are unchanged.
-import { RadialProgress } from "@/components/dashboard/content/RadialProgress";
+"use client";
+
+import { useRef } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import { TODAY_ATTENDANCE, TODAY_ATTENDANCE_STATS } from "@/lib/dashboard-mock";
 
+gsap.registerPlugin(useGSAP);
+
 function WelcomeCard() {
+  const welcomeRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      // Text Lines Staggered GSAP Reveal Animation
+      tl.fromTo(
+        ".welcome-line",
+        { opacity: 0, y: 20 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          stagger: 0.15,
+        }
+      ).fromTo(
+        ".welcome-desc",
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, duration: 0.6 },
+        "-=0.4"
+      );
+    },
+    { scope: welcomeRef }
+  );
+
   return (
     <div
-      className="flex h-full flex-1 flex-col justify-center gap-4 rounded-[20px] border border-white/40 p-6 xl:p-8"
-      style={{
-        backgroundImage:
-          "linear-gradient(114deg, rgba(255,255,255,0.48) 58.72%, rgba(225,217,249,0.48) 131.04%)",
-        backdropFilter: "blur(17.4px)",
-      }}
+      ref={welcomeRef}
+      className={
+        "welcome-card relative flex h-full flex-1 flex-col justify-center gap-4 " +
+        "rounded-[20px] border border-white/60 p-6 xl:p-8 " +
+        "bg-gradient-to-br from-white/90 via-purple-50/60 to-indigo-50/50 " +
+        "shadow-lg shadow-purple-500/5 backdrop-blur-[17.4px]"
+      }
     >
       <h1 className="text-[32px] leading-[1.15] text-heading xl:text-[44px]">
-        Welcome back,
+        <span className="welcome-line inline-block">Welcome back,</span>
         <br />
-        Warden
+        <span className="welcome-line inline-block">Warden</span>
       </h1>
-      <p className="max-w-md text-[13.5px] font-medium leading-relaxed text-heading/50 xl:text-[15px]">
+
+      <p className="welcome-desc max-w-md text-[13.5px] font-medium leading-relaxed text-heading/50 xl:text-[15px]">
         Here&apos;s today&apos;s snapshot — attendance, room occupancy, and
         open requests across the hostel.
       </p>
@@ -36,9 +59,77 @@ function WelcomeCard() {
 }
 
 function TodayAttendanceCard() {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const percentRef = useRef<HTMLSpanElement>(null);
+  const circleRef = useRef<SVGCircleElement>(null);
+
+  // SVG Ring Dimensions
+  const size = 120;
+  const strokeWidth = 11;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const targetOffset = circumference - (TODAY_ATTENDANCE.attendancePct / 100) * circumference;
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+
+      // 1. Ring Bar Fill Animation (0 -> Target)
+      if (circleRef.current) {
+        tl.fromTo(
+          circleRef.current,
+          { strokeDashoffset: circumference },
+          { strokeDashoffset: targetOffset, duration: 1.4, ease: "power3.inOut" },
+          0
+        );
+      }
+
+      // 2. Center Percentage Count-Up Animation (0% -> targetPct%)
+      if (percentRef.current) {
+        const obj = { val: 0 };
+        tl.to(
+          obj,
+          {
+            val: TODAY_ATTENDANCE.attendancePct,
+            duration: 1.4,
+            ease: "power3.inOut",
+            onUpdate: () => {
+              if (percentRef.current) {
+                percentRef.current.textContent = `${Math.round(obj.val)}%`;
+              }
+            },
+          },
+          0
+        );
+      }
+
+      // 3. Stats Numbers Count-Up Animation
+      const statElements = gsap.utils.toArray<HTMLElement>(".stat-num-value");
+      statElements.forEach((el, index) => {
+        const targetVal = TODAY_ATTENDANCE_STATS[index]?.value || 0;
+        const obj = { val: 0 };
+
+        tl.to(
+          obj,
+          {
+            val: targetVal,
+            duration: 1.2,
+            ease: "power2.out",
+            onUpdate: () => {
+              el.textContent = `${Math.round(obj.val)}`;
+            },
+          },
+          0.2 + index * 0.1
+        );
+      });
+    },
+    { scope: cardRef }
+  );
+
   return (
     <div
-      className="relative h-full flex-1 overflow-hidden rounded-[20px]"
+      ref={cardRef}
+      className="today-card relative h-full flex-1 overflow-hidden rounded-[20px]"
       style={{
         backgroundImage:
           "radial-gradient(120% 140% at 0% 0%, #bfe9dd 0%, rgba(191,233,221,0) 45%), radial-gradient(120% 140% at 100% 100%, #f6b8d0 0%, rgba(246,184,208,0) 50%), radial-gradient(90% 120% at 80% 10%, #f3c98a 0%, rgba(243,201,138,0) 45%), linear-gradient(135deg, #8f6fe0 0%, #7c5cd6 45%, #6a49cf 100%)",
@@ -47,61 +138,91 @@ function TodayAttendanceCard() {
       <div className="absolute inset-0 bg-white/10" />
 
       <div className="relative flex h-full flex-col p-5 xl:p-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-[16px] leading-7 text-heading xl:text-[18px]">
-            Today&apos;s Attendance
-          </h2>
-          <span className="flex items-center gap-1.5 text-[13px] font-medium text-emerald-600">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        {/* Header Section */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-[16px] font-bold leading-7 text-heading xl:text-[18px]">
+              Today&apos;s Attendance
+            </h2>
+
+            {/* Live Status Badge */}
+            <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[12px] font-bold text-emerald-700 shadow-xs">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" />
+              </span>
+              Live
             </span>
-            Live
-          </span>
-          <span className="flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-medium text-rose-500">
-            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+          </div>
+
+          {/* QR Expired Status Badge */}
+          <span className="flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-bold text-rose-600 border border-rose-200 shadow-xs backdrop-blur-md">
+            <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
             QR Expired
           </span>
         </div>
 
-        <p className="mt-1 text-[13px] font-medium text-heading/55 xl:text-sm">
+        <p className="mt-0.5 text-[12.5px] font-semibold text-heading/60 xl:text-sm">
           Last updated on {TODAY_ATTENDANCE.lastUpdated}
         </p>
 
-        <div className="mt-4 flex flex-1 items-center gap-3 xl:mt-5 xl:gap-4">
+        {/* Stats & Perfectly Centered SVG Radial Chart */}
+        <div className="mt-4 flex flex-1 items-center justify-between gap-3 xl:mt-5 xl:gap-4">
+          {/* Stats Cards */}
           <div className="flex flex-1 flex-wrap gap-2.5 xl:gap-3">
             {TODAY_ATTENDANCE_STATS.map((stat) => (
               <div
                 key={stat.label}
-                className="min-w-[84px] flex-1 rounded-xl border border-white/60 bg-white/30 px-4 py-2.5 backdrop-blur-[10.8px] xl:px-5 xl:py-3"
+                className="min-w-[80px] flex-1 rounded-xl border border-white/60 bg-white/30 px-4 py-2.5 backdrop-blur-[10.8px] xl:px-5 xl:py-3 transition-transform hover:scale-[1.02]"
               >
-                <p className="text-[13px] font-medium text-heading/70 xl:text-sm">
+                <p className="text-[12.5px] font-semibold text-heading/70 xl:text-sm">
                   {stat.label}
                 </p>
-                <p className="mt-0.5 text-xl font-semibold text-heading xl:text-[26px]">
-                  {stat.value}
+                <p className="stat-num-value mt-0.5 text-xl font-bold text-heading xl:text-[26px]">
+                  0
                 </p>
               </div>
             ))}
           </div>
 
-          <RadialProgress
-            value={TODAY_ATTENDANCE.attendancePct}
-            size={112}
-            strokeWidth={11}
-            trackColor="rgba(255,255,255,0.5)"
-            progressColor="#5a34c9"
-            className="hidden shrink-0 sm:block xl:!h-[128px] xl:!w-[128px]"
-          >
-            <div className="flex flex-col items-center">
-              <span className="text-lg font-semibold text-heading xl:text-2xl">
-                {TODAY_ATTENDANCE.attendancePct}%
+          {/* Centered Ring Progress */}
+          <div className="relative hidden shrink-0 items-center justify-center sm:flex xl:!h-[128px] xl:!w-[128px]">
+            <svg width={size} height={size} className="-rotate-90 transform">
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                stroke="rgba(255,255,255,0.4)"
+                strokeWidth={strokeWidth}
+                fill="transparent"
+              />
+              <circle
+                ref={circleRef}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                stroke="#5a34c9"
+                strokeWidth={strokeWidth}
+                strokeDasharray={circumference}
+                strokeDashoffset={circumference}
+                strokeLinecap="round"
+                fill="transparent"
+              />
+            </svg>
+
+            {/* Absolute Centered Text */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <span
+                ref={percentRef}
+                className="text-xl font-bold leading-none text-heading xl:text-2xl"
+              >
+                0%
               </span>
-              <span className="text-[10px] font-medium text-heading/60 xl:text-[12px]">
+              <span className="mt-1 text-[10px] font-semibold tracking-tight text-heading/70 xl:text-[11px]">
                 Attendance %
               </span>
             </div>
-          </RadialProgress>
+          </div>
         </div>
       </div>
     </div>

@@ -38,7 +38,7 @@ export function MobileSidebarDrawer() {
         aria-modal="true"
         aria-label="Navigation menu"
         className={cn(
-          "liquid-glass absolute left-0 top-0 flex h-full w-[260px] max-w-[80vw] flex-col justify-between overflow-y-auto no-scrollbar",
+          "liquid-glass absolute left-0 top-0 flex h-full w-[260px] max-w-[80vw] flex-col justify-between overflow-y-auto overscroll-contain no-scrollbar",
           "border-r border-white/40 bg-white/90 py-2 transition-transform duration-300 ease-out",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}

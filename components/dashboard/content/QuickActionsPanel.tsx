@@ -1,10 +1,8 @@
-// QuickActionsPanel.tsx
-//
-// Matches Figma node 135:489/494/499/504 "Quick Actions": a 2x2 bento
-// grid — taller top row (Generate Today's QR / View Attendance Report),
-// shorter bottom row (Export PDF / Export Excel). Icons are the
-// uploaded SVG pack, converted to currentColor components (see
-// components/icons/QuickActionIcons.tsx).
+"use client";
+
+import { useRef } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import {
   ExportExcelIcon,
   ExportPdfIcon,
@@ -13,6 +11,8 @@ import {
 } from "@/components/icons/QuickActionIcons";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { QUICK_ACTIONS, type QuickActionItem } from "@/lib/dashboard-mock";
+
+gsap.registerPlugin(useGSAP);
 
 const ICONS = {
   qr: QrCodeIcon,
@@ -23,22 +23,31 @@ const ICONS = {
 
 function ActionCell({ action }: { action: QuickActionItem }) {
   const Icon = ICONS[action.icon];
-  const isLarge = action.size === "lg";
 
   return (
     <button
       type="button"
       className={
-        "group flex items-center gap-3 rounded-2xl border border-white/50 bg-white/40 px-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/70 " +
-        (isLarge ? "h-full" : "h-full")
+        "quick-action-btn group relative flex w-full items-center gap-2.5 sm:gap-3.5 rounded-2xl " +
+        "border border-slate-200/80 bg-white/80 p-2.5 sm:p-3.5 text-left backdrop-blur-md " +
+        "shadow-xs transition-all duration-300 ease-out " +
+        "hover:-translate-y-1 hover:border-primary/40 hover:bg-white " +
+        "hover:shadow-lg hover:shadow-primary/10 " +
+        "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
       }
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[#7c5cd6] transition-colors group-hover:bg-primary/15">
-        <Icon className="h-[16px] w-[16px]" />
+      {/* Subtle hover gradient background */}
+      <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+      {/* Icon Wrapper (Responsive sizing) */}
+      <span className="relative flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-white group-hover:shadow-md group-hover:shadow-primary/30">
+        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform duration-300 group-hover:rotate-6" />
       </span>
-      <span className="text-[13px] font-semibold leading-tight text-heading">
+
+      {/* Text Label (Prevent clipping with responsive sizes & break-words) */}
+      <span className="relative min-w-0 flex-1 text-[11.5px] sm:text-[13px] font-semibold leading-tight sm:leading-snug text-slate-700 transition-colors duration-200 group-hover:text-slate-900">
         {action.label.map((line) => (
-          <span key={line} className="block">
+          <span key={line} className="block truncate sm:whitespace-normal">
             {line}
           </span>
         ))}
@@ -48,21 +57,42 @@ function ActionCell({ action }: { action: QuickActionItem }) {
 }
 
 export function QuickActionsPanel() {
-  const [qr, report, pdf, excel] = QUICK_ACTIONS;
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      // Staggered Pop-In Animation for 4 Action Buttons
+      gsap.fromTo(
+        ".quick-action-btn",
+        {
+          opacity: 0,
+          y: 20,
+          scale: 0.9,
+        },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+          stagger: 0.1,
+          ease: "back.out(1.4)",
+        }
+      );
+    },
+    { scope: containerRef }
+  );
 
   return (
     <DashboardCard
       title="Quick Actions"
       className="flex h-full flex-col"
-      bodyClassName="flex flex-1 flex-col gap-3 px-[19px] pb-[19px] pt-3"
+      bodyClassName="flex flex-1 flex-col px-3.5 pb-4 pt-3 sm:px-5 sm:pb-5"
     >
-      <div className="grid flex-[1.3] grid-cols-2 gap-3">
-        {qr && <ActionCell action={qr} />}
-        {report && <ActionCell action={report} />}
-      </div>
-      <div className="grid flex-1 grid-cols-2 gap-3">
-        {pdf && <ActionCell action={pdf} />}
-        {excel && <ActionCell action={excel} />}
+      {/* Grid structure handles small screens cleanly without overflowing */}
+      <div ref={containerRef} className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5">
+        {QUICK_ACTIONS.map((action) => (
+          <ActionCell key={action.id} action={action} />
+        ))}
       </div>
     </DashboardCard>
   );
