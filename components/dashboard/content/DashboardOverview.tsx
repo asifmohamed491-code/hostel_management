@@ -12,18 +12,23 @@ import { StatCardsRow } from "@/components/dashboard/content/StatCardsRow";
 import { ChartsRow } from "@/components/dashboard/content/ChartsRow";
 import { BottomRow } from "@/components/dashboard/content/BottomRow";
 
-// Layout note: at `xl:` and up this fills the viewport with no page
-// scroll, same as the Figma frame — the middle "charts" row is the
-// flexible one (`xl:flex-1`) while the other three rows keep a fixed
-// height, so the four rows always add up to exactly the space below
-// the top bar. Below `xl:` (tablet/mobile) it falls back to a normal
-// stacked, scrollable layout, since cramming a 6-card stat row + a
-// 4-column chart row + a wide table into a small screen without
-// scroll isn't usable — the "no scrolling" request is a desktop-only
-// constraint by nature of the source design.
+// Layout note: this stacks the four rows with natural, content-driven
+// heights and a consistent gap — no row is squeezed into "whatever
+// space is left." <main> (DashboardLayout.tsx) already scrolls
+// independently of the Sidebar, so there's no need to force everything
+// to fit exactly inside the viewport here; forcing that previously (via
+// `xl:h-full` on this wrapper + `xl:flex-1` on the Charts row) meant the
+// Charts row got compressed below its actual content height whenever
+// the viewport was short, and its cards silently overflowed on top of
+// the Bottom row below. Welcome/Attendance and Bottom keep their
+// designed heights (`xl:h-[232px]` / `xl:h-[228px]`) since those match
+// Figma and aren't the row that was overflowing; Charts keeps its
+// `xl:min-h-[210px]` as a floor but is otherwise free to grow with its
+// content, so it can never bleed into the row after it, at any
+// viewport height.
 export function DashboardOverview() {
   return (
-    <div className="flex min-h-full w-full flex-col gap-4 pt-4 xl:h-full xl:min-h-0 xl:gap-5 xl:pt-5">
+    <div className="flex w-full flex-col gap-4 pt-4 xl:gap-5 xl:pt-5">
       <div className="xl:h-[232px] xl:shrink-0">
         <WelcomeAttendanceRow />
       </div>
@@ -32,7 +37,7 @@ export function DashboardOverview() {
         <StatCardsRow />
       </div>
 
-      <div className="xl:min-h-[210px] xl:flex-1">
+      <div className="xl:min-h-[210px]">
         <ChartsRow />
       </div>
 

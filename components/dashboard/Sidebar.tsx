@@ -126,7 +126,12 @@ export function SidebarNavContent({ onNavigate }: { onNavigate?: () => void } = 
 
   return (
     <>
-      <div>
+      {/* Scrollable menu area — Logo + Nav only. `min-h-0` is required
+          alongside `flex-1` here: without it, a flex item defaults to
+          `min-height: auto`, which lets its content push the item
+          taller than the space available instead of scrolling inside
+          it — exactly what was pushing Logout below the fold. */}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar">
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-6 pb-2 pt-2">
           <Image
@@ -162,8 +167,11 @@ export function SidebarNavContent({ onNavigate }: { onNavigate?: () => void } = 
         </nav>
       </div>
 
-      {/* Logout — pinned to bottom */}
-      <div className="border-t border-white/40 px-3.5 py-3">
+      {/* Logout — outside the scrollable area above, so it's a normal
+          flex sibling that always stays in view at the bottom of the
+          sidebar, never part of the scrolling menu content.
+          `shrink-0` stops it from ever being compressed. */}
+      <div className="shrink-0 border-t border-white/40 px-3.5 py-3">
         <Link
           href={LOGOUT_ITEM.href}
           onClick={onNavigate}
@@ -200,20 +208,13 @@ export function Sidebar() {
         // `.liquid-glass` itself, which many other components rely on
         // for its default `position: relative`.
         "liquid-glass !fixed inset-y-0 left-0 z-30 hidden w-[260px] flex-col justify-between rounded-none",
-        // Sidebar handles its own vertical overflow independently of
-        // the main content: `overflow-y-auto` lets it scroll when
-        // expanded submenus make it taller than the viewport, and
-        // `overscroll-contain` stops that scroll from chaining to the
-        // main content once the sidebar hits its top/bottom edge (so
-        // hovering the sidebar only ever scrolls the sidebar). Visual
-        // scrollbar is hidden via the same `no-scrollbar` utility the
-        // rest of the dashboard already uses.
-        //
-        // `!overflow-y-auto`/`!overflow-x-hidden` are similarly
-        // required to beat `.liquid-glass`'s hard-coded
-        // `overflow: hidden` — without the `!`, the sidebar silently
-        // couldn't scroll at all (content was just clipped).
-        "!overflow-y-auto !overflow-x-hidden overscroll-contain no-scrollbar",
+        // No overflow classes needed here anymore — the scrollable area
+        // now lives INSIDE SidebarNavContent (wrapping Logo+Nav only,
+        // as a `flex-1` sibling of the Logout row), so Logout is a
+        // normal flex child that's never part of what scrolls. This
+        // aside just needs to stay exactly viewport-height (`inset-y-0`
+        // above) and clip at its own edge — `.liquid-glass`'s default
+        // `overflow: hidden` already does that.
         "border-r border-white/40 bg-white/25 py-2 lg:flex" // Ungal Original Glass Background Retention
       )}
       style={{ backdropFilter: "blur(28px) saturate(180%)" }}
