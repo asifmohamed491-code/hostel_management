@@ -80,8 +80,42 @@ export const wardenCreateFormSchema = wardenSchema
     path: ["confirmPassword"],
   });
 
+// Forgot-password OTP verification — POST /api/auth/forgot-password/verify-otp
+export const otpVerifySchema = z.object({
+  email: collegeEmailSchema,
+  otp: z
+    .string()
+    .length(6, "Enter the full 6-digit OTP")
+    .regex(/^\d{6}$/, "OTP must be 6 digits"),
+});
+
+// Client-only — the "New Password" / "Confirm Password" form on
+// /reset-password. confirmPassword is stripped before the request body
+// is sent to POST /api/auth/reset-password, same pattern as
+// wardenCreateFormSchema above.
+export const resetPasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+// POST /api/auth/reset-password — the reset session (email + resetToken)
+// plus the new password, no confirmPassword.
+export const resetPasswordApiSchema = z.object({
+  email: collegeEmailSchema,
+  resetToken: z.string().min(32, "This reset session is invalid."),
+  password: passwordSchema,
+});
+
 export type LoginSchema = z.infer<typeof loginSchema>;
 export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
 export type SignupSchema = z.infer<typeof signupSchema>;
 export type WardenSchema = z.infer<typeof wardenSchema>;
 export type WardenCreateFormSchema = z.infer<typeof wardenCreateFormSchema>;
+export type OtpVerifySchema = z.infer<typeof otpVerifySchema>;
+export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
+export type ResetPasswordApiSchema = z.infer<typeof resetPasswordApiSchema>;
