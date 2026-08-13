@@ -61,7 +61,7 @@ export async function sendPasswordResetOtpEmail(
   const pngLogoPath = path.join(process.cwd(), "public/assets/logo/oasys-mark.png");
   const svgLogoPath = path.join(process.cwd(), "public/assets/logo/oasys-mark.svg");
   
-  let attachments: Array<{ filename: string; path: string; cid: string }> = [];
+  const attachments: Array<{ filename: string; path: string; cid: string }> = [];
   let logoCid: string | null = null;
 
   if (fs.existsSync(pngLogoPath)) {
@@ -90,12 +90,16 @@ export async function sendPasswordResetOtpEmail(
     console.log("SMTP VERIFY FAILED:", verifyError);
   }
 
-  // Logo wrapper with high contrast background container for Dark Mode protection
+  // Gmail Phone Dark Mode Inversion Protection trick using explicit linear-gradient white background
   const logoHeaderHtml = logoCid
     ? `
-      <div style="display: inline-block; background-color: #FFFFFF; padding: 10px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
-        <img class="logo-img" src="cid:${logoCid}" alt="OASYS Logo" width="160" style="display: block; width: 160px; max-width: 100%; height: auto; border: 0; outline: none; text-decoration: none; margin: 0 auto; -ms-interpolation-mode: bicubic;" />
-      </div>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
+        <tr>
+          <td align="center" valign="middle" bgcolor="#ffffff" style="background-color: #ffffff; background-image: linear-gradient(#ffffff, #ffffff); padding: 12px 24px; border-radius: 12px; border: 1px solid #E5E7EB;">
+            <img class="logo-img" src="cid:${logoCid}" alt="OASYS Logo" width="160" style="display: block; width: 160px; max-width: 100%; height: auto; border: 0; outline: none; text-decoration: none; margin: 0 auto; -ms-interpolation-mode: bicubic;" />
+          </td>
+        </tr>
+      </table>
     `
     : `<div style="width: 56px; height: 56px; background-color: #6D28D9; border-radius: 50%; color: #ffffff; font-weight: 800; font-size: 24px; line-height: 56px; text-align: center; font-family: Arial, sans-serif; margin: 0 auto;">O</div>`;
 
@@ -111,14 +115,8 @@ export async function sendPasswordResetOtpEmail(
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="color-scheme" content="light dark">
-        <meta name="supported-color-schemes" content="light dark">
         <title>OASYS Password Reset Email</title>
         <style>
-          :root {
-            color-scheme: light dark;
-            supported-color-schemes: light dark;
-          }
           /* Mobile Responsive Styles */
           @media only screen and (max-width: 600px) {
             .email-container {
@@ -157,7 +155,7 @@ export async function sendPasswordResetOtpEmail(
                 <tr>
                   <td class="content-padding" style="padding: 24px 24px 20px 24px;">
                     
-                    <!-- Header Logo with White Protection Container for Dark Mode -->
+                    <!-- Header Logo with Forced Pure White Protection Pill -->
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 16px;">
                       <tr>
                         <td align="center" valign="middle">
