@@ -90,12 +90,12 @@ export async function sendPasswordResetOtpEmail(
     console.log("SMTP VERIFY FAILED:", verifyError);
   }
 
-  // Gmail Phone Dark Mode Inversion Protection trick using explicit linear-gradient white background
+  // Clean logo container without border
   const logoHeaderHtml = logoCid
     ? `
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
         <tr>
-          <td align="center" valign="middle" bgcolor="#ffffff" style="background-color: #ffffff; background-image: linear-gradient(#ffffff, #ffffff); padding: 12px 24px; border-radius: 12px; border: 1px solid #E5E7EB;">
+          <td align="center" valign="middle" bgcolor="#ffffff" style="background-color: #ffffff; background-image: linear-gradient(#ffffff, #ffffff); padding: 12px 24px; border-radius: 12px;">
             <img class="logo-img" src="cid:${logoCid}" alt="OASYS Logo" width="160" style="display: block; width: 160px; max-width: 100%; height: auto; border: 0; outline: none; text-decoration: none; margin: 0 auto; -ms-interpolation-mode: bicubic;" />
           </td>
         </tr>
@@ -155,7 +155,7 @@ export async function sendPasswordResetOtpEmail(
                 <tr>
                   <td class="content-padding" style="padding: 24px 24px 20px 24px;">
                     
-                    <!-- Header Logo with Forced Pure White Protection Pill -->
+                    <!-- Header Logo without outer border -->
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 16px;">
                       <tr>
                         <td align="center" valign="middle">
