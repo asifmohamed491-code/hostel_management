@@ -21,13 +21,29 @@ export function ForgotPasswordForm() {
 
   const submitButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  function onSubmit(values: ForgotPasswordSchema) {
-    return new Promise<void>((resolve) => {
-      window.setTimeout(() => {
-        console.info("Forgot password OTP requested", values);
-        resolve();
-      }, 900);
-    });
+  async function onSubmit(values: ForgotPasswordSchema) {
+    try {
+      const response = await fetch("/api/auth/forgot-password/send-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: values.email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data.message);
+        return;
+      }
+
+      console.log(data.message);
+    } catch (error) {
+      console.error("Send OTP error:", error);
+    }
   }
 
   function handleButtonEnter() {
