@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
+import { StudentDashboardOverview } from "@/components/dashboard/content/student/StudentDashboardOverview";
 
 export const metadata: Metadata = {
   title: "Student Dashboard | OASYS Hostel Management",
 };
 
-// Placeholder only — the Student dashboard UI isn't ready yet.
+// Sidebar, Top Navigation, and the fixed background are provided by
+// DashboardLayout (app/dashboard/layout.tsx) and are untouched here.
 export default function StudentDashboardPage() {
-  return (
-    <div className="flex min-h-[60vh] w-full flex-col items-center justify-center gap-2 text-center">
-      <h1 className="text-2xl font-semibold text-white">Student Dashboard</h1>
-      <p className="text-sm text-white/70">Authentication Successful</p>
-    </div>
-  );
+  return <StudentDashboardOverview />;
 }
