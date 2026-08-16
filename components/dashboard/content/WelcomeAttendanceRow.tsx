@@ -5,29 +5,12 @@ import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { TODAY_ATTENDANCE, TODAY_ATTENDANCE_STATS } from "@/lib/dashboard-mock";
 
 export interface WelcomeCardProps {
-  /** First line, e.g. "Welcome back,". */
   greeting?: string;
-  /** Second line, e.g. "Warden" or "Manikandan 👋". */
   name?: string;
-  /** Description paragraph shown under the heading. */
   description?: string;
-  /**
-   * Optional extra line rendered under `description`, inside the same
-   * card — used by the Student dashboard for the register no. /
-   * department / year / block / room summary. Omitted entirely for
-   * Warden, so its card is byte-for-byte the same as before this was
-   * made reusable.
-   */
   details?: string;
 }
 
-// Exported so other dashboards (e.g. the Student dashboard) can reuse
-// this exact card — same markup, classes, and GSAP entrance animation
-// — instead of building a new one. Only the text is now parameterized;
-// every visual property (radius, background, blur, border, shadow,
-// spacing, typography) is untouched, and the defaults below reproduce
-// the original hardcoded Warden copy exactly, so <WelcomeCard /> with
-// no props still renders identically to before.
 export function WelcomeCard({
   greeting = "Welcome back,",
   name = "Warden",
@@ -43,21 +26,21 @@ export function WelcomeCard({
         return;
       }
 
+      if (!welcomeRef.current) return;
+
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       const tl = gsap.timeline({
         defaults: { ease: "power3.out" },
         scrollTrigger: {
           trigger: welcomeRef.current,
-          // The Welcome Card is always the first thing on the page, so
-          // this fires essentially on load — it's still routed through
-          // ScrollTrigger (rather than firing unconditionally) so every
-          // dashboard section uses the same single, consistent
-          // viewport-based entrance mechanism.
+          scroller: scrollerEl,
           start: "top 95%",
           once: true,
         },
       });
 
-      // Text Lines Staggered GSAP Reveal Animation
       tl.fromTo(
         ".welcome-line",
         { opacity: 0, y: 20 },
@@ -111,7 +94,6 @@ function TodayAttendanceCard() {
   const percentRef = useRef<HTMLSpanElement>(null);
   const circleRef = useRef<SVGCircleElement>(null);
 
-  // SVG Ring Dimensions
   const size = 120;
   const strokeWidth = 11;
   const radius = (size - strokeWidth) / 2;
@@ -134,16 +116,21 @@ function TodayAttendanceCard() {
         return;
       }
 
+      if (!cardRef.current) return;
+
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       const tl = gsap.timeline({
         defaults: { ease: "power2.out" },
         scrollTrigger: {
           trigger: cardRef.current,
+          scroller: scrollerEl,
           start: "top 90%",
           once: true,
         },
       });
 
-      // 1. Ring Bar Fill Animation (0 -> Target)
       if (circleRef.current) {
         tl.fromTo(
           circleRef.current,
@@ -153,7 +140,6 @@ function TodayAttendanceCard() {
         );
       }
 
-      // 2. Center Percentage Count-Up Animation (0% -> targetPct%)
       if (percentRef.current) {
         const obj = { val: 0 };
         tl.to(
@@ -172,7 +158,6 @@ function TodayAttendanceCard() {
         );
       }
 
-      // 3. Stats Numbers Count-Up Animation
       const statElements = gsap.utils.toArray<HTMLElement>(".stat-num-value");
       statElements.forEach((el, index) => {
         const targetVal = TODAY_ATTENDANCE_STATS[index]?.value || 0;
@@ -207,14 +192,12 @@ function TodayAttendanceCard() {
       <div className="absolute inset-0 bg-white/10" />
 
       <div className="relative flex h-full flex-col p-5 xl:p-6">
-        {/* Header Section */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2.5">
             <h2 className="text-[16px] font-bold leading-7 text-heading xl:text-[18px]">
               Today&apos;s Attendance
             </h2>
 
-            {/* Live Status Badge */}
             <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[12px] font-bold text-emerald-700 shadow-xs">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
@@ -224,7 +207,6 @@ function TodayAttendanceCard() {
             </span>
           </div>
 
-          {/* QR Expired Status Badge */}
           <span className="flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-bold text-rose-600 border border-rose-200 shadow-xs backdrop-blur-md">
             <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
             QR Expired
@@ -235,9 +217,7 @@ function TodayAttendanceCard() {
           Last updated on {TODAY_ATTENDANCE.lastUpdated}
         </p>
 
-        {/* Stats & Perfectly Centered SVG Radial Chart */}
         <div className="mt-4 flex flex-1 items-center justify-between gap-3 xl:mt-5 xl:gap-4">
-          {/* Stats Cards */}
           <div className="flex flex-1 flex-wrap gap-2.5 xl:gap-3">
             {TODAY_ATTENDANCE_STATS.map((stat) => (
               <div
@@ -254,7 +234,6 @@ function TodayAttendanceCard() {
             ))}
           </div>
 
-          {/* Centered Ring Progress */}
           <div className="relative hidden shrink-0 items-center justify-center sm:flex xl:!h-[128px] xl:!w-[128px]">
             <svg width={size} height={size} className="-rotate-90 transform">
               <circle
@@ -279,7 +258,6 @@ function TodayAttendanceCard() {
               />
             </svg>
 
-            {/* Absolute Centered Text */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
               <span
                 ref={percentRef}

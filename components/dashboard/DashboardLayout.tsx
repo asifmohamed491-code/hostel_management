@@ -42,8 +42,25 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               `h-screen overflow-hidden`, so there's no page-level
               scroll left to double up with this one, and the fixed
               Sidebar (which scrolls independently, see Sidebar.tsx)
-              can never be nudged by scrolling here. */}
-          <main className="no-scrollbar flex-1 overflow-y-auto overscroll-contain px-6 pb-24 md:pb-8 lg:px-8">
+              can never be nudged by scrolling here.
+
+              `id="dashboard-scroll-container"` — this is the ONE
+              element that actually scrolls on every dashboard page
+              (the outer wrapper above is `overflow-hidden`, so
+              `window`/`document` never scroll at all). GSAP's
+              ScrollTrigger defaults to using `window` as its scroller
+              unless told otherwise, so every scrollTrigger in every
+              dashboard component was silently listening to a scroll
+              container that never fires. `lib/gsap-plugins.ts` points
+              ScrollTrigger.defaults() at this id so every existing
+              scrollTrigger (Warden and Student alike) starts
+              listening to the container that's actually scrolling,
+              with no per-component changes needed. Keep this id in
+              sync if this element is ever restructured. */}
+          <main
+            id="dashboard-scroll-container"
+            className="no-scrollbar flex-1 overflow-y-auto overscroll-contain px-6 pb-24 md:pb-8 lg:px-8"
+          >
             {children}
           </main>
         </div>
