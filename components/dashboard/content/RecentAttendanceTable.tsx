@@ -1,14 +1,11 @@
 "use client";
 
 import { useRef } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
+import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { InitialsAvatar } from "@/components/dashboard/content/InitialsAvatar";
 import { cn } from "@/lib/cn";
 import { ATTENDANCE_TABLE } from "@/lib/dashboard-mock";
-
-gsap.registerPlugin(useGSAP);
 
 const STATUS_STYLES: Record<string, string> = {
   Present: "bg-emerald-500/10 text-emerald-600",
@@ -21,7 +18,19 @@ export function RecentAttendanceTable() {
 
   useGSAP(
     () => {
-      const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+      if (prefersReducedMotion()) {
+        gsap.set(".table-row-item", { opacity: 1, y: 0 });
+        return;
+      }
+
+      const tl = gsap.timeline({
+        defaults: { ease: "power2.out" },
+        scrollTrigger: {
+          trigger: tableRef.current,
+          start: "top 85%",
+          once: true,
+        },
+      });
 
       // Step-by-Step One-by-One Row GSAP Sequence
       tl.fromTo(
@@ -34,7 +43,7 @@ export function RecentAttendanceTable() {
           opacity: 1,
           y: 0,
           duration: 0.5,
-          stagger: 0.25,
+          stagger: 0.1, // tightened from 0.25s into the recommended 0.05-0.12s range
         }
       );
     },

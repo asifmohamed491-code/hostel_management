@@ -1,20 +1,29 @@
 "use client";
 
 import { useRef } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
+import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { InitialsAvatar } from "@/components/dashboard/content/InitialsAvatar";
 import { RECENT_CHECKINS } from "@/lib/dashboard-mock";
-
-gsap.registerPlugin(useGSAP);
 
 export function RecentCheckins() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
-      const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+      if (prefersReducedMotion()) {
+        gsap.set(".checkin-item", { opacity: 1, x: 0, scale: 1 });
+        return;
+      }
+
+      const tl = gsap.timeline({
+        defaults: { ease: "power2.out" },
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 85%",
+          once: true,
+        },
+      });
 
       // Step-by-Step Sequential Animation for Each User Row
       tl.fromTo(
@@ -29,7 +38,7 @@ export function RecentCheckins() {
           x: 0,
           scale: 1,
           duration: 0.5,
-          stagger: 0.25, // 0.25s interval — oruthar vandha apram thaan aduthavar varuvaar
+          stagger: 0.1, // tightened from 0.25s into the recommended 0.05-0.12s range
         }
       );
     },

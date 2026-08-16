@@ -1,11 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
+import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { TODAY_ATTENDANCE, TODAY_ATTENDANCE_STATS } from "@/lib/dashboard-mock";
-
-gsap.registerPlugin(useGSAP);
 
 export interface WelcomeCardProps {
   /** First line, e.g. "Welcome back,". */
@@ -41,7 +38,24 @@ export function WelcomeCard({
 
   useGSAP(
     () => {
-      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      if (prefersReducedMotion()) {
+        gsap.set(".welcome-line, .welcome-desc", { opacity: 1, y: 0 });
+        return;
+      }
+
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        scrollTrigger: {
+          trigger: welcomeRef.current,
+          // The Welcome Card is always the first thing on the page, so
+          // this fires essentially on load — it's still routed through
+          // ScrollTrigger (rather than firing unconditionally) so every
+          // dashboard section uses the same single, consistent
+          // viewport-based entrance mechanism.
+          start: "top 95%",
+          once: true,
+        },
+      });
 
       // Text Lines Staggered GSAP Reveal Animation
       tl.fromTo(
@@ -106,7 +120,28 @@ function TodayAttendanceCard() {
 
   useGSAP(
     () => {
-      const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+      if (prefersReducedMotion()) {
+        gsap.set([circleRef.current, ".stat-num-value"], { clearProps: "all" });
+        if (percentRef.current) {
+          percentRef.current.textContent = `${TODAY_ATTENDANCE.attendancePct}%`;
+        }
+        gsap.utils.toArray<HTMLElement>(".stat-num-value").forEach((el, index) => {
+          el.textContent = `${TODAY_ATTENDANCE_STATS[index]?.value ?? 0}`;
+        });
+        if (circleRef.current) {
+          gsap.set(circleRef.current, { strokeDashoffset: targetOffset });
+        }
+        return;
+      }
+
+      const tl = gsap.timeline({
+        defaults: { ease: "power2.out" },
+        scrollTrigger: {
+          trigger: cardRef.current,
+          start: "top 90%",
+          once: true,
+        },
+      });
 
       // 1. Ring Bar Fill Animation (0 -> Target)
       if (circleRef.current) {

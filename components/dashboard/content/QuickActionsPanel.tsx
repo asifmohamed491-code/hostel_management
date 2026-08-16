@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
+import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import {
   ExportExcelIcon,
   ExportPdfIcon,
@@ -11,8 +10,6 @@ import {
 } from "@/components/icons/QuickActionIcons";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { QUICK_ACTIONS, type QuickActionItem } from "@/lib/dashboard-mock";
-
-gsap.registerPlugin(useGSAP);
 
 const ICONS = {
   qr: QrCodeIcon,
@@ -61,6 +58,11 @@ export function QuickActionsPanel() {
 
   useGSAP(
     () => {
+      if (prefersReducedMotion()) {
+        gsap.set(".quick-action-btn", { opacity: 1, y: 0, scale: 1 });
+        return;
+      }
+
       // Staggered Pop-In Animation for 4 Action Buttons
       gsap.fromTo(
         ".quick-action-btn",
@@ -76,6 +78,11 @@ export function QuickActionsPanel() {
           duration: 0.6,
           stagger: 0.1,
           ease: "back.out(1.4)",
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 85%",
+            once: true,
+          },
         }
       );
     },

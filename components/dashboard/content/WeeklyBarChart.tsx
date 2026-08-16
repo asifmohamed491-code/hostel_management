@@ -1,12 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
+import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { WEEKLY_ATTENDANCE } from "@/lib/dashboard-mock";
-
-gsap.registerPlugin(useGSAP);
 
 export function WeeklyBarChart() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -17,9 +14,17 @@ export function WeeklyBarChart() {
 
   useGSAP(
     () => {
-      // Direct GSAP target Array Animation for Guaranteed Height Growth
       const bars = gsap.utils.toArray<HTMLElement>(".chart-bar-fill");
+      if (!bars.length) return;
 
+      if (prefersReducedMotion()) {
+        bars.forEach((bar, index) => {
+          bar.style.height = `${WEEKLY_ATTENDANCE[index]?.value || 0}%`;
+        });
+        return;
+      }
+
+      // Direct GSAP target Array Animation for Guaranteed Height Growth
       gsap.fromTo(
         bars,
         { height: "0%" },
@@ -28,6 +33,11 @@ export function WeeklyBarChart() {
           duration: 1.2,
           stagger: 0.1,
           ease: "back.out(1.2)",
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 85%",
+            once: true,
+          },
         }
       );
     },

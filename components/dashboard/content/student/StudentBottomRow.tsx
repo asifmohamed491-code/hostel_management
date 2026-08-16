@@ -1,10 +1,10 @@
+"use client";
+
 // StudentBottomRow.tsx
 //
-// The bottom 4-card row on the Student dashboard: Attendance Overview,
-// My Room Details, Recent Notifications, Quick Actions. Built from the
-// same DashboardCard shell, RadialProgress ring, and InitialsAvatar
-// already used by the Warden dashboard (see ChartsRow.tsx /
-// BottomRow.tsx) so the design system is shared, not re-implemented.
+// The bottom 4-card row on the Student dashboard: Attendance
+// Overview, My Room Details, Recent Notifications, Quick Actions.
+import { useRef } from "react";
 import {
   Bell,
   BookOpenCheck,
@@ -15,6 +15,7 @@ import {
   UtensilsCrossed,
   Wrench,
 } from "lucide-react";
+import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { RadialProgress } from "@/components/dashboard/content/RadialProgress";
 import { InitialsAvatar } from "@/components/dashboard/content/InitialsAvatar";
@@ -28,33 +29,65 @@ import {
 } from "@/lib/student-dashboard-mock";
 
 function AttendanceOverviewCard() {
+  const cardRef = useRef<HTMLElement>(null);
   const maxValue = Math.max(...ATTENDANCE_OVERVIEW_BREAKDOWN.map((b) => b.value));
+
+  useGSAP(
+    () => {
+      const bars = gsap.utils.toArray<HTMLElement>(".mini-bar-fill");
+      if (!bars.length) return;
+
+      if (prefersReducedMotion()) {
+        bars.forEach((bar, index) => {
+          const item = ATTENDANCE_OVERVIEW_BREAKDOWN[index];
+          bar.style.height = `${Math.max(((item?.value ?? 0) / maxValue) * 100, 8)}%`;
+        });
+        return;
+      }
+
+      gsap.fromTo(
+        bars,
+        { height: "0%" },
+        {
+          height: (index) => {
+            const item = ATTENDANCE_OVERVIEW_BREAKDOWN[index];
+            return `${Math.max(((item?.value ?? 0) / maxValue) * 100, 8)}%`;
+          },
+          duration: 1.2,
+          stagger: 0.1,
+          ease: "back.out(1.2)",
+          scrollTrigger: {
+            trigger: cardRef.current,
+            start: "top 90%",
+            once: true,
+          },
+        }
+      );
+    },
+    { scope: cardRef }
+  );
 
   return (
     <DashboardCard
+      ref={cardRef}
       title="Attendance Overview"
       className="flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col items-center justify-center gap-4 px-4 pb-5 pt-2"
     >
       <div className="flex w-full items-center justify-center gap-5">
-        <RadialProgress value={STUDENT_ATTENDANCE.percentage} size={104} strokeWidth={10}>
-          <span className="text-[20px] font-bold text-heading">
-            {STUDENT_ATTENDANCE.percentage}%
-          </span>
-        </RadialProgress>
+        <RadialProgress
+          value={STUDENT_ATTENDANCE.percentage}
+          size={104}
+          strokeWidth={10}
+          valueClassName="text-[20px] font-bold text-heading"
+        />
 
-        {/* Compact mini bar chart — same visual language as
-            WeeklyBarChart.tsx (rounded track + filled bar) scaled down
-            for three categories instead of a week of days. */}
         <div className="flex h-[90px] items-end gap-2">
           {ATTENDANCE_OVERVIEW_BREAKDOWN.map((item) => (
             <div key={item.label} className="flex h-full w-4 items-end rounded-full bg-heading/5 p-0.5">
               <div
-                className="w-full rounded-full"
-                style={{
-                  height: `${Math.max((item.value / maxValue) * 100, 8)}%`,
-                  backgroundColor: item.color,
-                }}
+                className="mini-bar-fill w-full rounded-full"
+                style={{ backgroundColor: item.color }}
               />
             </div>
           ))}
@@ -81,8 +114,39 @@ function AttendanceOverviewCard() {
 }
 
 function MyRoomDetailsCard() {
+  const cardRef = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) {
+        gsap.set(".roommate-item", { opacity: 1, x: 0, scale: 1 });
+        return;
+      }
+
+      gsap.fromTo(
+        ".roommate-item",
+        { opacity: 0, x: -25, scale: 0.95 },
+        {
+          opacity: 1,
+          x: 0,
+          scale: 1,
+          duration: 0.5,
+          stagger: 0.1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: cardRef.current,
+            start: "top 90%",
+            once: true,
+          },
+        }
+      );
+    },
+    { scope: cardRef }
+  );
+
   return (
     <DashboardCard
+      ref={cardRef}
       title="My Room Details"
       className="flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col gap-3 px-[19px] pb-4 pt-2"
@@ -100,7 +164,7 @@ function MyRoomDetailsCard() {
         </p>
         <div className="flex flex-col gap-1.5 overflow-y-auto">
           {MY_ROOM_DETAILS.roommates.map((mate) => (
-            <div key={mate.id} className="flex items-center gap-2.5 rounded-xl p-1.5">
+            <div key={mate.id} className="roommate-item flex items-center gap-2.5 rounded-xl p-1.5">
               <InitialsAvatar initials={mate.initials} size={30} />
               <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-heading">
                 {mate.name}
@@ -123,8 +187,39 @@ const NOTIFICATION_ICON = {
 } as const;
 
 function RecentNotificationsCard() {
+  const cardRef = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) {
+        gsap.set(".notification-item", { opacity: 1, x: 0, scale: 1 });
+        return;
+      }
+
+      gsap.fromTo(
+        ".notification-item",
+        { opacity: 0, x: -25, scale: 0.95 },
+        {
+          opacity: 1,
+          x: 0,
+          scale: 1,
+          duration: 0.5,
+          stagger: 0.1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: cardRef.current,
+            start: "top 90%",
+            once: true,
+          },
+        }
+      );
+    },
+    { scope: cardRef }
+  );
+
   return (
     <DashboardCard
+      ref={cardRef}
       title="Recent Notifications"
       className="flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col gap-1 overflow-y-auto px-[19px] pb-3 pt-2"
@@ -135,7 +230,7 @@ function RecentNotificationsCard() {
           <div
             key={note.id}
             className={
-              "flex items-start gap-2.5 py-2.5" +
+              "notification-item flex items-start gap-2.5 py-2.5" +
               (index !== RECENT_NOTIFICATIONS.length - 1 ? " border-b border-heading/5" : "")
             }
           >
@@ -165,13 +260,43 @@ const QUICK_ACTION_ICONS: Record<StudentQuickAction["icon"], typeof Home> = {
 };
 
 function StudentQuickActionsCard() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) {
+        gsap.set(".quick-action-btn", { opacity: 1, y: 0, scale: 1 });
+        return;
+      }
+
+      gsap.fromTo(
+        ".quick-action-btn",
+        { opacity: 0, y: 20, scale: 0.9 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+          stagger: 0.1,
+          ease: "back.out(1.4)",
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 90%",
+            once: true,
+          },
+        }
+      );
+    },
+    { scope: containerRef }
+  );
+
   return (
     <DashboardCard
       title="Quick Actions"
       className="flex h-full flex-col"
-      bodyClassName="flex flex-1 flex-col px-3.5 pb-4 pt-2 sm:px-4"
+      bodyClassName="flex flex-1 flex-col px-3 pb-3 pt-1.5"
     >
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+      <div ref={containerRef} className="grid grid-cols-2 gap-2">
         {STUDENT_QUICK_ACTIONS.map((action) => {
           const Icon = QUICK_ACTION_ICONS[action.icon];
           return (
@@ -179,18 +304,18 @@ function StudentQuickActionsCard() {
               key={action.id}
               type="button"
               className={
-                "group relative flex flex-col items-center gap-2 rounded-2xl " +
-                "border border-slate-200/80 bg-white/80 p-3 text-center backdrop-blur-md " +
-                "shadow-xs transition-all duration-300 ease-out " +
-                "hover:-translate-y-1 hover:border-primary/40 hover:bg-white " +
-                "hover:shadow-lg hover:shadow-primary/10 " +
-                "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                "quick-action-btn group relative flex flex-col items-center justify-center gap-1 rounded-xl " +
+                "border border-slate-200/80 bg-white/80 px-2 py-2 text-center backdrop-blur-md " +
+                "shadow-2xs transition-all duration-200 ease-out " +
+                "hover:-translate-y-0.5 hover:border-primary/40 hover:bg-white " +
+                "hover:shadow-md hover:shadow-primary/10 " +
+                "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer"
               }
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-white">
-                <Icon className="h-4 w-4" />
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all duration-200 group-hover:scale-105 group-hover:bg-primary group-hover:text-white">
+                <Icon className="h-3.5 w-3.5" />
               </span>
-              <span className="text-[11.5px] font-semibold leading-tight text-slate-700 group-hover:text-slate-900">
+              <span className="text-[10.5px] font-medium leading-tight text-slate-700 group-hover:text-slate-900 line-clamp-1">
                 {action.label}
               </span>
             </button>

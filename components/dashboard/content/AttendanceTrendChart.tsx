@@ -1,12 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
+import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { WEEKLY_ATTENDANCE } from "@/lib/dashboard-mock";
-
-gsap.registerPlugin(useGSAP);
 
 const WIDTH = 320;
 const HEIGHT = 180;
@@ -70,6 +67,13 @@ export function AttendanceTrendChart() {
 
       const length = line.getTotalLength();
 
+      if (prefersReducedMotion()) {
+        gsap.set(line, { strokeDasharray: length, strokeDashoffset: 0 });
+        gsap.set(area, { opacity: 1 });
+        gsap.set(".chart-dot", { scale: 1, opacity: 1 });
+        return;
+      }
+
       gsap.set(line, {
         strokeDasharray: length,
         strokeDashoffset: length,
@@ -77,7 +81,14 @@ export function AttendanceTrendChart() {
       gsap.set(area, { opacity: 0 });
       gsap.set(".chart-dot", { scale: 0, opacity: 0 });
 
-      const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+      const tl = gsap.timeline({
+        defaults: { ease: "power2.out" },
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 85%",
+          once: true,
+        },
+      });
 
       tl.to(line, {
         strokeDashoffset: 0,

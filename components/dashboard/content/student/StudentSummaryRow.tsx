@@ -1,11 +1,13 @@
+"use client";
+
 // StudentSummaryRow.tsx
 //
 // The 4-card summary row directly under the Welcome Card on the
 // Student dashboard: My Room, Attendance, Today's Food, Maintenance
-// Requests. Reuses the same DashboardCard shell and RadialProgress
-// ring already used by the Warden dashboard, so the visual language
-// (radius, blur, border, shadow, purple accent) matches exactly.
+// Requests.
+import { useRef } from "react";
 import { CheckCircle2, Circle, Clock } from "lucide-react";
+import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { RadialProgress } from "@/components/dashboard/content/RadialProgress";
 import {
@@ -16,8 +18,50 @@ import {
 } from "@/lib/student-dashboard-mock";
 
 function MyRoomCard() {
+  const cardRef = useRef<HTMLElement>(null);
+  const bedOccupiedRef = useRef<HTMLSpanElement>(null);
+  const bedTotalRef = useRef<HTMLSpanElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) {
+        if (bedOccupiedRef.current) bedOccupiedRef.current.textContent = `${MY_ROOM.bedOccupied}`;
+        if (bedTotalRef.current) bedTotalRef.current.textContent = `${MY_ROOM.bedTotal}`;
+        return;
+      }
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: cardRef.current,
+          start: "top 90%",
+          once: true,
+        },
+      });
+
+      // Bed occupancy count-up
+      [bedOccupiedRef, bedTotalRef].forEach((ref, index) => {
+        const target = index === 0 ? MY_ROOM.bedOccupied : MY_ROOM.bedTotal;
+        const obj = { val: 0 };
+        tl.to(
+          obj,
+          {
+            val: target,
+            duration: 0.8,
+            ease: "power2.out",
+            onUpdate: () => {
+              if (ref.current) ref.current.textContent = `${Math.round(obj.val)}`;
+            },
+          },
+          index * 0.1
+        );
+      });
+    },
+    { scope: cardRef }
+  );
+
   return (
     <DashboardCard
+      ref={cardRef}
       title="My Room"
       className="flex h-full flex-col"
       bodyClassName="flex flex-1 items-center justify-between gap-3 px-[19px] pb-5 pt-3"
@@ -34,15 +78,11 @@ function MyRoomCard() {
         <div>
           <dt className="text-[12px] font-medium text-heading/50">Bed</dt>
           <dd className="text-[17px] font-bold text-heading">
-            {MY_ROOM.bedOccupied} / {MY_ROOM.bedTotal}
+            <span ref={bedOccupiedRef}>0</span> / <span ref={bedTotalRef}>0</span>
           </dd>
         </div>
       </dl>
 
-      {/* Simple flat room illustration — no matching asset exists in
-          public/assets, so this is a small self-contained SVG built
-          from the same purple palette rather than a photo/stock
-          illustration. */}
       <svg
         viewBox="0 0 96 96"
         className="h-[84px] w-[84px] shrink-0 xl:h-[96px] xl:w-[96px]"
@@ -69,11 +109,12 @@ function AttendanceCard() {
       className="flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col items-center justify-center gap-3 px-[19px] pb-5 pt-2"
     >
-      <RadialProgress value={STUDENT_ATTENDANCE.percentage} size={110} strokeWidth={10}>
-        <span className="text-[22px] font-bold text-heading">
-          {STUDENT_ATTENDANCE.percentage}%
-        </span>
-      </RadialProgress>
+      <RadialProgress
+        value={STUDENT_ATTENDANCE.percentage}
+        size={110}
+        strokeWidth={10}
+        valueClassName="text-[22px] font-bold text-heading"
+      />
 
       <p className="text-center text-[12.5px] font-semibold text-heading/70">
         {STUDENT_ATTENDANCE.stats.map((stat, index) => (
@@ -97,8 +138,39 @@ const FOOD_STATUS_ICON: Record<
 };
 
 function TodaysFoodCard() {
+  const cardRef = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) {
+        gsap.set(".food-item", { opacity: 1, x: 0, scale: 1 });
+        return;
+      }
+
+      gsap.fromTo(
+        ".food-item",
+        { opacity: 0, x: -25, scale: 0.95 },
+        {
+          opacity: 1,
+          x: 0,
+          scale: 1,
+          duration: 0.5,
+          stagger: 0.1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: cardRef.current,
+            start: "top 90%",
+            once: true,
+          },
+        }
+      );
+    },
+    { scope: cardRef }
+  );
+
   return (
     <DashboardCard
+      ref={cardRef}
       title="Today's Food"
       className="flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col gap-0 px-[19px] pb-4 pt-2"
@@ -108,7 +180,7 @@ function TodaysFoodCard() {
         const isLast = index === TODAYS_FOOD.length - 1;
 
         return (
-          <div key={item.id} className="relative flex gap-3 pb-4 last:pb-0">
+          <div key={item.id} className="food-item relative flex gap-3 pb-4 last:pb-0">
             {/* Timeline rail */}
             <div className="flex flex-col items-center">
               <Icon
@@ -138,8 +210,51 @@ function TodaysFoodCard() {
 }
 
 function MaintenanceRequestsCard() {
+  const cardRef = useRef<HTMLElement>(null);
+  const openRef = useRef<HTMLSpanElement>(null);
+  const resolvedRef = useRef<HTMLSpanElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) {
+        if (openRef.current) openRef.current.textContent = `${MAINTENANCE_REQUESTS.open}`;
+        if (resolvedRef.current) resolvedRef.current.textContent = `${MAINTENANCE_REQUESTS.resolved}`;
+        return;
+      }
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: cardRef.current,
+          start: "top 90%",
+          once: true,
+        },
+      });
+
+      [
+        { ref: openRef, target: MAINTENANCE_REQUESTS.open },
+        { ref: resolvedRef, target: MAINTENANCE_REQUESTS.resolved },
+      ].forEach(({ ref, target }, index) => {
+        const obj = { val: 0 };
+        tl.to(
+          obj,
+          {
+            val: target,
+            duration: 0.9,
+            ease: "power2.out",
+            onUpdate: () => {
+              if (ref.current) ref.current.textContent = `${Math.round(obj.val)}`;
+            },
+          },
+          0.1 + index * 0.1
+        );
+      });
+    },
+    { scope: cardRef }
+  );
+
   return (
     <DashboardCard
+      ref={cardRef}
       title="Maintenance Requests"
       className="flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col justify-between gap-4 px-[19px] pb-5 pt-3"
@@ -148,13 +263,13 @@ function MaintenanceRequestsCard() {
         <div className="flex items-center justify-between">
           <dt className="text-[13px] font-medium text-heading/60">Open</dt>
           <dd className="text-[17px] font-bold text-heading">
-            {MAINTENANCE_REQUESTS.open}
+            <span ref={openRef}>0</span>
           </dd>
         </div>
         <div className="flex items-center justify-between">
           <dt className="text-[13px] font-medium text-heading/60">Resolved</dt>
           <dd className="text-[17px] font-bold text-heading">
-            {MAINTENANCE_REQUESTS.resolved}
+            <span ref={resolvedRef}>0</span>
           </dd>
         </div>
       </dl>

@@ -1,12 +1,9 @@
 "use client";
 
 import { useRef } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
+import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { ATTENDANCE_RING_PCT } from "@/lib/dashboard-mock";
-
-gsap.registerPlugin(useGSAP);
 
 export function AttendanceRingChart() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,7 +19,25 @@ export function AttendanceRingChart() {
 
   useGSAP(
     () => {
-      const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+      if (prefersReducedMotion()) {
+        if (circleRef.current) {
+          gsap.set(circleRef.current, { strokeDashoffset: targetOffset });
+        }
+        if (countRef.current) {
+          countRef.current.textContent = `${ATTENDANCE_RING_PCT}%`;
+        }
+        gsap.set(".status-badge", { opacity: 1, y: 0 });
+        return;
+      }
+
+      const tl = gsap.timeline({
+        defaults: { ease: "power2.out" },
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 85%",
+          once: true,
+        },
+      });
 
       // 1. Circle Bar Filling Animation (0 to Target)
       if (circleRef.current) {

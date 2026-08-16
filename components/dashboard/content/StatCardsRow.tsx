@@ -1,18 +1,30 @@
 "use client";
 
 import { useRef } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
+import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { STAT_CARDS } from "@/lib/dashboard-mock";
-
-gsap.registerPlugin(useGSAP);
 
 export function StatCardsRow() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
-      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      if (prefersReducedMotion()) {
+        gsap.set(".stat-card-item", { opacity: 1, y: 0, scale: 1 });
+        gsap.utils.toArray<HTMLElement>(".stat-card-value").forEach((el, index) => {
+          el.textContent = String(STAT_CARDS[index]?.value ?? "0");
+        });
+        return;
+      }
+
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 85%",
+          once: true,
+        },
+      });
 
       // 1. Cards Entrance Animation (Slide & Scale Up)
       tl.fromTo(
