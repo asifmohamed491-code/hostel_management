@@ -19,6 +19,12 @@ export function AttendanceRingChart() {
 
   useGSAP(
     () => {
+      const statusBadges = containerRef.current
+        ? gsap.utils.toArray<HTMLElement>(".status-badge", containerRef.current)
+        : [];
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       if (prefersReducedMotion()) {
         if (circleRef.current) {
           gsap.set(circleRef.current, { strokeDashoffset: targetOffset });
@@ -26,7 +32,7 @@ export function AttendanceRingChart() {
         if (countRef.current) {
           countRef.current.textContent = `${ATTENDANCE_RING_PCT}%`;
         }
-        gsap.set(".status-badge", { opacity: 1, y: 0 });
+        gsap.set(statusBadges, { opacity: 1, y: 0 });
         return;
       }
 
@@ -34,6 +40,7 @@ export function AttendanceRingChart() {
         defaults: { ease: "power2.out" },
         scrollTrigger: {
           trigger: containerRef.current,
+          scroller: scrollerEl,
           start: "top 85%",
           once: true,
         },
@@ -70,7 +77,7 @@ export function AttendanceRingChart() {
 
       // 3. Status Badge Slide-Up
       tl.fromTo(
-        ".status-badge",
+        statusBadges,
         { opacity: 0, y: 8 },
         { opacity: 1, y: 0, duration: 0.4 },
         "-=0.4"

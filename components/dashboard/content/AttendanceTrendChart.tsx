@@ -62,6 +62,11 @@ export function AttendanceTrendChart() {
     () => {
       const line = pathRef.current;
       const area = areaRef.current;
+      const dots = containerRef.current
+        ? gsap.utils.toArray<HTMLElement>(".chart-dot", containerRef.current)
+        : [];
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
 
       if (!line || !area || points.length === 0) return;
 
@@ -70,7 +75,7 @@ export function AttendanceTrendChart() {
       if (prefersReducedMotion()) {
         gsap.set(line, { strokeDasharray: length, strokeDashoffset: 0 });
         gsap.set(area, { opacity: 1 });
-        gsap.set(".chart-dot", { scale: 1, opacity: 1 });
+        gsap.set(dots, { scale: 1, opacity: 1 });
         return;
       }
 
@@ -79,12 +84,13 @@ export function AttendanceTrendChart() {
         strokeDashoffset: length,
       });
       gsap.set(area, { opacity: 0 });
-      gsap.set(".chart-dot", { scale: 0, opacity: 0 });
+      gsap.set(dots, { scale: 0, opacity: 0 });
 
       const tl = gsap.timeline({
         defaults: { ease: "power2.out" },
         scrollTrigger: {
           trigger: containerRef.current,
+          scroller: scrollerEl,
           start: "top 85%",
           once: true,
         },
@@ -101,7 +107,7 @@ export function AttendanceTrendChart() {
         "-=0.6"
       )
       .to(
-        ".chart-dot",
+        dots,
         {
           scale: 1,
           opacity: 1,

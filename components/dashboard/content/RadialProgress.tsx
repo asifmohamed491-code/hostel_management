@@ -69,10 +69,14 @@ export function RadialProgress({
         return;
       }
 
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       const tl = gsap.timeline({
         defaults: { ease: "power2.out" },
         scrollTrigger: {
           trigger: containerRef.current,
+          scroller: scrollerEl,
           start: "top 90%",
           once: true,
         },

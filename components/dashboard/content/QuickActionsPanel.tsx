@@ -58,14 +58,20 @@ export function QuickActionsPanel() {
 
   useGSAP(
     () => {
+      const buttons = containerRef.current
+        ? gsap.utils.toArray<HTMLElement>(".quick-action-btn", containerRef.current)
+        : [];
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       if (prefersReducedMotion()) {
-        gsap.set(".quick-action-btn", { opacity: 1, y: 0, scale: 1 });
+        gsap.set(buttons, { opacity: 1, y: 0, scale: 1 });
         return;
       }
 
       // Staggered Pop-In Animation for 4 Action Buttons
       gsap.fromTo(
-        ".quick-action-btn",
+        buttons,
         {
           opacity: 0,
           y: 20,
@@ -80,6 +86,7 @@ export function QuickActionsPanel() {
           ease: "back.out(1.4)",
           scrollTrigger: {
             trigger: containerRef.current,
+            scroller: scrollerEl,
             start: "top 85%",
             once: true,
           },

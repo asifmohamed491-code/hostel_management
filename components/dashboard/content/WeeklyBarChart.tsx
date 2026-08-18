@@ -14,7 +14,12 @@ export function WeeklyBarChart() {
 
   useGSAP(
     () => {
-      const bars = gsap.utils.toArray<HTMLElement>(".chart-bar-fill");
+      const bars = containerRef.current
+        ? gsap.utils.toArray<HTMLElement>(".chart-bar-fill", containerRef.current)
+        : [];
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       if (!bars.length) return;
 
       if (prefersReducedMotion()) {
@@ -35,6 +40,7 @@ export function WeeklyBarChart() {
           ease: "back.out(1.2)",
           scrollTrigger: {
             trigger: containerRef.current,
+            scroller: scrollerEl,
             start: "top 85%",
             once: true,
           },

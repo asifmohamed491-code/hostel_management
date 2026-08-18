@@ -62,6 +62,9 @@ function MyRoomCard() {
         value: MY_ROOM.bedTotal,
       };
 
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       gsap.fromTo(
         occupiedCounter,
         { value: 0 },
@@ -76,6 +79,7 @@ function MyRoomCard() {
           },
           scrollTrigger: {
             trigger: card,
+            scroller: scrollerEl,
             start: "top 90%",
             once: true,
           },
@@ -97,6 +101,7 @@ function MyRoomCard() {
           },
           scrollTrigger: {
             trigger: card,
+            scroller: scrollerEl,
             start: "top 90%",
             once: true,
           },
@@ -105,7 +110,9 @@ function MyRoomCard() {
     },
     {
       scope: cardRef,
-  });
+      dependencies: [hasMounted],
+    }
+  );
 
   return (
     <DashboardCard
@@ -312,6 +319,9 @@ function TodaysFoodCard() {
         return;
       }
 
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       gsap.fromTo(
         foodItems,
         {
@@ -328,6 +338,7 @@ function TodaysFoodCard() {
           ease: "power2.out",
           scrollTrigger: {
             trigger: card,
+            scroller: scrollerEl,
             start: "top 90%",
             once: true,
           },
@@ -420,9 +431,13 @@ function MaintenanceRequestsCard() {
         return;
       }
 
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       const timeline = gsap.timeline({
         scrollTrigger: {
           trigger: card,
+          scroller: scrollerEl,
           start: "top 90%",
           once: true,
         },

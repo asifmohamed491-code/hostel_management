@@ -9,9 +9,18 @@ export function StatCardsRow() {
 
   useGSAP(
     () => {
+      const cards = containerRef.current
+        ? gsap.utils.toArray<HTMLElement>(".stat-card-item", containerRef.current)
+        : [];
+      const valueElements = containerRef.current
+        ? gsap.utils.toArray<HTMLElement>(".stat-card-value", containerRef.current)
+        : [];
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       if (prefersReducedMotion()) {
-        gsap.set(".stat-card-item", { opacity: 1, y: 0, scale: 1 });
-        gsap.utils.toArray<HTMLElement>(".stat-card-value").forEach((el, index) => {
+        gsap.set(cards, { opacity: 1, y: 0, scale: 1 });
+        valueElements.forEach((el, index) => {
           el.textContent = String(STAT_CARDS[index]?.value ?? "0");
         });
         return;
@@ -21,6 +30,7 @@ export function StatCardsRow() {
         defaults: { ease: "power3.out" },
         scrollTrigger: {
           trigger: containerRef.current,
+          scroller: scrollerEl,
           start: "top 85%",
           once: true,
         },
@@ -28,7 +38,7 @@ export function StatCardsRow() {
 
       // 1. Cards Entrance Animation (Slide & Scale Up)
       tl.fromTo(
-        ".stat-card-item",
+        cards,
         {
           opacity: 0,
           y: 20,
@@ -44,7 +54,6 @@ export function StatCardsRow() {
       );
 
       // 2. Number Count-Up Animation (0 -> Target Value)
-      const valueElements = gsap.utils.toArray<HTMLElement>(".stat-card-value");
 
       valueElements.forEach((el, index) => {
         const rawValue = String(STAT_CARDS[index]?.value || "0");

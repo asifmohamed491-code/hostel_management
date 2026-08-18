@@ -11,8 +11,14 @@ export function RecentCheckins() {
 
   useGSAP(
     () => {
+      const rows = containerRef.current
+        ? gsap.utils.toArray<HTMLElement>(".checkin-item", containerRef.current)
+        : [];
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       if (prefersReducedMotion()) {
-        gsap.set(".checkin-item", { opacity: 1, x: 0, scale: 1 });
+        gsap.set(rows, { opacity: 1, x: 0, scale: 1 });
         return;
       }
 
@@ -20,6 +26,7 @@ export function RecentCheckins() {
         defaults: { ease: "power2.out" },
         scrollTrigger: {
           trigger: containerRef.current,
+          scroller: scrollerEl,
           start: "top 85%",
           once: true,
         },
@@ -27,7 +34,7 @@ export function RecentCheckins() {
 
       // Step-by-Step Sequential Animation for Each User Row
       tl.fromTo(
-        ".checkin-item",
+        rows,
         {
           opacity: 0,
           x: -25,
@@ -38,7 +45,7 @@ export function RecentCheckins() {
           x: 0,
           scale: 1,
           duration: 0.5,
-          stagger: 0.1, // tightened from 0.25s into the recommended 0.05-0.12s range
+          stagger: 0.1,
         }
       );
     },

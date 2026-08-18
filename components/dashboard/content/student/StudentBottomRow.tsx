@@ -34,7 +34,9 @@ function AttendanceOverviewCard() {
 
   useGSAP(
     () => {
-      const bars = gsap.utils.toArray<HTMLElement>(".mini-bar-fill");
+      const bars = cardRef.current
+        ? gsap.utils.toArray<HTMLElement>(".mini-bar-fill", cardRef.current)
+        : [];
       if (!bars.length) return;
 
       if (prefersReducedMotion()) {
@@ -44,6 +46,9 @@ function AttendanceOverviewCard() {
         });
         return;
       }
+
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
 
       gsap.fromTo(
         bars,
@@ -58,6 +63,7 @@ function AttendanceOverviewCard() {
           ease: "back.out(1.2)",
           scrollTrigger: {
             trigger: cardRef.current,
+            scroller: scrollerEl,
             start: "top 90%",
             once: true,
           },
@@ -118,13 +124,22 @@ function MyRoomDetailsCard() {
 
   useGSAP(
     () => {
+      const roommates = cardRef.current
+        ? gsap.utils.toArray<HTMLElement>(".roommate-item", cardRef.current)
+        : [];
+
+      if (!roommates.length) return;
+
       if (prefersReducedMotion()) {
-        gsap.set(".roommate-item", { opacity: 1, x: 0, scale: 1 });
+        gsap.set(roommates, { opacity: 1, x: 0, scale: 1 });
         return;
       }
 
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       gsap.fromTo(
-        ".roommate-item",
+        roommates,
         { opacity: 0, x: -25, scale: 0.95 },
         {
           opacity: 1,
@@ -135,6 +150,7 @@ function MyRoomDetailsCard() {
           ease: "power2.out",
           scrollTrigger: {
             trigger: cardRef.current,
+            scroller: scrollerEl,
             start: "top 90%",
             once: true,
           },
@@ -191,13 +207,22 @@ function RecentNotificationsCard() {
 
   useGSAP(
     () => {
+      const notifications = cardRef.current
+        ? gsap.utils.toArray<HTMLElement>(".notification-item", cardRef.current)
+        : [];
+
+      if (!notifications.length) return;
+
       if (prefersReducedMotion()) {
-        gsap.set(".notification-item", { opacity: 1, x: 0, scale: 1 });
+        gsap.set(notifications, { opacity: 1, x: 0, scale: 1 });
         return;
       }
 
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       gsap.fromTo(
-        ".notification-item",
+        notifications,
         { opacity: 0, x: -25, scale: 0.95 },
         {
           opacity: 1,
@@ -208,6 +233,7 @@ function RecentNotificationsCard() {
           ease: "power2.out",
           scrollTrigger: {
             trigger: cardRef.current,
+            scroller: scrollerEl,
             start: "top 90%",
             once: true,
           },
@@ -281,6 +307,7 @@ function StudentQuickActionsCard() {
           ease: "back.out(1.4)",
           scrollTrigger: {
             trigger: containerRef.current,
+            scroller: document.getElementById("dashboard-scroll-container") || undefined,
             start: "top 90%",
             once: true,
           },

@@ -18,8 +18,14 @@ export function RecentAttendanceTable() {
 
   useGSAP(
     () => {
+      const rows = tableRef.current
+        ? gsap.utils.toArray<HTMLElement>(".table-row-item", tableRef.current)
+        : [];
+      const scrollerEl =
+        document.getElementById("dashboard-scroll-container") || undefined;
+
       if (prefersReducedMotion()) {
-        gsap.set(".table-row-item", { opacity: 1, y: 0 });
+        gsap.set(rows, { opacity: 1, y: 0 });
         return;
       }
 
@@ -27,6 +33,7 @@ export function RecentAttendanceTable() {
         defaults: { ease: "power2.out" },
         scrollTrigger: {
           trigger: tableRef.current,
+          scroller: scrollerEl,
           start: "top 85%",
           once: true,
         },
@@ -34,7 +41,7 @@ export function RecentAttendanceTable() {
 
       // Step-by-Step One-by-One Row GSAP Sequence
       tl.fromTo(
-        ".table-row-item",
+        rows,
         {
           opacity: 0,
           y: 15,
@@ -43,7 +50,7 @@ export function RecentAttendanceTable() {
           opacity: 1,
           y: 0,
           duration: 0.5,
-          stagger: 0.1, // tightened from 0.25s into the recommended 0.05-0.12s range
+          stagger: 0.1,
         }
       );
     },

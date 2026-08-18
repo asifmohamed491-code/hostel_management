@@ -6,27 +6,63 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-if (typeof document !== "undefined") {
-  const initScrollTrigger = () => {
-    const dashboardScrollContainer = document.getElementById(
-      "dashboard-scroll-container"
-    );
+let dashboardScrollerInitialized = false;
 
-    if (dashboardScrollContainer) {
-      ScrollTrigger.defaults({
-        scroller: dashboardScrollContainer,
-      });
-      ScrollTrigger.refresh();
-    }
+export function getDashboardScrollContainer(): HTMLElement | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return document.getElementById("dashboard-scroll-container") as HTMLElement | null;
+}
+
+export function ensureDashboardScroller(): HTMLElement | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const dashboardScrollContainer = getDashboardScrollContainer();
+
+  if (!dashboardScrollContainer) {
+    return null;
+  }
+
+  ScrollTrigger.defaults({
+    scroller: dashboardScrollContainer,
+  });
+
+  dashboardScrollerInitialized = true;
+  ScrollTrigger.refresh();
+  return dashboardScrollContainer;
+}
+
+if (typeof document !== "undefined") {
+  const onDomReady = () => {
+    ensureDashboardScroller();
   };
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initScrollTrigger, {
-      once: true,
-    });
+    document.addEventListener("DOMContentLoaded", onDomReady, { once: true });
   } else {
-    initScrollTrigger();
+    onDomReady();
   }
+
+  const observer = new MutationObserver(() => {
+    if (!dashboardScrollerInitialized) {
+      ensureDashboardScroller();
+    }
+  });
+
+  if (document.body) {
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  window.addEventListener("load", () => {
+    ensureDashboardScroller();
+  }, { once: true });
 }
 
 /**
