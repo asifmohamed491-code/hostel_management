@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { SerwistProvider } from "@serwist/next/react";
 import "@fontsource-variable/inter";
 import "./globals.css";
 
@@ -58,14 +57,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font-sans">
-        <SerwistProvider
-          swUrl="/sw.js"
-          disable={process.env.NODE_ENV === "development"}
-        >
-          {children}
-        </SerwistProvider>
-      </body>
+      <body className="font-sans">{children}</body>
     </html>
   );
 }
