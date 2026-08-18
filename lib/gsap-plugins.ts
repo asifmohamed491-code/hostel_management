@@ -6,6 +6,29 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+if (typeof document !== "undefined") {
+  const initScrollTrigger = () => {
+    const dashboardScrollContainer = document.getElementById(
+      "dashboard-scroll-container"
+    );
+
+    if (dashboardScrollContainer) {
+      ScrollTrigger.defaults({
+        scroller: dashboardScrollContainer,
+      });
+      ScrollTrigger.refresh();
+    }
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initScrollTrigger, {
+      once: true,
+    });
+  } else {
+    initScrollTrigger();
+  }
+}
+
 /**
  * True when the user has requested reduced motion
  * at the OS/browser level.
