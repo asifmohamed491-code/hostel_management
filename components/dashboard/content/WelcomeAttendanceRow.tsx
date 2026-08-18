@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { TODAY_ATTENDANCE, TODAY_ATTENDANCE_STATS } from "@/lib/dashboard-mock";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export interface WelcomeCardProps {
   greeting?: string;
@@ -277,9 +278,12 @@ function TodayAttendanceCard() {
 }
 
 export function WelcomeAttendanceRow() {
+  const { user, loading } = useCurrentUser();
+  const safeWardenName = user?.fullName?.trim() || "Warden";
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row xl:gap-6">
-      <WelcomeCard />
+      <WelcomeCard name={loading ? "Warden" : safeWardenName} />
       <TodayAttendanceCard />
     </div>
   );
