@@ -20,11 +20,12 @@ export function prefersReducedMotion(): boolean {
 if (typeof window !== "undefined") {
   gsap.registerPlugin(useGSAP, ScrollTrigger);
 
-  // Set default scroller only when the custom scroll container actually exists
-  const container = document.getElementById("dashboard-scroll-container");
-  if (container) {
-    ScrollTrigger.defaults({ scroller: container });
-  }
+  // Use the selector string (not a pre-queried node) so ScrollTrigger
+  // resolves "#dashboard-scroll-container" lazily, at the moment each
+  // trigger is actually created/refreshed - not synchronously here at
+  // module-import time, when the element may not exist in the DOM yet
+  // (e.g. during a first client-side navigation into the dashboard).
+  ScrollTrigger.defaults({ scroller: "#dashboard-scroll-container" });
 
   // Refresh triggers once fonts and resources are fully settled
   if ("fonts" in document) {
