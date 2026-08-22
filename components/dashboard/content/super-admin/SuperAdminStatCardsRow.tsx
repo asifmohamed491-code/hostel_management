@@ -111,7 +111,7 @@ export function SuperAdminStatCardsRow() {
             key={card.id}
             className={
               "sa-stat-card group relative flex flex-col justify-between overflow-hidden rounded-[22px] " +
-              "border border-white/60 bg-white/70 p-4 backdrop-blur-[20px] transition-all duration-300 ease-out xl:p-5 " +
+              "sa-dashboard-card sa-dashboard-card--stat border border-white/60 bg-white/70 p-4 backdrop-blur-[20px] transition-all duration-300 ease-out xl:p-5 " +
               "hover:-translate-y-1.5 hover:border-white hover:shadow-xl active:scale-[0.98]"
             }
             style={{ boxShadow: "0 4px 14px 0 rgba(120,90,200,0.07)" }}

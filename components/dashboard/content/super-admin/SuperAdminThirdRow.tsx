@@ -120,9 +120,9 @@ function AttendanceAnalyticsChart() {
           ))}
         </div>
       }
-      className="flex h-full flex-col"
+      className="sa-dashboard-card sa-dashboard-card--violet flex h-full flex-col"
       headerClassName="flex-wrap"
-      bodyClassName="flex flex-1 flex-col px-4 pb-4 pt-3 sm:px-6"
+      bodyClassName="sa-chart-body flex flex-1 flex-col px-4 pb-4 pt-3 sm:px-6"
     >
       <div ref={containerRef} className="relative flex flex-1 gap-3">
         <div className="flex flex-col justify-between py-1 text-[10px] font-semibold text-heading/35 select-none sm:text-[11px]">
@@ -222,7 +222,7 @@ function RecentSystemActivity() {
   );
 
   return (
-    <DashboardCard title="Recent System Activity" className="flex h-full flex-col" bodyClassName="flex flex-1 flex-col px-4 pb-4 pt-3">
+    <DashboardCard title="Recent System Activity" className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col" bodyClassName="flex flex-1 flex-col px-4 pb-4 pt-3">
       <div ref={containerRef} className="flex flex-1 flex-col">
         {RECENT_SYSTEM_ACTIVITY.map((item, i) => {
           const Icon = ACTIVITY_ICONS[item.icon];
@@ -294,7 +294,7 @@ function SuperAdminQuickActions() {
   );
 
   return (
-    <DashboardCard title="Quick Actions" className="flex h-full flex-col" bodyClassName="flex flex-1 flex-col px-3.5 pb-4 pt-3">
+    <DashboardCard title="Quick Actions" className="sa-dashboard-card sa-dashboard-card--lilac flex h-full flex-col" bodyClassName="flex flex-1 flex-col px-3.5 pb-4 pt-3">
       <div ref={containerRef} className="grid grid-cols-2 gap-2.5">
         {SUPER_ADMIN_QUICK_ACTIONS.map((action) => {
           const Icon = QUICK_ACTION_ICONS[action.icon];
@@ -365,7 +365,7 @@ function SystemStatusCard() {
   );
 
   return (
-    <DashboardCard title="System Status" className="flex h-full flex-col" bodyClassName="flex flex-1 flex-col justify-between px-4 pb-4 pt-3">
+    <DashboardCard title="System Status" className="sa-dashboard-card sa-dashboard-card--mist flex h-full flex-col" bodyClassName="flex flex-1 flex-col justify-between px-4 pb-4 pt-3">
       <div ref={containerRef} className="flex flex-col gap-3">
         {SYSTEM_STATUS.map((item) => (
           <div key={item.id} className="status-row flex items-center justify-between gap-2 text-[12.5px]">

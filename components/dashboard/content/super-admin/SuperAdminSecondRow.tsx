@@ -25,7 +25,7 @@ function LegendDot({ color }: { color: string }) {
 
 function StudentOverviewCard() {
   return (
-    <DashboardCard title="Student Overview" className="flex h-full flex-col" bodyClassName="flex flex-1 flex-col items-center px-4 pb-5 pt-3">
+    <DashboardCard title="Student Overview" className="sa-dashboard-card sa-dashboard-card--violet flex h-full flex-col" bodyClassName="sa-chart-body flex flex-1 flex-col items-center px-4 pb-5 pt-3">
       <DonutChart
         segments={[
           { value: STUDENT_OVERVIEW.active, color: "#6E42F5" },
@@ -50,7 +50,7 @@ function StudentOverviewCard() {
 
 function HostelOccupancyCard() {
   return (
-    <DashboardCard title="Hostel Occupancy" className="flex h-full flex-col" bodyClassName="flex flex-1 flex-col items-center px-4 pb-5 pt-3">
+    <DashboardCard title="Hostel Occupancy" className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col" bodyClassName="sa-chart-body flex flex-1 flex-col items-center px-4 pb-5 pt-3">
       <DonutChart
         segments={[
           { value: HOSTEL_OCCUPANCY.occupied, color: "#6E42F5" },
@@ -117,7 +117,7 @@ function HostelBlockOverviewCard() {
   );
 
   return (
-    <DashboardCard title="Hostel Block Overview" className="flex h-full flex-col" bodyClassName="flex flex-1 flex-col justify-center px-[19px] pb-4 pt-2">
+    <DashboardCard title="Hostel Block Overview" className="sa-dashboard-card sa-dashboard-card--lilac flex h-full flex-col" bodyClassName="flex flex-1 flex-col justify-center px-[19px] pb-4 pt-2">
       <div ref={containerRef} className="flex flex-col gap-4">
         {HOSTEL_BLOCKS.map((block) => (
           <div key={block.id} className="block-row">
@@ -184,7 +184,7 @@ function WardenOverviewCard() {
   );
 
   return (
-    <DashboardCard title="Warden Overview" className="flex h-full flex-col" bodyClassName="flex flex-1 flex-col px-[19px] pb-4 pt-1">
+    <DashboardCard title="Warden Overview" className="sa-dashboard-card sa-dashboard-card--mist flex h-full flex-col" bodyClassName="flex flex-1 flex-col px-[19px] pb-4 pt-1">
       <p className="text-[12.5px] font-semibold text-heading/60">
         Total: {WARDEN_OVERVIEW.total} ({WARDEN_OVERVIEW.active} Active, {WARDEN_OVERVIEW.inactive} Inactive)
       </p>
