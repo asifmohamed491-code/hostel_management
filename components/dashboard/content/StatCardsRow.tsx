@@ -1,8 +1,19 @@
 "use client";
 
 import { useRef } from "react";
+import type { ComponentType, SVGProps } from "react";
+import { BedDouble, CircleCheck, CircleMinus, Flag, Gauge, Users } from "lucide-react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
-import { STAT_CARDS } from "@/lib/dashboard-mock";
+import { STAT_CARDS, type StatCardData } from "@/lib/dashboard-mock";
+
+const ICONS: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
+  "total-students": Users,
+  "total-rooms": BedDouble,
+  "present-today": CircleCheck,
+  "absent-today": CircleMinus,
+  "active-complaints": Flag,
+  "room-occupancy": Gauge,
+};
 
 export function StatCardsRow() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -89,37 +100,38 @@ export function StatCardsRow() {
       ref={containerRef}
       className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 xl:flex xl:gap-4.5"
     >
-      {STAT_CARDS.map((card) => (
-        <div
-          key={card.id}
-          className={
-            "stat-card-item group relative flex flex-1 flex-col justify-between overflow-hidden rounded-[22px] " +
-            "border border-white/60 p-4 transition-all duration-300 ease-out xl:p-5 " +
-            "hover:-translate-y-1.5 hover:border-white hover:shadow-xl active:scale-[0.98]"
-          }
-          style={{
-            backgroundImage: card.gradient,
-            boxShadow: card.shadow,
-          }}
-        >
-          {/* Subtle Glass Accent Light Overlay on Hover */}
-          <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/20 blur-xl transition-all duration-500 group-hover:scale-150 group-hover:bg-white/30" />
+      {STAT_CARDS.map((card: StatCardData) => {
+        const Icon = ICONS[card.id] ?? Gauge;
 
-          {/* Card Label */}
-          <div className="relative z-10 flex items-center justify-between">
-            <p className="text-[12.5px] font-medium tracking-tight text-slate-600 transition-colors duration-200 group-hover:text-slate-800 xl:text-[13.5px]">
-              {card.label}
-            </p>
-          </div>
+        return (
+          <div
+            key={card.id}
+            className={
+              "stat-card-item group relative flex flex-1 flex-col justify-between overflow-hidden rounded-[22px] " +
+              "sa-dashboard-card sa-dashboard-card--stat border border-white/60 bg-white/70 p-4 backdrop-blur-[20px] transition-all duration-300 ease-out xl:p-5 " +
+              "hover:-translate-y-1.5 hover:border-white hover:shadow-xl active:scale-[0.98]"
+            }
+            style={{ boxShadow: "0 4px 14px 0 rgba(120,90,200,0.07)" }}
+          >
+            <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-primary/10 blur-xl transition-all duration-500 group-hover:scale-150 group-hover:bg-primary/15" />
 
-          {/* Animated Card Value */}
-          <div className="relative z-10 mt-2 flex items-baseline gap-1">
-            <p className="stat-card-value text-2xl font-bold tracking-tight text-slate-900 transition-transform duration-300 group-hover:scale-[1.02] xl:text-[28px]">
-              0
-            </p>
+            <div className="relative z-10 flex items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-heading/45 xl:text-[11.5px]">
+                {card.label}
+              </p>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Icon className="h-4 w-4" />
+              </span>
+            </div>
+
+            <div className="relative z-10 mt-3 flex items-baseline gap-1">
+              <p className="stat-card-value text-2xl font-bold tracking-tight text-heading xl:text-[28px]">
+                0
+              </p>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
