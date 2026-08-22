@@ -77,8 +77,8 @@ function AttendanceOverviewCard() {
     <DashboardCard
       ref={cardRef}
       title="Attendance Overview"
-      className="flex h-full flex-col"
-      bodyClassName="flex flex-1 flex-col items-center justify-center gap-4 px-4 pb-5 pt-2"
+      className="sa-dashboard-card sa-dashboard-card--violet flex h-full flex-col"
+      bodyClassName="sa-chart-body flex flex-1 flex-col items-center justify-center gap-4 px-4 pb-5 pt-2"
     >
       <div className="flex w-full items-center justify-center gap-5">
         <RadialProgress
@@ -164,7 +164,7 @@ function MyRoomDetailsCard() {
     <DashboardCard
       ref={cardRef}
       title="My Room Details"
-      className="flex h-full flex-col"
+      className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col gap-3 px-[19px] pb-4 pt-2"
     >
       <div>
@@ -247,7 +247,7 @@ function RecentNotificationsCard() {
     <DashboardCard
       ref={cardRef}
       title="Recent Notifications"
-      className="flex h-full flex-col"
+      className="sa-dashboard-card sa-dashboard-card--mist flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col gap-1 overflow-y-auto px-[19px] pb-3 pt-2"
     >
       {RECENT_NOTIFICATIONS.map((note, index) => {
@@ -320,7 +320,7 @@ function StudentQuickActionsCard() {
   return (
     <DashboardCard
       title="Quick Actions"
-      className="flex h-full flex-col"
+      className="sa-dashboard-card sa-dashboard-card--lilac flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col px-3 pb-3 pt-1.5"
     >
       <div ref={containerRef} className="grid grid-cols-2 gap-2">
@@ -331,7 +331,7 @@ function StudentQuickActionsCard() {
               key={action.id}
               type="button"
               className={
-                "quick-action-btn group relative flex flex-col items-center justify-center gap-1 rounded-xl " +
+                "quick-action-btn sa-student-action-btn group relative flex flex-col items-center justify-center gap-1 rounded-xl " +
                 "border border-slate-200/80 bg-white/80 px-2 py-2 text-center backdrop-blur-md " +
                 "shadow-2xs transition-all duration-200 ease-out " +
                 "hover:-translate-y-0.5 hover:border-primary/40 hover:bg-white " +

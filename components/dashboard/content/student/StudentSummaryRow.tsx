@@ -118,7 +118,7 @@ function MyRoomCard() {
     <DashboardCard
       ref={cardRef}
       title="My Room"
-      className="flex h-full flex-col"
+      className="sa-dashboard-card sa-dashboard-card--violet flex h-full flex-col"
       bodyClassName="flex flex-1 items-center justify-between gap-3 px-[19px] pb-5 pt-3"
     >
       <dl className="flex flex-col gap-2.5">
@@ -250,8 +250,8 @@ function AttendanceCard() {
   return (
     <DashboardCard
       title="Attendance"
-      className="flex h-full flex-col"
-      bodyClassName="flex flex-1 flex-col items-center justify-center gap-3 px-[19px] pb-5 pt-2"
+      className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col"
+      bodyClassName="sa-chart-body flex flex-1 flex-col items-center justify-center gap-3 px-[19px] pb-5 pt-2"
     >
       <RadialProgress
         value={STUDENT_ATTENDANCE.percentage}
@@ -354,7 +354,7 @@ function TodaysFoodCard() {
     <DashboardCard
       ref={cardRef}
       title="Today's Food"
-      className="flex h-full flex-col"
+      className="sa-dashboard-card sa-dashboard-card--lilac flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col gap-0 px-[19px] pb-4 pt-2"
     >
       {TODAYS_FOOD.map((item, index) => {
@@ -485,7 +485,7 @@ function MaintenanceRequestsCard() {
     <DashboardCard
       ref={cardRef}
       title="Maintenance Requests"
-      className="flex h-full flex-col"
+      className="sa-dashboard-card sa-dashboard-card--mist flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col justify-between gap-4 px-[19px] pb-5 pt-3"
     >
       <dl className="flex flex-col gap-2.5">
