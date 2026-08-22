@@ -295,20 +295,21 @@ function SuperAdminQuickActions() {
 
   return (
     <DashboardCard title="Quick Actions" className="sa-dashboard-card sa-dashboard-card--lilac flex h-full flex-col" bodyClassName="flex flex-1 flex-col px-3 pb-3 pt-1.5">
-      <div ref={containerRef} className="grid grid-cols-2 gap-2">
-        {SUPER_ADMIN_QUICK_ACTIONS.map((action) => {
+      <div ref={containerRef} className="grid grid-cols-2 gap-2.5 mt-2">
+        {SUPER_ADMIN_QUICK_ACTIONS.map((action, index) => {
           const Icon = QUICK_ACTION_ICONS[action.icon];
           return (
             <Link
               key={action.id}
               href={action.href}
               className={
-                "sa-quick-action-btn sa-student-action-btn group relative flex flex-col items-center justify-center gap-1 rounded-xl " +
+                "sa-quick-action-btn sa-student-action-btn group relative flex h-[78px] flex-col items-center justify-center gap-1 rounded-xl " +
                 "border border-slate-200/80 bg-white/80 px-2 py-2 text-center backdrop-blur-md " +
                 "shadow-2xs transition-all duration-200 ease-out " +
                 "hover:-translate-y-0.5 hover:border-primary/40 hover:bg-white " +
                 "hover:shadow-md hover:shadow-primary/10 " +
-                "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer"
+                "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer" +
+                (index >= 4 ? " translate-y-1" : "")
               }
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all duration-200 group-hover:scale-105 group-hover:bg-primary group-hover:text-white">
