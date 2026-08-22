@@ -294,8 +294,8 @@ function SuperAdminQuickActions() {
   );
 
   return (
-    <DashboardCard title="Quick Actions" className="sa-dashboard-card sa-dashboard-card--lilac flex h-full flex-col" bodyClassName="flex flex-1 flex-col px-3.5 pb-4 pt-3">
-      <div ref={containerRef} className="grid grid-cols-2 gap-2.5">
+    <DashboardCard title="Quick Actions" className="sa-dashboard-card sa-dashboard-card--lilac flex h-full flex-col" bodyClassName="flex flex-1 flex-col px-3 pb-3 pt-1.5">
+      <div ref={containerRef} className="grid grid-cols-2 gap-2">
         {SUPER_ADMIN_QUICK_ACTIONS.map((action) => {
           const Icon = QUICK_ACTION_ICONS[action.icon];
           return (
@@ -303,16 +303,18 @@ function SuperAdminQuickActions() {
               key={action.id}
               href={action.href}
               className={
-                "sa-quick-action-btn group relative flex flex-col items-start gap-2 rounded-2xl " +
-                "border border-heading/[0.08] bg-white/70 p-3 text-left backdrop-blur-md " +
-                "shadow-xs transition-all duration-300 ease-out " +
-                "hover:-translate-y-1 hover:border-primary/40 hover:bg-white hover:shadow-lg hover:shadow-primary/10 active:scale-[0.98]"
+                "sa-quick-action-btn sa-student-action-btn group relative flex flex-col items-center justify-center gap-1 rounded-xl " +
+                "border border-slate-200/80 bg-white/80 px-2 py-2 text-center backdrop-blur-md " +
+                "shadow-2xs transition-all duration-200 ease-out " +
+                "hover:-translate-y-0.5 hover:border-primary/40 hover:bg-white " +
+                "hover:shadow-md hover:shadow-primary/10 " +
+                "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer"
               }
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-white">
-                <Icon className="h-4 w-4" />
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all duration-200 group-hover:scale-105 group-hover:bg-primary group-hover:text-white">
+                <Icon className="h-3.5 w-3.5" />
               </span>
-              <span className="text-[12px] font-semibold leading-tight text-heading/80 group-hover:text-heading">
+              <span className="text-[10.5px] font-medium leading-tight text-slate-700 group-hover:text-slate-900 line-clamp-1">
                 {action.label}
               </span>
             </Link>
