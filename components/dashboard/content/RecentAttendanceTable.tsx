@@ -60,7 +60,7 @@ export function RecentAttendanceTable() {
   return (
     <DashboardCard
       title="Recent Attendance Table"
-      className="flex h-full flex-col"
+      className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col px-[19px] pb-4 pt-3"
     >
       {/* Mobile-ல Table ஒடுங்காமல் இருக்க 'overflow-x-auto' சேர்க்கப்பட்டுள்ளது */}

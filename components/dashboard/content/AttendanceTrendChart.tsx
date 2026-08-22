@@ -124,8 +124,8 @@ export function AttendanceTrendChart() {
   return (
     <DashboardCard
       title="Attendance Trend Chart"
-      className="flex h-full flex-col min-h-[280px]"
-      bodyClassName="flex flex-1 flex-col px-4 pb-5 pt-4 sm:px-6"
+      className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col min-h-[280px]"
+      bodyClassName="sa-chart-body flex flex-1 flex-col px-4 pb-5 pt-4 sm:px-6"
     >
       <div ref={containerRef} className="relative flex flex-1 gap-3">
         {/* Y-Axis Labels with Matching Vertical Padding */}

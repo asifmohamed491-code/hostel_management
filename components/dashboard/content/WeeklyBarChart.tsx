@@ -53,8 +53,8 @@ export function WeeklyBarChart() {
   return (
     <DashboardCard
       title="Weekly Attendance Bar Chart"
-      className="flex h-full flex-col min-h-[280px]"
-      bodyClassName="flex flex-1 flex-col px-3 pb-4 pt-3 sm:px-5"
+      className="sa-dashboard-card sa-dashboard-card--lilac flex h-full flex-col min-h-[280px]"
+      bodyClassName="sa-chart-body flex flex-1 flex-col px-3 pb-4 pt-3 sm:px-5"
     >
       <div ref={containerRef} className="flex flex-1 flex-col justify-between">
         {/* Main Chart Area */}

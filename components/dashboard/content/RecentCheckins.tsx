@@ -55,7 +55,7 @@ export function RecentCheckins() {
   return (
     <DashboardCard
       title="Recent Check-ins"
-      className="flex h-full flex-col"
+      className="sa-dashboard-card sa-dashboard-card--mist flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col px-4 pb-4 pt-3 sm:px-5"
     >
       <div ref={containerRef} className="flex flex-1 flex-col justify-between">

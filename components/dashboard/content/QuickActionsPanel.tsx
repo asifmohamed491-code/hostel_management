@@ -26,7 +26,7 @@ function ActionCell({ action }: { action: QuickActionItem }) {
       type="button"
       className={
         "quick-action-btn group relative flex w-full items-center gap-2.5 sm:gap-3.5 rounded-2xl " +
-        "border border-slate-200/80 bg-white/80 p-2.5 sm:p-3.5 text-left backdrop-blur-md " +
+        "sa-student-action-btn border border-slate-200/80 bg-white/80 p-2.5 sm:p-3.5 text-left backdrop-blur-md " +
         "shadow-xs transition-all duration-300 ease-out " +
         "hover:-translate-y-1 hover:border-primary/40 hover:bg-white " +
         "hover:shadow-lg hover:shadow-primary/10 " +
@@ -99,7 +99,7 @@ export function QuickActionsPanel() {
   return (
     <DashboardCard
       title="Quick Actions"
-      className="flex h-full flex-col"
+      className="sa-dashboard-card sa-dashboard-card--lilac flex h-full flex-col"
       bodyClassName="flex flex-1 flex-col px-3.5 pb-4 pt-3 sm:px-5 sm:pb-5"
     >
       {/* Grid structure handles small screens cleanly without overflowing */}

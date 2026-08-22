@@ -89,8 +89,8 @@ export function AttendanceRingChart() {
   return (
     <DashboardCard
       title="Attendance Overview"
-      className="flex h-full flex-col"
-      bodyClassName="flex flex-1 flex-col items-center justify-center p-6"
+      className="sa-dashboard-card sa-dashboard-card--violet flex h-full flex-col"
+      bodyClassName="sa-chart-body flex flex-1 flex-col items-center justify-center p-6"
     >
       <div ref={containerRef} className="flex flex-col items-center justify-center">
         {/* Custom SVG Ring with GSAP Animated Circle */}
