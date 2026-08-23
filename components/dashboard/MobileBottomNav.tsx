@@ -14,10 +14,12 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { LOGOUT_ITEM, type NavItem } from "@/lib/dashboard-nav";
 import { useRoleNavSections } from "@/hooks/useRoleNavSections";
+import { useLogout } from "@/hooks/useLogout";
 
 export function MobileBottomNav() {
   const navSections = useRoleNavSections();
   const pathname = usePathname();
+  const logout = useLogout();
 
   const items: NavItem[] = [
     ...navSections.flatMap((section) => section.items),
@@ -40,19 +42,31 @@ export function MobileBottomNav() {
         const active = isActive(item);
         const isLogout = item.href === LOGOUT_ITEM.href;
 
+        const itemClassName = cn(
+          "flex h-full shrink-0 flex-col items-center justify-center gap-1 px-3.5 text-center transition-colors",
+          isLogout
+            ? "text-heading/50 hover:text-red-500"
+            : active
+              ? "text-[#6E42F5]"
+              : "text-heading/60"
+        );
+
+        if (isLogout) {
+          return (
+            <button
+              key={item.href}
+              type="button"
+              onClick={() => void logout()}
+              className={itemClassName}
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+              <span className="whitespace-nowrap text-[10px] font-medium">{item.label}</span>
+            </button>
+          );
+        }
+
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex h-full shrink-0 flex-col items-center justify-center gap-1 px-3.5 text-center transition-colors",
-              isLogout
-                ? "text-heading/50 hover:text-red-500"
-                : active
-                  ? "text-[#6E42F5]"
-                  : "text-heading/60"
-            )}
-          >
+          <Link key={item.href} href={item.href} className={itemClassName}>
             <Icon className="h-5 w-5 shrink-0" />
             <span className="whitespace-nowrap text-[10px] font-medium">{item.label}</span>
           </Link>

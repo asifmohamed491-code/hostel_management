@@ -8,6 +8,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { LOGOUT_ITEM, type NavItem } from "@/lib/dashboard-nav";
 import { useRoleNavSections } from "@/hooks/useRoleNavSections";
+import { useLogout } from "@/hooks/useLogout";
 
 function NavRow({
   item,
@@ -114,6 +115,7 @@ function NavRow({
  */
 export function SidebarNavContent({ onNavigate }: { onNavigate?: () => void } = {}) {
   const pathname = usePathname();
+  const logout = useLogout();
 
   // Same Sidebar nav for every role — only the nav items change, driven
   // entirely by lib/dashboard-nav.ts.
@@ -172,16 +174,19 @@ export function SidebarNavContent({ onNavigate }: { onNavigate?: () => void } = 
           sidebar, never part of the scrolling menu content.
           `shrink-0` stops it from ever being compressed. */}
       <div className="shrink-0 border-t border-white/40 px-3.5 py-3">
-        <Link
-          href={LOGOUT_ITEM.href}
-          onClick={onNavigate}
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            void logout();
+          }}
           className="group flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-red-500/10"
         >
           <LOGOUT_ITEM.icon className="h-[18px] w-[18px] shrink-0 text-heading/50 group-hover:text-red-500" />
           <span className="text-[13px] font-medium text-heading/70 group-hover:text-red-500">
             {LOGOUT_ITEM.label}
           </span>
-        </Link>
+        </button>
       </div>
     </>
   );
