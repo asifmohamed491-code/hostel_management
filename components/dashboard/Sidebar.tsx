@@ -180,9 +180,10 @@ export function SidebarNavContent({ onNavigate }: { onNavigate?: () => void } = 
             onNavigate?.();
             void logout();
           }}
-          className="group flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-red-500/10"
+          className="group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-red-500/10"
         >
           <LOGOUT_ITEM.icon className="h-[18px] w-[18px] shrink-0 text-heading/50 group-hover:text-red-500" />
+
           <span className="text-[13px] font-medium text-heading/70 group-hover:text-red-500">
             {LOGOUT_ITEM.label}
           </span>
