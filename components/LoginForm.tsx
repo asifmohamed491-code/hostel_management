@@ -181,8 +181,7 @@ export function LoginForm() {
           }
 
           .shiny-login::before,
-          .shiny-login::after,
-          .shiny-login span::before {
+          .shiny-login::after {
             content: "";
             pointer-events: none;
             position: absolute;
@@ -238,16 +237,6 @@ export function LoginForm() {
             z-index: 1;
           }
 
-          .shiny-login span::before {
-            --login-glow-size: calc(100% + 1rem);
-            width: var(--login-glow-size);
-            height: var(--login-glow-size);
-            box-shadow: inset 0 -1ex 2rem 4px var(--shiny-login-highlight);
-            opacity: 0;
-            transition: opacity var(--login-transition);
-            animation: login-breathe calc(var(--login-duration) * 1.5) linear infinite;
-          }
-
           .shiny-login,
           .shiny-login::before,
           .shiny-login::after {
@@ -268,10 +257,6 @@ export function LoginForm() {
             animation-play-state: running;
           }
 
-          .shiny-login:is(:hover, :focus-visible) span::before {
-            opacity: 1;
-          }
-
           @keyframes login-gradient-angle {
             to {
               --login-gradient-angle: 360deg;
@@ -284,16 +269,6 @@ export function LoginForm() {
             }
           }
 
-          @keyframes login-breathe {
-            from,
-            to {
-              scale: 1;
-            }
-
-            50% {
-              scale: 1.2;
-            }
-          }
         `}</style>
 
         {/*
@@ -308,12 +283,21 @@ export function LoginForm() {
             ref={submitButtonRef}
             type="submit"
             disabled={isSubmitting}
+            aria-busy={isSubmitting}
             onMouseEnter={handleButtonEnter}
             onMouseLeave={handleButtonLeave}
             data-float
-            className="shiny-login mt-1 w-full py-3.5 text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-70"
+            className="shiny-login mt-1 inline-flex w-full items-center justify-center gap-2 py-3.5 text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isSubmitting ? "Logging in..." : "Login"}
+            <span className="inline-flex min-w-0 items-center justify-center gap-2">
+              {isSubmitting && (
+                <i
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white/75 border-t-transparent"
+                />
+              )}
+              {isSubmitting ? "Logging in..." : "Login"}
+            </span>
           </button>
         </div>
       </form>
