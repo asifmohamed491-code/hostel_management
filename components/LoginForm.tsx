@@ -89,7 +89,7 @@ export function LoginForm() {
           <InputField 
             label="College Email"
             iconSrc="/assets/icons/mail.svg"
-            placeholder="812924104055@oasys.edu.in"
+            placeholder="email@oasys.edu.in"
             autoComplete="email"
             error={errors.email?.message}
             {...register("email")}
