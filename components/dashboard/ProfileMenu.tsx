@@ -92,7 +92,7 @@ export function ProfileMenu() {
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Open account menu"
-        className="liquid-glass flex shrink-0 items-center gap-2 rounded-full bg-white/30 py-1 pl-1 pr-1.5 shadow-glass transition-colors hover:bg-white/45 sm:pr-2"
+        className="flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-1.5 transition-colors max-sm:h-10 max-sm:gap-1.5 max-sm:px-0.5 max-sm:py-0 max-sm:focus:outline-none max-sm:focus-visible:ring-2 max-sm:focus-visible:ring-primary/35 max-sm:focus-visible:ring-offset-0 max-sm:liquid-glass max-sm:bg-white/40 max-sm:hover:bg-white/55 sm:liquid-glass sm:bg-white/30 sm:shadow-glass sm:hover:bg-white/45 sm:pr-2"
       >
         <span
           aria-hidden
@@ -107,7 +107,7 @@ export function ProfileMenu() {
           </span>
         </span>
         <ChevronDown
-          className={`hidden h-3.5 w-3.5 shrink-0 text-heading/40 transition-transform duration-150 sm:block ${
+          className={`hidden h-3.5 w-3.5 shrink-0 text-heading/40 transition-transform duration-150 max-sm:block sm:block ${
             isOpen ? "rotate-180" : ""
           }`}
         />
