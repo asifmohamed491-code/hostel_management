@@ -120,6 +120,182 @@ export function LoginForm() {
           </p>
         )}
 
+        <style jsx>{`
+          @property --login-gradient-angle {
+            syntax: "<angle>";
+            initial-value: 0deg;
+            inherits: false;
+          }
+
+          @property --login-gradient-angle-offset {
+            syntax: "<angle>";
+            initial-value: 0deg;
+            inherits: false;
+          }
+
+          @property --login-gradient-percent {
+            syntax: "<percentage>";
+            initial-value: 5%;
+            inherits: false;
+          }
+
+          @property --login-gradient-shine {
+            syntax: "<color>";
+            initial-value: #ffffff;
+            inherits: false;
+          }
+
+          .shiny-login {
+            --shiny-login-bg: #6e42f5;
+            --shiny-login-bg-subtle: #5b2fe0;
+            --shiny-login-fg: #ffffff;
+            --shiny-login-highlight: #8b5cf6;
+            --shiny-login-highlight-subtle: #f4f1fd;
+            --login-animation: login-gradient-angle linear infinite;
+            --login-duration: 3s;
+            --login-shadow-size: 2px;
+            --login-transition: 800ms cubic-bezier(0.25, 1, 0.5, 1);
+
+            isolation: isolate;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            outline-offset: 4px;
+            border: 1px solid transparent;
+            border-radius: 0.85rem;
+            color: var(--shiny-login-fg);
+            background:
+              linear-gradient(var(--shiny-login-bg), var(--shiny-login-bg)) padding-box,
+              conic-gradient(
+                from calc(var(--login-gradient-angle) - var(--login-gradient-angle-offset)),
+                transparent,
+                var(--shiny-login-highlight) var(--login-gradient-percent),
+                var(--login-gradient-shine) calc(var(--login-gradient-percent) * 2),
+                var(--shiny-login-highlight) calc(var(--login-gradient-percent) * 3),
+                transparent calc(var(--login-gradient-percent) * 4)
+              ) border-box;
+            box-shadow: inset 0 0 0 1px var(--shiny-login-bg-subtle);
+            transition: var(--login-transition);
+            transition-property: --login-gradient-angle-offset, --login-gradient-percent,
+              --login-gradient-shine;
+          }
+
+          .shiny-login::before,
+          .shiny-login::after,
+          .shiny-login span::before {
+            content: "";
+            pointer-events: none;
+            position: absolute;
+            inset-inline-start: 50%;
+            inset-block-start: 50%;
+            translate: -50% -50%;
+            z-index: -1;
+          }
+
+          .shiny-login:active {
+            translate: 0 1px;
+          }
+
+          .shiny-login::before {
+            --login-dot-size: calc(100% - var(--login-shadow-size) * 3);
+            --login-dot-position: 2px;
+            --login-dot-space: calc(var(--login-dot-position) * 2);
+            width: var(--login-dot-size);
+            height: var(--login-dot-size);
+            background: radial-gradient(
+              circle at var(--login-dot-position) var(--login-dot-position),
+              white calc(var(--login-dot-position) / 4),
+              transparent 0
+            ) padding-box;
+            background-size: var(--login-dot-space) var(--login-dot-space);
+            background-repeat: space;
+            mask-image: conic-gradient(
+              from calc(var(--login-gradient-angle) + 45deg),
+              black,
+              transparent 10% 90%,
+              black
+            );
+            border-radius: inherit;
+            opacity: 0.4;
+          }
+
+          .shiny-login::after {
+            --login-animation: login-shimmer linear infinite;
+            width: 100%;
+            aspect-ratio: 1;
+            background: linear-gradient(
+              -50deg,
+              transparent,
+              var(--shiny-login-highlight),
+              transparent
+            );
+            mask-image: radial-gradient(circle at bottom, transparent 40%, black);
+            opacity: 0.6;
+          }
+
+          .shiny-login span {
+            position: relative;
+            z-index: 1;
+          }
+
+          .shiny-login span::before {
+            --login-glow-size: calc(100% + 1rem);
+            width: var(--login-glow-size);
+            height: var(--login-glow-size);
+            box-shadow: inset 0 -1ex 2rem 4px var(--shiny-login-highlight);
+            opacity: 0;
+            transition: opacity var(--login-transition);
+            animation: login-breathe calc(var(--login-duration) * 1.5) linear infinite;
+          }
+
+          .shiny-login,
+          .shiny-login::before,
+          .shiny-login::after {
+            animation: var(--login-animation) var(--login-duration),
+              var(--login-animation) calc(var(--login-duration) / 0.4) reverse paused;
+            animation-composition: add;
+          }
+
+          .shiny-login:is(:hover, :focus-visible) {
+            --login-gradient-percent: 20%;
+            --login-gradient-angle-offset: 95deg;
+            --login-gradient-shine: var(--shiny-login-highlight-subtle);
+          }
+
+          .shiny-login:is(:hover, :focus-visible),
+          .shiny-login:is(:hover, :focus-visible)::before,
+          .shiny-login:is(:hover, :focus-visible)::after {
+            animation-play-state: running;
+          }
+
+          .shiny-login:is(:hover, :focus-visible) span::before {
+            opacity: 1;
+          }
+
+          @keyframes login-gradient-angle {
+            to {
+              --login-gradient-angle: 360deg;
+            }
+          }
+
+          @keyframes login-shimmer {
+            to {
+              rotate: 360deg;
+            }
+          }
+
+          @keyframes login-breathe {
+            from,
+            to {
+              scale: 1;
+            }
+
+            50% {
+              scale: 1.2;
+            }
+          }
+        `}</style>
+
         {/*
           Entrance animation targets THIS wrapper (opacity/y), while hover
           animation targets the inner button (scale/boxShadow) via ref.
@@ -135,7 +311,7 @@ export function LoginForm() {
             onMouseEnter={handleButtonEnter}
             onMouseLeave={handleButtonLeave}
             data-float
-            className="mt-1 w-full rounded-2xl bg-gradient-to-r from-indigo-700 to-primary-light py-3.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(110,66,245,0.22)] transition-opacity disabled:opacity-70"
+            className="shiny-login mt-1 w-full py-3.5 text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isSubmitting ? "Logging in..." : "Login"}
           </button>
