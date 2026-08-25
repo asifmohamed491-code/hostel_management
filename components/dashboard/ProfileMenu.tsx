@@ -32,7 +32,21 @@ export function ProfileMenu() {
   const router = useRouter();
   const logout = useLogout();
   const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isAnimated, setIsAnimated] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsMounted(true);
+      const animationFrame = requestAnimationFrame(() => setIsAnimated(true));
+      return () => cancelAnimationFrame(animationFrame);
+    }
+
+    setIsAnimated(false);
+    const unmountTimer = window.setTimeout(() => setIsMounted(false), 350);
+    return () => window.clearTimeout(unmountTimer);
+  }, [isOpen]);
 
   // Close on outside click and on Escape — standard dropdown behavior,
   // only attached while the menu is actually open.
@@ -78,7 +92,7 @@ export function ProfileMenu() {
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Open account menu"
-        className="flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-1.5 transition-colors hover:bg-white/30 sm:pr-2"
+        className="liquid-glass flex shrink-0 items-center gap-2 rounded-full bg-white/30 py-1 pl-1 pr-1.5 shadow-glass transition-colors hover:bg-white/45 sm:pr-2"
       >
         <span
           aria-hidden
@@ -99,11 +113,16 @@ export function ProfileMenu() {
         />
       </button>
 
-      {isOpen && (
+      {isMounted && (
         <div
           role="menu"
           aria-label="Account menu"
-          className="liquid-glass !absolute right-0 top-[calc(100%+10px)] z-50 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl shadow-glass-lg"
+          aria-hidden={!isOpen}
+          className={`liquid-glass !absolute right-0 top-[calc(100%+10px)] z-50 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl shadow-glass-lg transition-[opacity,transform] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            isAnimated
+              ? "translate-y-0 scale-100 opacity-100 duration-[400ms]"
+              : "-translate-y-1 scale-[0.98] opacity-0 duration-[350ms]"
+          }`}
         >
           {/* Profile header — dynamic avatar/name/role */}
           <div className="flex items-center gap-3 px-4 py-3.5">
