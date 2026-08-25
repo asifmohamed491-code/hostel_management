@@ -103,7 +103,7 @@ export function ProfileMenu() {
         <div
           role="menu"
           aria-label="Account menu"
-          className="absolute right-0 top-[calc(100%+10px)] z-50 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/60 bg-white/95 shadow-glass-lg backdrop-blur-xl"
+          className="liquid-glass !absolute right-0 top-[calc(100%+10px)] z-50 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl shadow-glass-lg"
         >
           {/* Profile header — dynamic avatar/name/role */}
           <div className="flex items-center gap-3 px-4 py-3.5">
@@ -116,7 +116,7 @@ export function ProfileMenu() {
             </div>
           </div>
 
-          <div className="border-t border-heading/[0.08]" />
+          <div className="border-t border-white/35" />
 
           {/* Menu */}
           <div className="p-1.5">
@@ -141,7 +141,7 @@ export function ProfileMenu() {
             </button>
           </div>
 
-          <div className="border-t border-heading/[0.08]" />
+          <div className="border-t border-white/35" />
 
           <div className="p-1.5">
             <button
