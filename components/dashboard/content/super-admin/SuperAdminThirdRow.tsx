@@ -312,8 +312,8 @@ function SuperAdminQuickActions() {
                 (index >= 4 ? " translate-y-1" : "")
               }
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all duration-200 group-hover:scale-105 group-hover:bg-primary group-hover:text-white">
-                <Icon className="h-3.5 w-3.5" />
+              <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all duration-300 group-hover:-translate-x-0.5 group-hover:scale-110 group-hover:bg-primary group-hover:text-white group-hover:shadow-md group-hover:shadow-primary/30">
+                <Icon className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-6" />
               </span>
               <span className="text-[10.5px] font-medium leading-tight text-slate-700 group-hover:text-slate-900 line-clamp-1">
                 {action.label}
