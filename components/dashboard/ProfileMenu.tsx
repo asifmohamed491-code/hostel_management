@@ -20,7 +20,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronDown, User, Settings, LogOut } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useLogout } from "@/hooks/useLogout";
@@ -29,6 +29,7 @@ import { ROLE_LABELS, ACCOUNT_DETAILS_ROUTE, getInitials } from "@/lib/user-disp
 
 export function ProfileMenu() {
   const { user } = useCurrentUser();
+  const router = useRouter();
   const logout = useLogout();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -58,6 +59,14 @@ export function ProfileMenu() {
   const initials = user ? getInitials(user.fullName) : "";
   const roleLabel = user ? ROLE_LABELS[user.role] : "";
   const accountHref = user ? ACCOUNT_DETAILS_ROUTE[user.role] : "/dashboard";
+
+  // Account Details navigates the same way Logout already does
+  // (useLogout.ts: `useRouter().push(...)`) — called only from this
+  // button's own onClick, nothing else about the dropdown changes.
+  function handleAccountDetailsClick() {
+    setIsOpen(false);
+    router.push(accountHref);
+  }
 
   return (
     <div ref={containerRef} className="relative shrink-0">
@@ -111,15 +120,15 @@ export function ProfileMenu() {
 
           {/* Menu */}
           <div className="p-1.5">
-            <Link
-              href={accountHref}
+            <button
+              type="button"
               role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex min-h-[42px] items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-medium text-heading/75 transition-colors hover:bg-primary/10 hover:text-primary"
+              onClick={handleAccountDetailsClick}
+              className="flex min-h-[42px] w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium text-heading/75 transition-colors hover:bg-primary/10 hover:text-primary"
             >
               <User className="h-[17px] w-[17px] shrink-0" />
               Account Details
-            </Link>
+            </button>
             {/* Settings — UI only for now, intentionally no route/logic. */}
             <button
               type="button"

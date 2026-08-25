@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { Search, Bell, ChevronDown, X, Menu } from "lucide-react";
 import { useMobileNav } from "@/components/dashboard/MobileNavContext";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import type { IUser } from "@/models/User";
+import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
 
 const TODAY = new Date().toLocaleDateString("en-US", {
   weekday: "long",
@@ -13,31 +12,9 @@ const TODAY = new Date().toLocaleDateString("en-US", {
   day: "numeric",
 });
 
-// Same UserRole values as models/User.ts / lib/dashboard-nav.ts
-// (super_admin / warden / student) — mapped here to the display label
-// the Topbar profile pill shows, since ROLE_NAV_SECTIONS has no label
-// of its own to reuse.
-const ROLE_LABELS: Record<IUser["role"], string> = {
-  super_admin: "Super Admin",
-  warden: "Warden",
-  student: "Student",
-};
-
-// "Mohamed Asif" -> "MA". Falls back to the first two letters of a
-// single-word name so it never renders empty.
-function getInitials(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0];
-  if (!first) return "";
-  if (parts.length === 1) return first.slice(0, 2).toUpperCase();
-  const last = parts[parts.length - 1] ?? first;
-  return (first.charAt(0) + last.charAt(0)).toUpperCase();
-}
-
 export function Topbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { toggle: toggleMobileNav } = useMobileNav();
-  const { user } = useCurrentUser();
 
   return (
     <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between gap-2 px-4 sm:h-20 lg:px-8">
@@ -126,26 +103,7 @@ export function Topbar() {
             </button>
 
             {/* User Profile */}
-            <button
-              type="button"
-              className="flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-1.5 transition-colors hover:bg-white/30 sm:pr-2"
-            >
-              <span
-                aria-hidden
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-heading text-[13px] font-semibold text-white"
-              >
-                {user ? getInitials(user.fullName) : ""}
-              </span>
-              <span className="hidden flex-col items-start leading-tight sm:flex">
-                <span className="text-[10px] font-medium text-heading/45">
-                  {user ? ROLE_LABELS[user.role] : ""}
-                </span>
-                <span className="text-[13px] font-semibold text-heading">
-                  {user ? user.fullName : ""}
-                </span>
-              </span>
-              <ChevronDown className="hidden h-3.5 w-3.5 text-heading/40 sm:block" />
-            </button>
+            <ProfileMenu />
           </div>
         </>
       )}
