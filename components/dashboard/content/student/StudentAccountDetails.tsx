@@ -17,8 +17,6 @@ import Link from "next/link";
 import {
   Mail,
   Phone,
-  Hash,
-  Calendar,
   UserRound,
   GraduationCap,
   BookOpenCheck,
@@ -112,11 +110,9 @@ export function StudentAccountDetails() {
   // dashboard mock for Register Number/Hostel Block (same source the
   // dashboard's own welcome/room cards already read from), and show
   // "Not available" for fields that don't exist in any existing data
-  // structure yet (DOB, Gender, Semester, Room Type).
+  // structure yet (Semester, Room Type).
   const registerNo = STUDENT_PROFILE.registerNo || NOT_AVAILABLE;
   const hostelBlock = STUDENT_PROFILE.block || MY_ROOM.block || NOT_AVAILABLE;
-  const dob = NOT_AVAILABLE;
-  const gender = NOT_AVAILABLE;
   const semester = NOT_AVAILABLE;
   const roomType = NOT_AVAILABLE;
 
@@ -180,8 +176,8 @@ export function StudentAccountDetails() {
           bodyClassName={CARD_BODY_CLASS}
         >
           <InfoRow icon={UserRound} label="Full Name" value={fullName} />
-          <InfoRow icon={Hash} label="Register Number" value={registerNo} />
           <InfoRow icon={Mail} label="College Email" value={email} />
+          <InfoRow icon={Phone} label="Phone Number" value={phone} />
         </DashboardCard>
 
         <DashboardCard
@@ -210,25 +206,27 @@ export function StudentAccountDetails() {
           title="Account Security"
           subtitle="Secure your account"
           icon={<ShieldCheck className="h-[18px] w-[18px]" />}
-          bodyClassName="px-[15px] pb-[15px] pt-2 sm:px-[19px] sm:pb-[19px]"
+          bodyClassName="px-[15px] py-5 sm:px-[19px] sm:py-6"
         >
-          <div className="flex flex-col gap-4 rounded-2xl bg-primary/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
-            <span className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Lock className="h-[18px] w-[18px]" />
-              </span>
-              <span className="text-[12.5px] font-medium leading-relaxed text-heading/60">
-                Keep your account secure by updating your password regularly.
-              </span>
-            </span>
-            <Link
-              href="/forgot-password"
-              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-primary-dark"
-            >
-              <KeyRound className="h-3.5 w-3.5" />
-              Change Password
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
+          <div className="rounded-[16px] bg-primary/[0.08] p-5 sm:p-6">
+            <div className="flex flex-col gap-5 sm:gap-6">
+              <div className="flex items-start gap-4">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                  <Lock className="h-6 w-6" />
+                </span>
+                <span className="flex-1 pt-0.5 text-[13.5px] font-medium leading-relaxed text-heading/70">
+                  Keep your account secure by updating your password regularly.
+                </span>
+              </div>
+              <Link
+                href="/forgot-password"
+                className="inline-flex items-center justify-center gap-2 rounded-[12px] bg-primary px-6 py-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary-dark w-full sm:w-auto"
+              >
+                <KeyRound className="h-4 w-4" />
+                Change Password
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </DashboardCard>
       </div>
