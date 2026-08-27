@@ -14,7 +14,6 @@ import {
   BedDouble,
   KeyRound,
   ShieldCheck,
-  Lock,
   IdCard,
   ChevronRight,
 } from "lucide-react";
@@ -40,11 +39,15 @@ function InfoRow({
   label: string;
   value: string;
 }) {
+  // Non-interactive info field, styled to match the existing Quick
+  // Actions card treatment (sa-student-action-btn + the same
+  // border/background combo used by QuickActionsPanel's ActionCell)
+  // instead of a bespoke background.
   return (
-    <div className="rounded-[14px] border border-white/5 bg-white/[0.5] backdrop-blur-[20px] px-4 py-3.5 sm:px-5 flex items-center justify-between gap-3">
-      <span className="flex min-w-0 items-center gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="h-4 w-4" />
+    <div className="sa-student-action-btn flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/80 px-3.5 py-3 backdrop-blur-md sm:px-4 sm:py-3.5">
+      <span className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:h-9 sm:w-9">
+          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </span>
         <span className="truncate text-[12.5px] font-medium text-heading/50">
           {label}
@@ -98,9 +101,10 @@ export function StudentAccountDetails() {
 
       {/* Profile summary card */}
       <DashboardCard
-        className="relative overflow-hidden"
+        className="sa-dashboard-card sa-dashboard-card--pearl relative overflow-hidden"
         bodyClassName="relative flex flex-col gap-5 p-5 sm:p-6"
       >
+
 
         {/* Top Header: Avatar (64px) + Name */}
         <div className="relative flex min-w-0 items-center gap-4">
@@ -182,6 +186,7 @@ export function StudentAccountDetails() {
           title="Personal Information"
           subtitle="Your personal and contact details"
           icon={<UserRound className="h-[18px] w-[18px]" />}
+          className="sa-dashboard-card sa-dashboard-card--violet"
           bodyClassName={CARD_BODY_CLASS}
         >
           <InfoRow icon={UserRound} label="Full Name" value={fullName} />
@@ -193,6 +198,7 @@ export function StudentAccountDetails() {
           title="Academic Information"
           subtitle="Your academic details"
           icon={<GraduationCap className="h-[18px] w-[18px]" />}
+          className="sa-dashboard-card sa-dashboard-card--mist"
           bodyClassName={CARD_BODY_CLASS}
         >
           <InfoRow
@@ -208,6 +214,7 @@ export function StudentAccountDetails() {
           title="Hostel Information"
           subtitle="Your hostel and room details"
           icon={<Building2 className="h-[18px] w-[18px]" />}
+          className="sa-dashboard-card sa-dashboard-card--lilac"
           bodyClassName={CARD_BODY_CLASS}
         >
           <InfoRow
@@ -227,28 +234,40 @@ export function StudentAccountDetails() {
           title="Account Security"
           subtitle="Secure your account"
           icon={<ShieldCheck className="h-[18px] w-[18px]" />}
-          bodyClassName="px-[15px] py-5 sm:px-[19px] sm:py-6"
+          className="sa-dashboard-card sa-dashboard-card--lilac"
+          bodyClassName={CARD_BODY_CLASS}
         >
-          <div className="rounded-[16px] bg-primary/[0.08] p-5 sm:p-6">
-            <div className="flex flex-col gap-5 sm:gap-6">
-              <div className="flex items-start gap-4">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                  <Lock className="h-6 w-6" />
-                </span>
-                <span className="flex-1 pt-0.5 text-[13.5px] font-medium leading-relaxed text-heading/70">
-                  Keep your account secure by updating your password regularly.
-                </span>
-              </div>
-              <Link
-                href="/forgot-password"
-                className="inline-flex items-center justify-center gap-2 rounded-[12px] bg-primary px-6 py-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary-dark w-full sm:w-auto"
-              >
-                <KeyRound className="h-4 w-4" />
+          {/* Change Password — same /forgot-password link and behavior as
+              before, restyled to match the existing Quick Actions
+              button/card treatment (ActionCell in QuickActionsPanel.tsx). */}
+          <Link
+            href="/forgot-password"
+            className={
+              "group relative flex w-full items-center gap-3 sm:gap-3.5 rounded-2xl " +
+              "sa-student-action-btn border border-slate-200/80 bg-white/80 p-3.5 sm:p-4 backdrop-blur-md " +
+              "shadow-xs transition-all duration-300 ease-out " +
+              "hover:-translate-y-1 hover:border-primary/40 hover:bg-white " +
+              "hover:shadow-lg hover:shadow-primary/10 " +
+              "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            }
+          >
+            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+            <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-white group-hover:shadow-md group-hover:shadow-primary/30 sm:h-10 sm:w-10">
+              <KeyRound className="h-4 w-4 transition-transform duration-300 group-hover:rotate-6" />
+            </span>
+
+            <span className="relative min-w-0 flex-1">
+              <span className="block truncate text-[13.5px] font-semibold text-heading transition-colors duration-200 group-hover:text-slate-900">
                 Change Password
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
+              </span>
+              <span className="block truncate text-[12px] font-medium text-heading/50">
+                Update your password regularly
+              </span>
+            </span>
+
+            <ChevronRight className="relative h-4 w-4 shrink-0 text-heading/30 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-primary" />
+          </Link>
         </DashboardCard>
       </div>
     </div>
