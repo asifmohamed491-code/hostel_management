@@ -39,7 +39,7 @@ import { ROLE_LABELS, getInitials } from "@/lib/user-display";
 import { STUDENT_PROFILE, MY_ROOM } from "@/lib/student-dashboard-mock";
 
 const NOT_AVAILABLE = "Not available";
-const CARD_BODY_CLASS = "divide-y divide-heading/[0.06] px-[15px] pb-[15px] pt-1 sm:px-[19px] sm:pb-[19px]";
+const CARD_BODY_CLASS = "px-[15px] py-4 sm:px-[19px] sm:py-5 flex flex-col gap-2 sm:gap-2.5";
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -53,8 +53,8 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3">
-      <span className="flex min-w-0 items-center gap-2.5">
+    <div className="rounded-[14px] border border-white/5 bg-white/[0.5] backdrop-blur-[20px] px-4 py-3.5 sm:px-5 flex items-center justify-between gap-3">
+      <span className="flex min-w-0 items-center gap-3">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Icon className="h-4 w-4" />
         </span>
@@ -181,10 +181,7 @@ export function StudentAccountDetails() {
         >
           <InfoRow icon={UserRound} label="Full Name" value={fullName} />
           <InfoRow icon={Hash} label="Register Number" value={registerNo} />
-          <InfoRow icon={Calendar} label="Date of Birth" value={dob} />
-          <InfoRow icon={UserRound} label="Gender" value={gender} />
           <InfoRow icon={Mail} label="College Email" value={email} />
-          <InfoRow icon={Phone} label="Phone Number" value={phone} />
         </DashboardCard>
 
         <DashboardCard
