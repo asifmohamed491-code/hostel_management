@@ -100,7 +100,7 @@ export function StudentAccountDetails() {
         className="sa-dashboard-card sa-dashboard-card--pearl relative overflow-hidden"
         bodyClassName="relative flex flex-col gap-5 p-5 sm:p-6"
       >
-        {/* SVG Illustration: Shifted leftwards (right-8) away from the extreme right corner */}
+        {/* SVG Illustration: Placed inward without touching edge */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-y-0 right-6 xl:right-10 hidden w-[220px] items-center justify-end lg:flex z-0"
@@ -112,17 +112,13 @@ export function StudentAccountDetails() {
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
-            {/* Ground line */}
             <path d="M0 112H220" stroke="currentColor" strokeWidth="1.5" />
-
-            {/* Left small building */}
             <rect x="14" y="70" width="30" height="42" fill="currentColor" />
             <rect x="20" y="78" width="6" height="6" fill="white" />
             <rect x="32" y="78" width="6" height="6" fill="white" />
             <rect x="20" y="90" width="6" height="6" fill="white" />
             <rect x="32" y="90" width="6" height="6" fill="white" />
 
-            {/* Central hall with pediment roof + flagpole */}
             <path d="M62 60L110 30L158 60V112H62V60Z" fill="currentColor" />
             <rect x="100" y="82" width="20" height="30" fill="white" />
             <rect x="76" y="72" width="10" height="14" fill="white" />
@@ -131,7 +127,6 @@ export function StudentAccountDetails() {
             <line x1="110" y1="30" x2="110" y2="14" stroke="currentColor" strokeWidth="2" />
             <path d="M110 14L124 19L110 24Z" fill="currentColor" />
 
-            {/* Right small building */}
             <rect x="176" y="76" width="28" height="36" fill="currentColor" />
             <rect x="182" y="84" width="6" height="6" fill="white" />
             <rect x="194" y="84" width="6" height="6" fill="white" />
@@ -139,7 +134,7 @@ export function StudentAccountDetails() {
           </svg>
         </div>
 
-        {/* Top Header: Avatar (64px) + Name */}
+        {/* Top Header: Avatar + Name */}
         <div className="relative flex min-w-0 items-center gap-4 z-10">
           <InitialsAvatar initials={initials} size={64} />
           <div className="min-w-0">
@@ -154,10 +149,10 @@ export function StudentAccountDetails() {
 
         {/* Fields and Divider Section */}
         <div className="relative z-10 flex flex-col gap-5 sm:pl-[80px]">
-          {/* 1px Line: Stops before the building illustration (max-w-[70%] on lg screens) */}
+          {/* 1px Line */}
           <div className="border-t border-heading/[0.07] w-full lg:max-w-[65%] xl:max-w-[70%]" />
 
-          {/* 3 Fields: Starting right below the 1px line */}
+          {/* 3 Fields */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6 lg:gap-10 w-fit">
             {/* Register Number */}
             <div className="flex items-center gap-3">
@@ -213,8 +208,9 @@ export function StudentAccountDetails() {
         </div>
       </DashboardCard>
 
-      {/* Info cards */}
+      {/* Info cards (2-column Grid) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:gap-5">
+        {/* Personal Information */}
         <DashboardCard
           title="Personal Information"
           subtitle="Your personal and contact details"
@@ -227,6 +223,7 @@ export function StudentAccountDetails() {
           <InfoRow icon={Phone} label="Phone Number" value={phone} />
         </DashboardCard>
 
+        {/* Academic Information */}
         <DashboardCard
           title="Academic Information"
           subtitle="Your academic details"
@@ -243,11 +240,12 @@ export function StudentAccountDetails() {
           <InfoRow icon={BookOpenCheck} label="Semester" value={semester} />
         </DashboardCard>
 
+        {/* Hostel Information */}
         <DashboardCard
           title="Hostel Information"
           subtitle="Your hostel and room details"
           icon={<Building2 className="h-[18px] w-[18px]" />}
-          className="sa-dashboard-card sa-dashboard-card--lilac"
+          className="sa-dashboard-card sa-dashboard-card--lilac flex flex-col"
           bodyClassName={CARD_BODY_CLASS}
         >
           <InfoRow
@@ -263,12 +261,13 @@ export function StudentAccountDetails() {
           <InfoRow icon={BedDouble} label="Room Type" value={roomType} />
         </DashboardCard>
 
+        {/* Account Security (Matched Full Height with Hostel Info) */}
         <DashboardCard
           title="Account Security"
           subtitle="Secure your account"
           icon={<ShieldCheck className="h-[18px] w-[18px]" />}
-          className="sa-dashboard-card sa-dashboard-card--lilac self-start"
-          bodyClassName={CARD_BODY_CLASS}
+          className="sa-dashboard-card sa-dashboard-card--lilac flex flex-col h-full"
+          bodyClassName="px-[15px] py-4 sm:px-[19px] sm:py-5 flex-1 flex flex-col justify-start"
         >
           <Link
             href="/forgot-password"
@@ -276,7 +275,7 @@ export function StudentAccountDetails() {
               "group relative flex w-full items-center gap-3 sm:gap-3.5 rounded-2xl " +
               "sa-student-action-btn border border-slate-200/80 bg-white/80 p-3.5 sm:p-4 backdrop-blur-md " +
               "shadow-xs transition-all duration-300 ease-out " +
-              "hover:-translate-y-1 hover:border-primary/40 hover:bg-white " +
+              "hover:-translate-y-0.5 hover:border-primary/40 hover:bg-white " +
               "hover:shadow-lg hover:shadow-primary/10 " +
               "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             }
