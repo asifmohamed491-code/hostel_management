@@ -16,6 +16,11 @@ import { cn } from "@/lib/cn";
 interface DashboardCardProps {
   title?: string;
   subtitle?: string;
+  // Optional square icon badge rendered to the left of the title (e.g.
+  // the Account Details page's section icons). Purely additive — every
+  // existing DashboardCard usage omits this and renders exactly as
+  // before.
+  icon?: ReactNode;
   action?: ReactNode;
   className?: string;
   headerClassName?: string;
@@ -25,7 +30,7 @@ interface DashboardCardProps {
 
 export const DashboardCard = forwardRef<HTMLElement, DashboardCardProps>(
   function DashboardCard(
-    { title, subtitle, action, className, headerClassName, bodyClassName, children },
+    { title, subtitle, icon, action, className, headerClassName, bodyClassName, children },
     ref
   ) {
     return (
@@ -44,11 +49,20 @@ export const DashboardCard = forwardRef<HTMLElement, DashboardCardProps>(
             )}
           >
             {title && (
-              <div>
-                <h2 className="text-[16px] leading-6 text-heading">{title}</h2>
-                {subtitle && (
-                  <p className="mt-0.5 text-[12.5px] font-medium text-heading/50">{subtitle}</p>
+              <div className="flex min-w-0 items-center gap-3">
+                {icon && (
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    {icon}
+                  </span>
                 )}
+                <div className="min-w-0">
+                  <h2 className="text-[16px] leading-6 text-heading">{title}</h2>
+                  {subtitle && (
+                    <p className="mt-0.5 truncate text-[12.5px] font-medium text-heading/50">
+                      {subtitle}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
             {action}

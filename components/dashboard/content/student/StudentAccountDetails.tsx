@@ -26,6 +26,9 @@ import {
   DoorClosed,
   BedDouble,
   KeyRound,
+  ShieldCheck,
+  Lock,
+  IdCard,
   ChevronRight,
 } from "lucide-react";
 
@@ -36,7 +39,7 @@ import { ROLE_LABELS, getInitials } from "@/lib/user-display";
 import { STUDENT_PROFILE, MY_ROOM } from "@/lib/student-dashboard-mock";
 
 const NOT_AVAILABLE = "Not available";
-const CARD_BODY_CLASS = "divide-y divide-heading/[0.06] px-[19px] pb-[19px] pt-3";
+const CARD_BODY_CLASS = "divide-y divide-heading/[0.06] px-[15px] pb-[15px] pt-1 sm:px-[19px] sm:pb-[19px]";
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -50,14 +53,42 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 py-2.5">
-      <span className="flex shrink-0 items-center gap-2 text-[12.5px] font-medium text-heading/50">
-        <Icon className="h-4 w-4 shrink-0 text-heading/35" />
-        {label}
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3">
+      <span className="flex min-w-0 items-center gap-2.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="truncate text-[12.5px] font-medium text-heading/50">{label}</span>
       </span>
-      <span className="min-w-0 flex-1 break-words text-right text-[13px] font-semibold text-heading sm:flex-none sm:max-w-[60%]">
+      <span className="min-w-0 flex-1 break-words text-right text-[13px] font-semibold text-heading sm:flex-none sm:max-w-[55%]">
         {value}
       </span>
+    </div>
+  );
+}
+
+// Small stat pill for the profile summary row (Register No / Email /
+// Phone) — icon badge + stacked label/value, matching the reference
+// design's three-up summary strip. Wraps to its own line on narrow
+// screens instead of overflowing.
+function SummaryStat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: IconComponent;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11.5px] font-medium text-heading/45">{label}</p>
+        <p className="truncate text-[13.5px] font-semibold text-heading">{value}</p>
+      </div>
     </div>
   );
 }
@@ -105,39 +136,49 @@ export function StudentAccountDetails() {
         </div>
       </div>
 
-      {/* Profile header card */}
-      <DashboardCard bodyClassName="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between xl:p-6">
-        <div className="flex min-w-0 items-center gap-4">
+      {/* Profile summary card */}
+      <DashboardCard
+        className="relative overflow-hidden"
+        bodyClassName="relative flex flex-col gap-5 p-5 sm:p-6"
+      >
+        {/* Subtle decorative skyline watermark — desktop only, purely
+            ambient (mirrors the reference composition's hostel
+            illustration) and never overlaps real content. */}
+        <Building2
+          aria-hidden
+          className="pointer-events-none absolute -right-4 -top-4 hidden h-40 w-40 text-primary/[0.06] lg:block"
+          strokeWidth={1}
+        />
+
+        <div className="relative flex min-w-0 flex-wrap items-center gap-4">
           <InitialsAvatar initials={initials} size={64} />
           <div className="min-w-0">
             <p className="truncate text-[18px] font-semibold text-heading xl:text-[20px]">
               {fullName}
             </p>
-            <span className="mt-1 inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+            <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
               {roleLabel}
             </span>
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 sm:items-end">
-          <span className="flex items-center gap-2 text-[13px] font-medium text-heading/70">
-            <Hash className="h-3.5 w-3.5 shrink-0 text-heading/35" />
-            {registerNo}
-          </span>
-          <span className="flex items-center gap-2 break-all text-[13px] font-medium text-heading/70">
-            <Mail className="h-3.5 w-3.5 shrink-0 text-heading/35" />
-            {email}
-          </span>
-          <span className="flex items-center gap-2 text-[13px] font-medium text-heading/70">
-            <Phone className="h-3.5 w-3.5 shrink-0 text-heading/35" />
-            {phone}
-          </span>
+        <div className="relative border-t border-heading/[0.07]" />
+
+        <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-3">
+          <SummaryStat icon={IdCard} label="Register Number" value={registerNo} />
+          <SummaryStat icon={Mail} label="College Email" value={email} />
+          <SummaryStat icon={Phone} label="Phone Number" value={phone} />
         </div>
       </DashboardCard>
 
       {/* Info cards */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:gap-5">
-        <DashboardCard title="Personal Information" bodyClassName={CARD_BODY_CLASS}>
+        <DashboardCard
+          title="Personal Information"
+          subtitle="Your personal and contact details"
+          icon={<UserRound className="h-[18px] w-[18px]" />}
+          bodyClassName={CARD_BODY_CLASS}
+        >
           <InfoRow icon={UserRound} label="Full Name" value={fullName} />
           <InfoRow icon={Hash} label="Register Number" value={registerNo} />
           <InfoRow icon={Calendar} label="Date of Birth" value={dob} />
@@ -146,13 +187,23 @@ export function StudentAccountDetails() {
           <InfoRow icon={Phone} label="Phone Number" value={phone} />
         </DashboardCard>
 
-        <DashboardCard title="Academic Information" bodyClassName={CARD_BODY_CLASS}>
+        <DashboardCard
+          title="Academic Information"
+          subtitle="Your academic details"
+          icon={<GraduationCap className="h-[18px] w-[18px]" />}
+          bodyClassName={CARD_BODY_CLASS}
+        >
           <InfoRow icon={GraduationCap} label="Department" value={department} />
           <InfoRow icon={BookOpenCheck} label="Year" value={year} />
           <InfoRow icon={BookOpenCheck} label="Semester" value={semester} />
         </DashboardCard>
 
-        <DashboardCard title="Hostel Information" bodyClassName={CARD_BODY_CLASS}>
+        <DashboardCard
+          title="Hostel Information"
+          subtitle="Your hostel and room details"
+          icon={<Building2 className="h-[18px] w-[18px]" />}
+          bodyClassName={CARD_BODY_CLASS}
+        >
           <InfoRow icon={Building2} label="Hostel Block" value={hostelBlock} />
           <InfoRow icon={DoorClosed} label="Room Number" value={roomNumber} />
           <InfoRow icon={BedDouble} label="Room Type" value={roomType} />
@@ -160,20 +211,28 @@ export function StudentAccountDetails() {
 
         <DashboardCard
           title="Account Security"
-          bodyClassName="flex flex-col gap-3 px-[19px] pb-[19px] pt-3 sm:flex-row sm:items-center sm:justify-between"
+          subtitle="Secure your account"
+          icon={<ShieldCheck className="h-[18px] w-[18px]" />}
+          bodyClassName="px-[15px] pb-[15px] pt-2 sm:px-[19px] sm:pb-[19px]"
         >
-          <span className="flex items-start gap-2 text-[12.5px] font-medium leading-relaxed text-heading/55">
-            <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-heading/35" />
-            Keep your account secure by updating your password regularly. Your
-            password is never shown here.
-          </span>
-          <Link
-            href="/forgot-password"
-            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-primary-dark"
-          >
-            <KeyRound className="h-3.5 w-3.5" />
-            Change Password
-          </Link>
+          <div className="flex flex-col gap-4 rounded-2xl bg-primary/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
+            <span className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Lock className="h-[18px] w-[18px]" />
+              </span>
+              <span className="text-[12.5px] font-medium leading-relaxed text-heading/60">
+                Keep your account secure by updating your password regularly.
+              </span>
+            </span>
+            <Link
+              href="/forgot-password"
+              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-primary-dark"
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+              Change Password
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </DashboardCard>
       </div>
     </div>
