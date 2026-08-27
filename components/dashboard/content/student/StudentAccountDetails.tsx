@@ -39,10 +39,6 @@ function InfoRow({
   label: string;
   value: string;
 }) {
-  // Non-interactive info field, styled to match the existing Quick
-  // Actions card treatment (sa-student-action-btn + the same
-  // border/background combo used by QuickActionsPanel's ActionCell)
-  // instead of a bespoke background.
   return (
     <div className="sa-student-action-btn flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/80 px-3.5 py-3 backdrop-blur-md sm:px-4 sm:py-3.5">
       <span className="flex min-w-0 items-center gap-2.5 sm:gap-3">
@@ -104,10 +100,47 @@ export function StudentAccountDetails() {
         className="sa-dashboard-card sa-dashboard-card--pearl relative overflow-hidden"
         bodyClassName="relative flex flex-col gap-5 p-5 sm:p-6"
       >
+        {/* SVG Illustration: Shifted leftwards (right-8) away from the extreme right corner */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 right-6 xl:right-10 hidden w-[220px] items-center justify-end lg:flex z-0"
+        >
+          <div className="absolute right-4 h-36 w-36 rounded-full bg-primary/10 blur-3xl" />
+          <svg
+            viewBox="0 0 220 120"
+            className="relative h-[108px] w-[200px] text-primary opacity-[0.14]"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Ground line */}
+            <path d="M0 112H220" stroke="currentColor" strokeWidth="1.5" />
 
+            {/* Left small building */}
+            <rect x="14" y="70" width="30" height="42" fill="currentColor" />
+            <rect x="20" y="78" width="6" height="6" fill="white" />
+            <rect x="32" y="78" width="6" height="6" fill="white" />
+            <rect x="20" y="90" width="6" height="6" fill="white" />
+            <rect x="32" y="90" width="6" height="6" fill="white" />
+
+            {/* Central hall with pediment roof + flagpole */}
+            <path d="M62 60L110 30L158 60V112H62V60Z" fill="currentColor" />
+            <rect x="100" y="82" width="20" height="30" fill="white" />
+            <rect x="76" y="72" width="10" height="14" fill="white" />
+            <rect x="134" y="72" width="10" height="14" fill="white" />
+            <rect x="98" y="40" width="24" height="4" fill="white" opacity="0.6" />
+            <line x1="110" y1="30" x2="110" y2="14" stroke="currentColor" strokeWidth="2" />
+            <path d="M110 14L124 19L110 24Z" fill="currentColor" />
+
+            {/* Right small building */}
+            <rect x="176" y="76" width="28" height="36" fill="currentColor" />
+            <rect x="182" y="84" width="6" height="6" fill="white" />
+            <rect x="194" y="84" width="6" height="6" fill="white" />
+            <rect x="182" y="96" width="6" height="6" fill="white" />
+          </svg>
+        </div>
 
         {/* Top Header: Avatar (64px) + Name */}
-        <div className="relative flex min-w-0 items-center gap-4">
+        <div className="relative flex min-w-0 items-center gap-4 z-10">
           <InitialsAvatar initials={initials} size={64} />
           <div className="min-w-0">
             <p className="truncate text-[18px] font-semibold text-heading xl:text-[20px]">
@@ -119,16 +152,16 @@ export function StudentAccountDetails() {
           </div>
         </div>
 
-        {/* Both 1px line & bottom row aligned together directly starting from the same left position */}
-        <div className="flex flex-col gap-5 sm:pl-[80px]">
-          {/* 1px Line starting exactly aligned with Name and fields */}
-          <div className="border-t border-heading/[0.07] w-full" />
+        {/* Fields and Divider Section */}
+        <div className="relative z-10 flex flex-col gap-5 sm:pl-[80px]">
+          {/* 1px Line: Stops before the building illustration (max-w-[70%] on lg screens) */}
+          <div className="border-t border-heading/[0.07] w-full lg:max-w-[65%] xl:max-w-[70%]" />
 
-          {/* 3 Fields Starting at the same line */}
+          {/* 3 Fields: Starting right below the 1px line */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6 lg:gap-10 w-fit">
             {/* Register Number */}
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+              <span className="sa-student-action-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 text-primary backdrop-blur-md">
                 <IdCard className="h-5 w-5" />
               </span>
               <div className="min-w-0">
@@ -146,7 +179,7 @@ export function StudentAccountDetails() {
 
             {/* College Email */}
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+              <span className="sa-student-action-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 text-primary backdrop-blur-md">
                 <Mail className="h-5 w-5" />
               </span>
               <div className="min-w-0">
@@ -164,7 +197,7 @@ export function StudentAccountDetails() {
 
             {/* Phone Number */}
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+              <span className="sa-student-action-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 text-primary backdrop-blur-md">
                 <Phone className="h-5 w-5" />
               </span>
               <div className="min-w-0">
@@ -234,12 +267,9 @@ export function StudentAccountDetails() {
           title="Account Security"
           subtitle="Secure your account"
           icon={<ShieldCheck className="h-[18px] w-[18px]" />}
-          className="sa-dashboard-card sa-dashboard-card--lilac"
+          className="sa-dashboard-card sa-dashboard-card--lilac self-start"
           bodyClassName={CARD_BODY_CLASS}
         >
-          {/* Change Password — same /forgot-password link and behavior as
-              before, restyled to match the existing Quick Actions
-              button/card treatment (ActionCell in QuickActionsPanel.tsx). */}
           <Link
             href="/forgot-password"
             className={
