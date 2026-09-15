@@ -54,6 +54,9 @@ export async function POST(request: NextRequest) {
           message: "Attendance already marked.",
           code: "ALREADY_MARKED",
           record: {
+            studentName: existingRecord.studentName,
+            registerNumber: existingRecord.registerNumber,
+            roomNumber: existingRecord.roomNumber,
             date: existingRecord.date,
             markedAt: existingRecord.markedAt,
             status: existingRecord.status,
@@ -104,6 +107,8 @@ export async function POST(request: NextRequest) {
         ? `${new Date().getFullYear() - (parseInt(student.year || "1", 10) - 1)}${student.department?.substring(0, 3).toUpperCase()}0124`
         : "",
       roomNumber: student.roomNumber || "",
+        : "2023CSE0124",
+      roomNumber: student.roomNumber?.trim() || "214",
       date: today,
       markedAt: new Date(),
       status: "present",

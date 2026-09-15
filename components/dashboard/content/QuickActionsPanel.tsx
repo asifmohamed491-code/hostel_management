@@ -103,6 +103,7 @@ export function QuickActionsPanel() {
       );
     },
     { scope: containerRef }
+ 
   );
 
   return (

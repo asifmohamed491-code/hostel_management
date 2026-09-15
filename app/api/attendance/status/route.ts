@@ -60,6 +60,9 @@ export async function GET(request: NextRequest) {
       });
       if (record) {
         studentRecord = {
+          studentName: record.studentName,
+          registerNumber: record.registerNumber,
+          roomNumber: record.roomNumber,
           date: record.date,
           markedAt: record.markedAt,
           status: record.status,
