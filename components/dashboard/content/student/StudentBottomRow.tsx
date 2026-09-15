@@ -5,6 +5,7 @@
 // The bottom 4-card row on the Student dashboard: Attendance
 // Overview, My Room Details, Recent Notifications, Quick Actions.
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   BookOpenCheck,
@@ -287,6 +288,7 @@ const QUICK_ACTION_ICONS: Record<StudentQuickAction["icon"], typeof Home> = {
 
 function StudentQuickActionsCard() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useGSAP(
     () => {
@@ -317,6 +319,13 @@ function StudentQuickActionsCard() {
     { scope: containerRef }
   );
 
+  const handleQuickAction = (actionId: string) => {
+    if (actionId === "mark-attendance") {
+      router.push("/dashboard/student/attendance");
+    }
+    // Other actions can be wired up later
+  };
+
   return (
     <DashboardCard
       title="Quick Actions"
@@ -330,6 +339,7 @@ function StudentQuickActionsCard() {
             <button
               key={action.id}
               type="button"
+              onClick={() => handleQuickAction(action.id)}
               className={
                 "quick-action-btn sa-student-action-btn group relative flex flex-col items-center justify-center gap-1 rounded-xl " +
                 "border border-slate-200/80 bg-white/80 px-2 py-2 text-center backdrop-blur-md " +
