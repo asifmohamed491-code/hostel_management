@@ -105,8 +105,6 @@ export async function POST(request: NextRequest) {
       studentName: student.fullName,
       registerNumber: student.department
         ? `${new Date().getFullYear() - (parseInt(student.year || "1", 10) - 1)}${student.department?.substring(0, 3).toUpperCase()}0124`
-        : "",
-      roomNumber: student.roomNumber || "",
         : "2023CSE0124",
       roomNumber: student.roomNumber?.trim() || "214",
       date: today,

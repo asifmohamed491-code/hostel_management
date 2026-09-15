@@ -61,31 +61,15 @@ interface AttendanceResult {
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* STEP 1: LOCATION CHECK (dummy GPS)                               */
 /* STEP 1: CHECKING LOCATION                                         */
 /* ═══════════════════════════════════════════════════════════════════ */
-function LocationCheckStage({ onVerified }: { onVerified: () => void }) {
-  const [verified, setVerified] = useState(false);
-
 function CheckingLocationStage({ onVerified }: { onVerified: () => void }) {
   useEffect(() => {
-    // Simulate GPS check — 2s delay
-    const t = setTimeout(() => setVerified(true), 2000);
     // Simulate location check — 1.8s delay
     const t = setTimeout(onVerified, 1800);
     return () => clearTimeout(t);
-  }, []);
   }, [onVerified]);
 
-  if (!verified) {
-    return (
-      <StageCard>
-        <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:px-14 lg:py-16 lg:flex-row lg:gap-10 lg:text-left">
-          {/* Large Location Icon with pulse */}
-          <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-primary/10 lg:h-28 lg:w-28">
-            <MapPin className="h-12 w-12 text-primary animate-bounce lg:h-14 lg:w-14" />
-            <span className="absolute inset-0 rounded-3xl border-2 border-primary/30 animate-ping opacity-30" />
-          </div>
   return (
     <StageCard>
       <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:px-14 lg:py-16 lg:flex-row lg:gap-10 lg:text-left">
@@ -95,21 +79,6 @@ function CheckingLocationStage({ onVerified }: { onVerified: () => void }) {
           <span className="absolute inset-0 rounded-3xl border-2 border-primary/30 animate-ping opacity-30" />
         </div>
 
-          {/* Content */}
-          <div className="flex flex-col gap-3">
-            <span className="text-[12px] font-bold uppercase tracking-wider text-primary">
-              Mark Attendance
-            </span>
-            <h2 className="text-[20px] font-bold text-heading sm:text-[24px]">
-              Checking your location…
-            </h2>
-            <p className="max-w-lg text-[14px] font-medium leading-relaxed text-heading/55 sm:text-[15px]">
-              Please allow location access to verify that you are inside the hostel premises.
-            </p>
-            <div className="flex items-center gap-2 text-[12px] font-semibold text-heading/40">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              Verifying GPS coordinates…
-            </div>
         {/* Content */}
         <div className="flex flex-col gap-3">
           <span className="text-[12px] font-bold uppercase tracking-wider text-primary">
@@ -126,9 +95,6 @@ function CheckingLocationStage({ onVerified }: { onVerified: () => void }) {
             Verifying GPS coordinates…
           </div>
         </div>
-      </StageCard>
-    );
-  }
       </div>
     </StageCard>
   );
@@ -172,7 +138,6 @@ function LocationVerifiedStage({ onContinue }: { onContinue: () => void }) {
 
           <button
             type="button"
-            onClick={onVerified}
             onClick={onContinue}
             className="mt-2 inline-flex w-fit items-center gap-2 self-center rounded-2xl bg-primary px-8 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer lg:self-start sm:text-[15px]"
           >
@@ -632,7 +597,6 @@ export function StudentAttendance() {
       <button
         type="button"
         onClick={() => router.push("/dashboard/student")}
-        className="group flex w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-semibold text-heading/70 transition-all duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         className="group flex w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-semibold text-heading/70 transition-all duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer"
       >
         <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
@@ -652,12 +616,10 @@ export function StudentAttendance() {
       {/* Stage content — fills available width */}
       <div className="pb-4">
         {stage === "checking-location" && (
-          <LocationCheckStage onVerified={handleLocationVerified} />
           <CheckingLocationStage onVerified={handleLocationVerified} />
         )}
 
         {stage === "location-verified" && (
-          <LocationCheckStage onVerified={handleLocationVerified} />
           <LocationVerifiedStage onContinue={handleContinueToVerify} />
         )}
 
