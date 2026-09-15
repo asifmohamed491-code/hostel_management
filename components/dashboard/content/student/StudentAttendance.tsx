@@ -1,28 +1,28 @@
 // StudentAttendance.tsx
 //
-// Full client-side attendance flow for the Student dashboard MVP:
+// Full student attendance flow — NO camera, NO QR scanning.
+// The student clicks "Mark Attendance", the app verifies location
+// (simulated for now), then calls the backend to validate the
+// active attendance session and record the student's attendance.
 //
-//   1. Location Check (dummy — simulated success)
-//   2. QR Scanner   (in-app camera via html5-qrcode)
-//   3. Success / Invalid / Already-Marked states
-//
-// ─── FUTURE REPLACEMENT POINTS ───────────────────────────────────────
-//   • DUMMY_QR_PAYLOAD  → warden-generated daily QR from backend
-//   • validateQr()      → POST /api/attendance/verify (backend check)
-//   • simulateGps()     → real navigator.geolocation + geofencing
-//   • localStorage key  → MongoDB attendance record check
+// ─── FLOW ────────────────────────────────────────────────────────────
+//   1. Check location (dummy GPS simulation → ready for real later)
+//   2. Location verified → "Continue"
+//   3. Verify attendance against backend (active session check)
+//   4. Success / Already Marked / No Session / Expired
+// ─── FUTURE REPLACEMENT POINTS ──────────────────────────────────────
+//   • Location check  → real navigator.geolocation + geofencing
+//   • Backend already handles real session tokens from warden
 // ─────────────────────────────────────────────────────────────────────
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CheckCircle2,
   MapPin,
-  QrCode,
-  ScanLine,
   ShieldCheck,
   XCircle,
   Loader2,
@@ -30,306 +30,251 @@ import {
   Clock,
   Hash,
   DoorOpen,
+  Wifi,
+  CircleDot,
+  AlertTriangle,
+  Fingerprint,
+  User,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { STUDENT_PROFILE } from "@/lib/student-dashboard-mock";
-
-/* ── Dummy QR payload ─────────────────────────────────────────────── */
-// TODO: Replace with warden-generated daily token from backend
-const DUMMY_QR_PAYLOAD = "OASYS_ATTENDANCE_DUMMY_2026";
-
-/* ── LocalStorage key for duplicate prevention ────────────────────── */
-// TODO: Replace with backend/DB attendance lookup
-const LS_KEY = "oasys_attendance_marked";
-
-function getToday(): string {
-  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
-}
-
-function isAlreadyMarkedToday(): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(LS_KEY) === getToday();
-}
-
-function markAttendanceToday(): void {
-  localStorage.setItem(LS_KEY, getToday());
-}
-
-/* ── Dummy QR validation ──────────────────────────────────────────── */
-// TODO: Replace with POST /api/attendance/verify
-function validateQr(payload: string): boolean {
-  return payload.trim() === DUMMY_QR_PAYLOAD;
-}
 
 /* ── Flow stages ──────────────────────────────────────────────────── */
 type Stage =
   | "checking-location"
   | "location-verified"
-  | "scanner"
+  | "verifying"
   | "success"
-  | "invalid"
-  | "already-marked";
+  | "already-marked"
+  | "no-session"
+  | "session-expired"
+  | "error";
 
-/* ── Shared glass card wrapper ────────────────────────────────────── */
-function GlassCard({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <section
-      className={
-        "sa-dashboard-card rounded-[20px] border border-white/10 bg-white/[0.79] backdrop-blur-[30px] " +
-        className
-      }
-    >
-      {children}
-    </section>
-  );
-}
-
-/* ── Back to Dashboard button ─────────────────────────────────────── */
-function BackButton({ label = "Back to Dashboard" }: { label?: string }) {
-  const router = useRouter();
-  return (
-    <button
-      type="button"
-      onClick={() => router.push("/dashboard/student")}
-      className={
-        "group flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-semibold " +
-        "text-heading/70 transition-all duration-200 hover:text-primary " +
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-      }
-    >
-      <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-      {label}
-    </button>
-  );
-}
-
-/* ── Primary action button (reused across stages) ─────────────────── */
-function PrimaryButton({
-  children,
-  onClick,
-  className = "",
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        "inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-[14px] " +
-        "font-semibold text-white shadow-glass transition-all duration-200 " +
-        "hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] " +
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 " +
-        className
-      }
-    >
-      {children}
-    </button>
-  );
+/* ── Attendance record from backend ───────────────────────────────── */
+interface AttendanceResult {
+  studentName?: string;
+  registerNumber?: string;
+  roomNumber?: string;
+  date?: string;
+  markedAt?: string;
+  status?: string;
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* 1. LOCATION CHECK (dummy)                                        */
+/* STEP 1: LOCATION CHECK (dummy GPS)                               */
 /* ═══════════════════════════════════════════════════════════════════ */
 function LocationCheckStage({ onVerified }: { onVerified: () => void }) {
   const [verified, setVerified] = useState(false);
 
   useEffect(() => {
-    // Simulate GPS check — 1.8s delay then auto-verified
-    const t = setTimeout(() => setVerified(true), 1800);
+    // Simulate GPS check — 2s delay
+    const t = setTimeout(() => setVerified(true), 2000);
     return () => clearTimeout(t);
   }, []);
 
-  useEffect(() => {
-    if (verified) {
-      // Brief pause on the "verified" screen, then auto-advance
-      const t = setTimeout(onVerified, 1200);
-      return () => clearTimeout(t);
-    }
-    return undefined;
-  }, [verified, onVerified]);
+  if (!verified) {
+    return (
+      <StageCard>
+        <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:px-14 lg:py-16 lg:flex-row lg:gap-10 lg:text-left">
+          {/* Large Location Icon with pulse */}
+          <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-primary/10 lg:h-28 lg:w-28">
+            <MapPin className="h-12 w-12 text-primary animate-bounce lg:h-14 lg:w-14" />
+            <span className="absolute inset-0 rounded-3xl border-2 border-primary/30 animate-ping opacity-30" />
+          </div>
 
-  return (
-    <GlassCard className="mx-auto max-w-md px-6 py-10 text-center sm:px-8">
-      {!verified ? (
-        /* ── Checking ── */
-        <div className="flex flex-col items-center gap-5">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </span>
-          <div>
-            <h2 className="text-[18px] font-bold text-heading">
+          {/* Content */}
+          <div className="flex flex-col gap-3">
+            <span className="text-[12px] font-bold uppercase tracking-wider text-primary">
+              Mark Attendance
+            </span>
+            <h2 className="text-[20px] font-bold text-heading sm:text-[24px]">
               Checking your location…
             </h2>
-            <p className="mt-1.5 text-[13px] font-medium text-heading/55">
-              Please wait while we verify you are inside the hostel zone.
+            <p className="max-w-lg text-[14px] font-medium leading-relaxed text-heading/55 sm:text-[15px]">
+              Please allow location access to verify that you are inside the hostel premises.
             </p>
+            <div className="flex items-center gap-2 text-[12px] font-semibold text-heading/40">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              Verifying GPS coordinates…
+            </div>
           </div>
-          <span className="flex items-center gap-1.5 text-[12px] font-semibold text-heading/40">
-            <MapPin className="h-3.5 w-3.5" />
-            Verifying GPS coordinates
-          </span>
         </div>
-      ) : (
-        /* ── Verified ── */
-        <div className="flex flex-col items-center gap-5 animate-fade-up">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
-            <ShieldCheck className="h-8 w-8 text-emerald-500" />
-          </span>
+      </StageCard>
+    );
+  }
+
+  return (
+    <StageCard>
+      <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:px-14 lg:py-16 lg:flex-row lg:gap-10 lg:text-left">
+        {/* Large check icon */}
+        <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-emerald-500/10 lg:h-28 lg:w-28 animate-fade-up">
+          <ShieldCheck className="h-12 w-12 text-emerald-500 lg:h-14 lg:w-14" />
+          <span className="absolute inset-0 rounded-3xl border-2 border-emerald-500/20 animate-pulse" />
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-1 flex-col gap-4 animate-fade-up">
           <div>
-            <h2 className="text-[18px] font-bold text-heading">
+            <h2 className="text-[20px] font-bold text-heading sm:text-[24px]">
               Location Verified
             </h2>
-            <p className="mt-1.5 text-[13px] font-medium text-heading/55">
+            <p className="mt-1.5 text-[14px] font-medium text-heading/55 sm:text-[15px]">
               You are inside the hostel attendance zone.
             </p>
           </div>
-          <span className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-600/60">
-            <MapPin className="h-3.5 w-3.5" />
-            Opening scanner…
-          </span>
+
+          {/* Location details */}
+          <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
+            <span className="inline-flex items-center gap-2 rounded-xl border border-heading/5 bg-heading/[0.02] px-4 py-2.5 text-[13px] font-semibold text-heading/70">
+              <Wifi className="h-4 w-4 text-emerald-500" />
+              Distance from Hostel: 32 m
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-xl border border-heading/5 bg-heading/[0.02] px-4 py-2.5 text-[13px] font-semibold text-heading/70">
+              <CircleDot className="h-4 w-4 text-primary" />
+              Allowed Radius: 100 m
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={onVerified}
+            className="mt-2 inline-flex w-fit items-center gap-2 self-center rounded-2xl bg-primary px-8 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer lg:self-start sm:text-[15px]"
+          >
+            Continue
+            <ArrowLeft className="h-4 w-4 rotate-180" />
+          </button>
         </div>
-      )}
-    </GlassCard>
+      </div>
+    </StageCard>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* 2. QR SCANNER                                                    */
+/* STEP 3: VERIFYING ATTENDANCE (backend call)                      */
 /* ═══════════════════════════════════════════════════════════════════ */
-function ScannerStage({
+function VerifyingStage({
   onResult,
 }: {
-  onResult: (payload: string) => void;
+  onResult: (stage: Stage, data?: AttendanceResult) => void;
 }) {
-  const scannerRef = useRef<HTMLDivElement>(null);
-  const scannerInstanceRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const hasStartedRef = useRef(false);
+  const [steps, setSteps] = useState([
+    { label: "Location verified", done: true },
+    { label: "Active attendance session found", done: false },
+    { label: "Validating attendance", done: false },
+    { label: "Recording attendance", done: false },
+  ]);
 
   useEffect(() => {
-    // Prevent double-initialisation in React strict mode
-    if (hasStartedRef.current) return;
-    hasStartedRef.current = true;
+    let cancelled = false;
 
-    let html5Qr: import("html5-qrcode").Html5Qrcode | null = null;
+    async function verify() {
+      // Step 2: check session
+      await delay(800);
+      if (cancelled) return;
+      setSteps((s) => s.map((st, i) => (i === 1 ? { ...st, done: true } : st)));
 
-    async function startScanner() {
+      // Step 3: validate
+      await delay(600);
+      if (cancelled) return;
+      setSteps((s) => s.map((st, i) => (i === 2 ? { ...st, done: true } : st)));
+
+      // Step 4: call backend
       try {
-        const { Html5Qrcode } = await import("html5-qrcode");
-        if (!scannerRef.current) return;
+        const res = await fetch("/api/attendance/mark", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        });
 
-        html5Qr = new Html5Qrcode("oasys-qr-reader");
-        scannerInstanceRef.current = html5Qr;
+        const data = await res.json();
+        if (cancelled) return;
 
-        await html5Qr.start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1,
-          },
-          (decodedText) => {
-            onResult(decodedText);
-            // Stop scanner after first successful read
-            html5Qr
-              ?.stop()
-              .catch(() => {
-                /* scanner may already be stopped */
-              });
-          },
-          () => {
-            /* ignore scan failures (frames without QR) */
-          }
-        );
-      } catch (err) {
-        console.error("QR scanner error:", err);
-        setError(
-          "Could not access camera. Please allow camera access and try again."
-        );
+        setSteps((s) => s.map((st, i) => (i === 3 ? { ...st, done: true } : st)));
+        await delay(500);
+        if (cancelled) return;
+
+        if (res.status === 201) {
+          onResult("success", data.record);
+        } else if (data.code === "ALREADY_MARKED") {
+          onResult("already-marked", data.record);
+        } else if (data.code === "SESSION_EXPIRED") {
+          onResult("session-expired");
+        } else if (data.code === "NO_SESSION") {
+          onResult("no-session");
+        } else {
+          onResult("error");
+        }
+      } catch {
+        if (!cancelled) onResult("error");
       }
     }
 
-    startScanner();
-
+    verify();
     return () => {
-      html5Qr
-        ?.stop()
-        .catch(() => {
-          /* already stopped */
-        });
+      cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <GlassCard className="mx-auto max-w-md overflow-hidden">
-      {/* Header */}
-      <div className="px-5 pt-5 pb-3 sm:px-6">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <QrCode className="h-5 w-5" />
-          </span>
+    <StageCard>
+      <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:px-14 lg:py-16 lg:flex-row lg:gap-10 lg:text-left">
+        {/* Icon */}
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-primary/10 lg:h-28 lg:w-28">
+          <Fingerprint className="h-12 w-12 animate-pulse text-primary lg:h-14 lg:w-14" />
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-1 flex-col gap-5">
           <div>
-            <h2 className="text-[16px] font-bold leading-6 text-heading">
-              Mark Attendance
+            <h2 className="text-[20px] font-bold text-heading sm:text-[24px]">
+              Verify Attendance
             </h2>
-            <p className="mt-0.5 text-[12.5px] font-medium text-heading/50">
-              Scan the QR code displayed by your hostel warden.
+            <p className="mt-1.5 text-[14px] font-medium text-heading/55 sm:text-[15px]">
+              Checking today&apos;s active attendance session…
             </p>
+          </div>
+
+          {/* Verification steps */}
+          <div className="flex flex-col gap-3">
+            {steps.map((step) => (
+              <div
+                key={step.label}
+                className="flex items-center gap-3 text-[13px] font-semibold sm:text-[14px]"
+              >
+                {step.done ? (
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+                ) : (
+                  <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary/40" />
+                )}
+                <span
+                  className={
+                    step.done ? "text-heading/70" : "text-heading/40"
+                  }
+                >
+                  {step.label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
-
-      {/* Camera preview area */}
-      <div className="relative mx-4 mb-3 overflow-hidden rounded-2xl border border-white/30 bg-black/5 sm:mx-5">
-        {error ? (
-          <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-            <XCircle className="h-10 w-10 text-red-400" />
-            <p className="text-[13px] font-medium text-heading/70">{error}</p>
-          </div>
-        ) : (
-          <div
-            id="oasys-qr-reader"
-            ref={scannerRef}
-            className="aspect-square w-full [&_video]:!rounded-2xl [&_#qr-shaded-region]:!border-primary/40"
-          />
-        )}
-      </div>
-
-      {/* Helper text */}
-      <div className="flex items-center justify-center gap-2 px-5 pb-5">
-        <ScanLine className="h-4 w-4 text-primary/50" />
-        <p className="text-[12px] font-medium text-heading/45">
-          Align the QR code inside the frame
-        </p>
-      </div>
-    </GlassCard>
+    </StageCard>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* 3. SUCCESS STATE                                                 */
+/* STEP 4: SUCCESS STATE                                            */
 /* ═══════════════════════════════════════════════════════════════════ */
 function SuccessStage({
   studentName,
-  registerNo,
-  roomNumber,
+  record,
 }: {
   studentName: string;
-  registerNo: string;
-  roomNumber: string;
+  record: AttendanceResult;
 }) {
   const router = useRouter();
-  const now = new Date();
+  const now = new Date(record.markedAt || Date.now());
 
   const dateStr = now.toLocaleDateString("en-IN", {
     weekday: "long",
@@ -349,186 +294,348 @@ function SuccessStage({
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   const details = [
-    { icon: Hash, label: "Register Number", value: registerNo },
-    { icon: DoorOpen, label: "Room Number", value: roomNumber },
+    { icon: Hash, label: "Register Number", value: record.registerNumber || STUDENT_PROFILE.registerNo },
+    { icon: User, label: "Student Name", value: studentName },
+    { icon: DoorOpen, label: "Room Number", value: record.roomNumber || STUDENT_PROFILE.room },
     { icon: CalendarDays, label: "Date", value: dateStr },
     { icon: Clock, label: "Time", value: timeStr },
-    {
-      icon: CheckCircle2,
-      label: "Status",
-      value: "Present",
-      valueClassName: "text-emerald-600 font-bold",
-    },
+    { icon: CheckCircle2, label: "Status", value: "Present", accent: true },
   ];
 
   return (
-    <GlassCard className="mx-auto max-w-md px-6 py-8 text-center sm:px-8 animate-fade-up">
-      {/* Success icon */}
-      <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10">
-        <CheckCircle2 className="h-10 w-10 text-emerald-500" />
-      </div>
+    <StageCard className="animate-fade-up">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+        {/* Left: Success message */}
+        <div className="flex flex-col items-center gap-5 px-6 py-8 text-center sm:px-10 lg:items-start lg:justify-center lg:py-12 lg:text-left">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 lg:h-24 lg:w-24">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500 lg:h-12 lg:w-12" />
+          </div>
 
-      <h2 className="text-[22px] font-bold text-heading">
-        Attendance Marked!
-      </h2>
-      <p className="mt-2 text-[14px] font-medium text-heading/60">
-        {greeting}, {studentName}
-      </p>
-      <p className="mt-1 text-[13px] font-medium text-heading/45">
-        Your attendance has been recorded successfully.
-      </p>
+          <div>
+            <h2 className="text-[22px] font-bold text-heading sm:text-[26px]">
+              Attendance Marked!
+            </h2>
+            <p className="mt-2 text-[15px] font-medium text-heading/60 sm:text-[16px]">
+              {greeting}, {studentName}
+            </p>
+            <p className="mt-1 text-[13px] font-medium text-heading/45 sm:text-[14px]">
+              Your attendance has been recorded successfully.
+            </p>
+          </div>
 
-      {/* Detail rows */}
-      <div className="mt-6 space-y-0">
-        {details.map((d) => (
-          <div
-            key={d.label}
-            className="flex items-center gap-3 border-b border-heading/5 px-2 py-3 last:border-0"
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/student")}
+            className="mt-2 inline-flex items-center gap-2 rounded-2xl bg-primary px-7 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-[15px]"
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary/70">
-              <d.icon className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </button>
+        </div>
+
+        {/* Right: Details */}
+        <div className="flex flex-col justify-center border-t border-heading/5 px-6 py-6 sm:px-10 lg:border-l lg:border-t-0 lg:py-10">
+          <div className="space-y-0">
+            {details.map((d) => (
+              <div
+                key={d.label}
+                className="flex items-center gap-3 border-b border-heading/5 py-3.5 last:border-0"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary/70">
+                  <d.icon className="h-4.5 w-4.5" />
+                </span>
+                <span className="min-w-0 flex-1 text-[12px] font-semibold uppercase tracking-wide text-heading/40">
+                  {d.label}
+                </span>
+                <span
+                  className={`text-right text-[14px] font-semibold ${
+                    d.accent ? "text-emerald-600" : "text-heading"
+                  }`}
+                >
+                  {d.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </StageCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* ALREADY MARKED STATE                                             */
+/* ═══════════════════════════════════════════════════════════════════ */
+function AlreadyMarkedStage({ record }: { record?: AttendanceResult }) {
+  const router = useRouter();
+  const markedAt = record?.markedAt ? new Date(record.markedAt) : new Date();
+
+  const dateStr = markedAt.toLocaleDateString("en-IN", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const timeStr = markedAt.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  return (
+    <StageCard className="animate-fade-up">
+      <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:px-14 lg:py-16 lg:flex-row lg:gap-10 lg:text-left">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-amber-500/10 lg:h-24 lg:w-24">
+          <ShieldCheck className="h-10 w-10 text-amber-500 lg:h-12 lg:w-12" />
+        </div>
+
+        <div className="flex flex-1 flex-col gap-4">
+          <div>
+            <h2 className="text-[20px] font-bold text-heading sm:text-[24px]">
+              Attendance Already Marked
+            </h2>
+            <p className="mt-2 text-[14px] font-medium text-heading/55 sm:text-[15px]">
+              Your attendance has already been recorded for today.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
+            <span className="inline-flex items-center gap-2 rounded-xl border border-heading/5 bg-heading/[0.02] px-4 py-2.5 text-[13px] font-semibold text-heading/70">
+              <CalendarDays className="h-4 w-4 text-primary/60" />
+              {dateStr}
             </span>
-            <span className="min-w-0 flex-1 text-left text-[12px] font-semibold uppercase tracking-wide text-heading/40">
-              {d.label}
+            <span className="inline-flex items-center gap-2 rounded-xl border border-heading/5 bg-heading/[0.02] px-4 py-2.5 text-[13px] font-semibold text-heading/70">
+              <Clock className="h-4 w-4 text-primary/60" />
+              {timeStr}
             </span>
-            <span
-              className={
-                "text-right text-[13px] font-semibold text-heading " +
-                ((d as { valueClassName?: string }).valueClassName ?? "")
-              }
-            >
-              {d.value}
+            <span className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/10 bg-emerald-500/5 px-4 py-2.5 text-[13px] font-bold text-emerald-600">
+              <CheckCircle2 className="h-4 w-4" />
+              Present
             </span>
           </div>
-        ))}
-      </div>
 
-      {/* Back button */}
-      <div className="mt-6">
-        <PrimaryButton onClick={() => router.push("/dashboard/student")}>
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </PrimaryButton>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/student")}
+            className="mt-2 inline-flex w-fit items-center gap-2 self-center rounded-2xl bg-primary px-7 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 lg:self-start sm:text-[15px]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </button>
+        </div>
       </div>
-    </GlassCard>
+    </StageCard>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* 4. INVALID QR STATE                                              */
+/* NO SESSION / EXPIRED / ERROR STATES                              */
 /* ═══════════════════════════════════════════════════════════════════ */
-function InvalidStage({ onRetry }: { onRetry: () => void }) {
-  return (
-    <GlassCard className="mx-auto max-w-md px-6 py-10 text-center sm:px-8 animate-fade-up">
-      <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
-        <XCircle className="h-10 w-10 text-red-400" />
-      </div>
-
-      <h2 className="text-[20px] font-bold text-heading">Invalid QR Code</h2>
-      <p className="mt-2 text-[13px] font-medium text-heading/55">
-        Please scan the attendance QR displayed by your hostel warden.
-      </p>
-
-      <div className="mt-6">
-        <PrimaryButton onClick={onRetry}>
-          <ScanLine className="h-4 w-4" />
-          Scan Again
-        </PrimaryButton>
-      </div>
-    </GlassCard>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════ */
-/* 5. ALREADY MARKED STATE                                          */
-/* ═══════════════════════════════════════════════════════════════════ */
-function AlreadyMarkedStage() {
+function UnavailableStage({
+  type,
+  onRetry,
+}: {
+  type: "no-session" | "session-expired" | "error";
+  onRetry: () => void;
+}) {
   const router = useRouter();
+
+  const config = {
+    "no-session": {
+      icon: XCircle,
+      iconColor: "text-red-400",
+      iconBg: "bg-red-500/10",
+      title: "Attendance Unavailable",
+      desc: "No active attendance session is currently available.",
+    },
+    "session-expired": {
+      icon: AlertTriangle,
+      iconColor: "text-amber-500",
+      iconBg: "bg-amber-500/10",
+      title: "Attendance Session Expired",
+      desc: "The current attendance session is no longer active.",
+    },
+    error: {
+      icon: XCircle,
+      iconColor: "text-red-400",
+      iconBg: "bg-red-500/10",
+      title: "Something Went Wrong",
+      desc: "We couldn't process your attendance. Please check your connection and try again.",
+    },
+  };
+
+  const c = config[type];
+  const Icon = c.icon;
+
   return (
-    <GlassCard className="mx-auto max-w-md px-6 py-10 text-center sm:px-8 animate-fade-up">
-      <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-amber-500/10">
-        <ShieldCheck className="h-10 w-10 text-amber-500" />
-      </div>
+    <StageCard className="animate-fade-up">
+      <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:px-14 lg:py-16 lg:flex-row lg:gap-10 lg:text-left">
+        <div className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-full ${c.iconBg} lg:h-24 lg:w-24`}>
+          <Icon className={`h-10 w-10 ${c.iconColor} lg:h-12 lg:w-12`} />
+        </div>
 
-      <h2 className="text-[20px] font-bold text-heading">
-        Attendance Already Marked
-      </h2>
-      <p className="mt-2 text-[13px] font-medium text-heading/55">
-        Today&apos;s attendance has already been recorded.
-      </p>
+        <div className="flex flex-1 flex-col gap-4">
+          <div>
+            <h2 className="text-[20px] font-bold text-heading sm:text-[24px]">
+              {c.title}
+            </h2>
+            <p className="mt-2 max-w-lg text-[14px] font-medium leading-relaxed text-heading/55 sm:text-[15px]">
+              {c.desc}
+            </p>
+          </div>
 
-      <div className="mt-6">
-        <PrimaryButton onClick={() => router.push("/dashboard/student")}>
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </PrimaryButton>
+          <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex items-center gap-2 rounded-2xl bg-primary px-7 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-[15px]"
+            >
+              Try Again
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard/student")}
+              className="inline-flex items-center gap-2 rounded-2xl border border-heading/10 bg-white/50 px-7 py-3.5 text-[14px] font-semibold text-heading/70 transition-all duration-200 hover:bg-white/80 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-[15px]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
       </div>
-    </GlassCard>
+    </StageCard>
   );
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* SHARED CARD WRAPPER — desktop-filling glassmorphism               */
+/* ═══════════════════════════════════════════════════════════════════ */
+function StageCard({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={
+        "sa-dashboard-card w-full rounded-[20px] border border-white/10 bg-white/[0.79] backdrop-blur-[30px] " +
+        className
+      }
+    >
+      {children}
+    </section>
+  );
+}
+
+/* ── Delay helper ─────────────────────────────────────────────────── */
+function delay(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
 /* MAIN ORCHESTRATOR                                                */
 /* ═══════════════════════════════════════════════════════════════════ */
-
 export function StudentAttendance() {
+  const router = useRouter();
   const { user, loading } = useCurrentUser();
 
-  // Determine initial stage (check localStorage for already-marked)
-  const [stage, setStage] = useState<Stage>(() =>
-    isAlreadyMarkedToday() ? "already-marked" : "checking-location"
-  );
+  const [stage, setStage] = useState<Stage>("checking-location");
+  const [record, setRecord] = useState<AttendanceResult>({});
 
   const studentName = user?.fullName?.trim() || "Student";
-  const registerNo = STUDENT_PROFILE.registerNo;
-  const roomNumber = user?.roomNumber || STUDENT_PROFILE.room;
+
+  // Check if attendance was already marked for today
+  useEffect(() => {
+    let cancelled = false;
+    async function checkExistingAttendance() {
+      try {
+        const res = await fetch("/api/attendance/status", { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.studentRecord) {
+          setRecord(data.studentRecord);
+          setStage("already-marked");
+        }
+      } catch {
+        // Continue with normal location checking flow
+      }
+    }
+    checkExistingAttendance();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleLocationVerified = useCallback(() => {
-    setStage("scanner");
+    setStage("verifying");
   }, []);
 
-  const handleQrResult = useCallback((payload: string) => {
-    if (validateQr(payload)) {
-      markAttendanceToday();
-      setStage("success");
-    } else {
-      setStage("invalid");
-    }
-  }, []);
+  const handleVerifyResult = useCallback(
+    (resultStage: Stage, data?: AttendanceResult) => {
+      if (data) setRecord(data);
+      setStage(resultStage);
+    },
+    []
+  );
 
   const handleRetry = useCallback(() => {
-    setStage("scanner");
+    setStage("checking-location");
   }, []);
 
   return (
     <div className="flex w-full flex-col gap-4 pt-4 xl:gap-5 xl:pt-5">
       {/* Back nav */}
-      <BackButton />
+      <button
+        type="button"
+        onClick={() => router.push("/dashboard/student")}
+        className="group flex w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-semibold text-heading/70 transition-all duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      >
+        <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+        Back to Dashboard
+      </button>
 
-      {/* Stage content */}
-      <div className="flex flex-col items-center justify-center px-2 pb-4">
+      {/* Page title */}
+      <div className="px-1">
+        <h1 className="text-[22px] font-bold text-heading sm:text-[26px]">
+          Mark Attendance
+        </h1>
+        <p className="mt-1 text-[13px] font-medium text-heading/50 sm:text-[14px]">
+          Verify your location and mark today&apos;s attendance.
+        </p>
+      </div>
+
+      {/* Stage content — fills available width */}
+      <div className="pb-4">
         {stage === "checking-location" && (
           <LocationCheckStage onVerified={handleLocationVerified} />
         )}
 
         {stage === "location-verified" && (
-          /* This stage auto-transitions via LocationCheckStage */
           <LocationCheckStage onVerified={handleLocationVerified} />
         )}
 
-        {stage === "scanner" && <ScannerStage onResult={handleQrResult} />}
+        {stage === "verifying" && (
+          <VerifyingStage onResult={handleVerifyResult} />
+        )}
 
         {stage === "success" && (
           <SuccessStage
             studentName={loading ? "Student" : studentName}
-            registerNo={registerNo}
-            roomNumber={roomNumber}
+            record={record}
           />
         )}
 
-        {stage === "invalid" && <InvalidStage onRetry={handleRetry} />}
+        {stage === "already-marked" && <AlreadyMarkedStage record={record} />}
 
-        {stage === "already-marked" && <AlreadyMarkedStage />}
+        {(stage === "no-session" ||
+          stage === "session-expired" ||
+          stage === "error") && (
+          <UnavailableStage type={stage} onRetry={handleRetry} />
+        )}
       </div>
     </div>
   );

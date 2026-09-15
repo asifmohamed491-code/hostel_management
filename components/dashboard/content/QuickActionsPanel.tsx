@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import {
   ExportExcelIcon,
@@ -19,18 +20,26 @@ const ICONS = {
 } as const;
 
 function ActionCell({ action }: { action: QuickActionItem }) {
+  const router = useRouter();
   const Icon = ICONS[action.icon];
+
+  const handleClick = () => {
+    if (action.id === "qr") {
+      router.push("/dashboard/warden/attendance");
+    }
+  };
 
   return (
     <button
       type="button"
+      onClick={handleClick}
       className={
         "quick-action-btn group relative flex w-full items-center gap-2.5 sm:gap-3.5 rounded-2xl " +
         "sa-student-action-btn border border-slate-200/80 bg-white/80 p-2.5 sm:p-3.5 text-left backdrop-blur-md " +
         "shadow-xs transition-all duration-300 ease-out " +
         "hover:-translate-y-1 hover:border-primary/40 hover:bg-white " +
         "hover:shadow-lg hover:shadow-primary/10 " +
-        "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+        "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer"
       }
     >
       {/* Subtle hover gradient background */}

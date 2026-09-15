@@ -63,7 +63,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       {
         label: "Student Attendance",
-        href: "/dashboard/attendance",
+        href: "/dashboard/warden/attendance",
         icon: ClipboardCheck,
       },
       {

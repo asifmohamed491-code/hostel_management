@@ -19,7 +19,6 @@
     "dotenv": "^16.4.7",
     "framer-motion": "^13.0.0",
     "gsap": "^3.12.7",
-    "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.474.0",
     "mongoose": "^8.9.5",
