@@ -3,11 +3,11 @@
 import { useRef, useState } from "react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
-import { WEEKLY_ATTENDANCE } from "@/lib/dashboard-mock";
+import { useWardenAttendanceStats } from "@/hooks/useWardenAttendanceStats";
 
 const WIDTH = 320;
 const HEIGHT = 180;
-const PADDING_Y = 22; // Top/Bottom padding அதிகப்படுத்தியதால் Dots மேல ஒட்டாது
+const PADDING_Y = 22;
 const PADDING_X = 12;
 
 type Point = { x: number; y: number };
@@ -25,7 +25,6 @@ function buildPaths(points: Point[]) {
     const next = points[i + 1];
 
     if (current && next) {
-      // Curve intensity-ஐ கம்மி பண்ணி smooth-ஆக்கியுள்ளோம் (0.5 tension)
       const controlX = (current.x + next.x) / 2;
       linePath += ` C ${controlX},${current.y} ${controlX},${next.y} ${next.x},${next.y}`;
     }
@@ -43,12 +42,13 @@ export function AttendanceTrendChart() {
   const areaRef = useRef<SVGPathElement>(null);
   const [activePoint, setActivePoint] = useState<{ x: number; y: number; value: number; label: string } | null>(null);
 
-  const data = WEEKLY_ATTENDANCE && WEEKLY_ATTENDANCE.length > 0 ? WEEKLY_ATTENDANCE : [];
+  const { stats } = useWardenAttendanceStats();
+  const data = stats.weeklyAttendance && stats.weeklyAttendance.length > 0 ? stats.weeklyAttendance : [];
+
   const usableWidth = WIDTH - PADDING_X * 2;
   const usableHeight = HEIGHT - PADDING_Y * 2;
   const step = data.length > 1 ? usableWidth / (data.length - 1) : 0;
 
-  // Y-axis positioning with proper padding offset
   const points = data.map((point, i) => ({
     x: PADDING_X + i * step,
     y: PADDING_Y + (1 - (point?.value || 0) / 100) * usableHeight,
@@ -128,7 +128,7 @@ export function AttendanceTrendChart() {
       bodyClassName="sa-chart-body flex flex-1 flex-col px-4 pb-5 pt-4 sm:px-6"
     >
       <div ref={containerRef} className="relative flex flex-1 gap-3">
-        {/* Y-Axis Labels with Matching Vertical Padding */}
+        {/* Y-Axis Labels */}
         <div className="flex flex-col justify-between py-2 text-[10px] font-semibold text-slate-400 select-none sm:text-[11.5px]">
           <span>100</span>
           <span>75</span>
@@ -137,7 +137,7 @@ export function AttendanceTrendChart() {
           <span>0</span>
         </div>
 
-        {/* Chart SVG with Improved Margin & Breathing Space */}
+        {/* Chart SVG */}
         <div className="relative flex-1 min-h-[190px] pt-1">
           <svg
             viewBox={`0 0 ${WIDTH} ${HEIGHT}`}

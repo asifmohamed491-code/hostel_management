@@ -4,7 +4,8 @@ import { useRef } from "react";
 import type { ComponentType, SVGProps } from "react";
 import { BedDouble, CircleCheck, CircleMinus, Flag, Gauge, Users } from "lucide-react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
-import { STAT_CARDS, type StatCardData } from "@/lib/dashboard-mock";
+import type { StatCardData } from "@/lib/dashboard-mock";
+import { useWardenAttendanceStats } from "@/hooks/useWardenAttendanceStats";
 
 const ICONS: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   "total-students": Users,
@@ -17,6 +18,7 @@ const ICONS: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
 
 export function StatCardsRow() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { statCards } = useWardenAttendanceStats();
 
   useGSAP(
     () => {
@@ -32,7 +34,7 @@ export function StatCardsRow() {
       if (prefersReducedMotion()) {
         gsap.set(cards, { opacity: 1, y: 0, scale: 1 });
         valueElements.forEach((el, index) => {
-          el.textContent = String(STAT_CARDS[index]?.value ?? "0");
+          el.textContent = String(statCards[index]?.value ?? "0");
         });
         return;
       }
@@ -65,12 +67,10 @@ export function StatCardsRow() {
       );
 
       // 2. Number Count-Up Animation (0 -> Target Value)
-
       valueElements.forEach((el, index) => {
-        const rawValue = String(STAT_CARDS[index]?.value || "0");
-        // String-ல் இருந்து எண்களை மட்டும் பிரித்தெடுக்கும் (Extract numeric digits)
+        const rawValue = String(statCards[index]?.value || "0");
         const numericMatch = rawValue.match(/\d+/);
-        
+
         if (numericMatch) {
           const targetNum = parseInt(numericMatch[0], 10);
           const prefix = rawValue.substring(0, numericMatch.index);
@@ -87,12 +87,14 @@ export function StatCardsRow() {
                 el.textContent = `${prefix}${Math.round(obj.val)}${suffix}`;
               },
             },
-            0.1 + index * 0.08 // Stagger delay for count-up
+            0.1 + index * 0.08
           );
+        } else {
+          el.textContent = rawValue;
         }
       });
     },
-    { scope: containerRef }
+    { scope: containerRef, dependencies: [statCards] }
   );
 
   return (
@@ -100,7 +102,7 @@ export function StatCardsRow() {
       ref={containerRef}
       className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 xl:flex xl:gap-4.5"
     >
-      {STAT_CARDS.map((card: StatCardData) => {
+      {statCards.map((card: StatCardData) => {
         const Icon = ICONS[card.id] ?? Gauge;
 
         return (
@@ -126,7 +128,7 @@ export function StatCardsRow() {
 
             <div className="relative z-10 mt-3 flex items-baseline gap-1">
               <p className="stat-card-value text-2xl font-bold tracking-tight text-heading xl:text-[28px]">
-                0
+                {card.value}
               </p>
             </div>
           </div>

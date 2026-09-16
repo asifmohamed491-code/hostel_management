@@ -4,19 +4,29 @@
 // Student-only: marks attendance for today by validating:
 // 1. Authenticated student session (JWT)
 // 2. No duplicate attendance marked today
-// 3. Active, unexpired Warden attendance session and QR token
+// 3. Active, unexpired Warden attendance session
 // 4. Valid GPS payload & acceptable accuracy (<= 150m)
 // 5. Server-side Haversine geofence calculation (<= 320m)
+// 6. Creates notifications for the student & wardens
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { AttendanceSession } from "@/models/AttendanceSession";
 import { AttendanceRecord } from "@/models/AttendanceRecord";
+import { Notification } from "@/models/Notification";
 import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt";
 import { HOSTEL_GEOFENCE, calculateDistanceMeters } from "@/lib/constants/geofence";
 
 function getTodayString(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -61,10 +71,14 @@ export async function POST(request: NextRequest) {
             studentName: existingRecord.studentName,
             registerNumber: existingRecord.registerNumber,
             roomNumber: existingRecord.roomNumber,
+            department: existingRecord.department,
+            year: existingRecord.year,
+            hostelBlock: existingRecord.hostelBlock,
             date: existingRecord.date,
             markedAt: existingRecord.markedAt,
             status: existingRecord.status,
-            distanceMeters: existingRecord.location?.distanceMeters,
+            distanceMeters: existingRecord.location?.distanceMeters ?? existingRecord.distanceFromHostel,
+            markingMethod: existingRecord.markingMethod,
           },
         },
         { status: 409 }
@@ -106,7 +120,6 @@ export async function POST(request: NextRequest) {
 
     // ── 5. Parse & validate GPS payload ──
     const body = await request.json().catch(() => null);
-    const qrToken = typeof body?.qrToken === "string" ? body.qrToken.trim() : "";
     const latitude = typeof body?.latitude === "number" ? body.latitude : NaN;
     const longitude = typeof body?.longitude === "number" ? body.longitude : NaN;
     const accuracy = typeof body?.accuracy === "number" ? body.accuracy : NaN;
@@ -126,13 +139,6 @@ export async function POST(request: NextRequest) {
           code: "LOCATION_REQUIRED",
           message: "Location permission and valid GPS coordinates are required to mark attendance.",
         },
-        { status: 400 }
-      );
-    }
-
-    if (!qrToken || qrToken !== activeSession.token) {
-      return NextResponse.json(
-        { code: "INVALID_QR", message: "The attendance QR code is invalid or expired." },
         { status: 400 }
       );
     }
@@ -172,18 +178,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 9. Create attendance record with GPS details ──
+    // ── 9. Create attendance record with full profile & GPS details ──
+    const markedAt = new Date();
+    const timeStr = formatTime(markedAt);
+
+    const regNumber = student.department
+      ? `${new Date().getFullYear() - (parseInt(student.year || "1", 10) - 1)}${student.department?.substring(0, 3).toUpperCase()}0124`
+      : "2023CSE0124";
+
     const record = await AttendanceRecord.create({
       student: student._id,
       studentName: student.fullName,
-      registerNumber: student.department
-        ? `${new Date().getFullYear() - (parseInt(student.year || "1", 10) - 1)}${student.department?.substring(0, 3).toUpperCase()}0124`
-        : "2023CSE0124",
+      registerNumber: regNumber,
+      department: student.department || "Computer Science",
+      year: student.year ? `${student.year} Year` : "3rd Year",
+      hostelBlock: "Block A",
       roomNumber: student.roomNumber?.trim() || "214",
       date: today,
-      markedAt: new Date(),
+      markedAt,
       status: "present",
       attendanceSession: activeSession._id,
+      markingMethod: "QR_GPS",
+      distanceFromHostel: roundedDistance,
       location: {
         latitude,
         longitude,
@@ -191,6 +207,32 @@ export async function POST(request: NextRequest) {
         distanceMeters: roundedDistance,
       },
     });
+
+    // ── 10. Notifications: Student confirmation + Warden notification ──
+    try {
+      // Notification for the student
+      await Notification.create({
+        recipient: student._id,
+        title: "Attendance Marked",
+        message: `Your attendance has been successfully marked for today at ${timeStr}.`,
+        href: "/dashboard/student/attendance",
+      });
+
+      // Notification for active wardens
+      const wardens = await User.find({ role: "warden" }).select("_id").lean();
+      if (wardens.length) {
+        await Notification.insertMany(
+          wardens.map((warden) => ({
+            recipient: warden._id,
+            title: "Student Attendance Marked",
+            message: `${student.fullName} marked attendance at ${timeStr}.`,
+            href: "/dashboard/warden",
+          }))
+        );
+      }
+    } catch (notifErr) {
+      console.warn("Failed to create attendance notifications:", notifErr);
+    }
 
     return NextResponse.json(
       {
@@ -203,10 +245,14 @@ export async function POST(request: NextRequest) {
           studentName: record.studentName,
           registerNumber: record.registerNumber,
           roomNumber: record.roomNumber,
+          department: record.department,
+          year: record.year,
+          hostelBlock: record.hostelBlock,
           date: record.date,
           markedAt: record.markedAt,
           status: record.status,
           distanceMeters: roundedDistance,
+          markingMethod: record.markingMethod,
         },
       },
       { status: 201 }

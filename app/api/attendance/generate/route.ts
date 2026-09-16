@@ -4,6 +4,7 @@
 // Warden-only: creates a new attendance session for today.
 // Deactivates any previous session for the same date, then creates
 // a fresh one with a cryptographically random token.
+// Sends "Attendance Open" notification to all students.
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
@@ -64,13 +65,14 @@ export async function POST(request: NextRequest) {
       active: true,
     });
 
+    // Broadcast "Attendance Open" notification to all students
     const students = await User.find({ role: "student" }).select("_id").lean();
     if (students.length) {
       await Notification.insertMany(
         students.map((student) => ({
           recipient: student._id,
-          title: "Attendance is now open",
-          message: "Today's hostel attendance is now available. Mark your attendance before the session closes.",
+          title: "Attendance Open",
+          message: "Today's hostel attendance is now open. Please mark your attendance.",
           href: "/dashboard/student/attendance",
         }))
       );
@@ -99,4 +101,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

@@ -3,19 +3,22 @@
 import { useRef } from "react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
-import { ATTENDANCE_RING_PCT } from "@/lib/dashboard-mock";
+import { useWardenAttendanceStats } from "@/hooks/useWardenAttendanceStats";
 
 export function AttendanceRingChart() {
   const containerRef = useRef<HTMLDivElement>(null);
   const countRef = useRef<HTMLSpanElement>(null);
   const circleRef = useRef<SVGCircleElement>(null);
 
+  const { stats } = useWardenAttendanceStats();
+  const attendancePct = stats.todayAttendance.attendancePct;
+
   // Circle Dimensions
   const size = 160;
   const strokeWidth = 12;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const targetOffset = circumference - (ATTENDANCE_RING_PCT / 100) * circumference;
+  const targetOffset = circumference - (attendancePct / 100) * circumference;
 
   useGSAP(
     () => {
@@ -30,7 +33,7 @@ export function AttendanceRingChart() {
           gsap.set(circleRef.current, { strokeDashoffset: targetOffset });
         }
         if (countRef.current) {
-          countRef.current.textContent = `${ATTENDANCE_RING_PCT}%`;
+          countRef.current.textContent = `${attendancePct}%`;
         }
         gsap.set(statusBadges, { opacity: 1, y: 0 });
         return;
@@ -62,7 +65,7 @@ export function AttendanceRingChart() {
         tl.to(
           obj,
           {
-            value: ATTENDANCE_RING_PCT,
+            value: attendancePct,
             duration: 1.4,
             ease: "power3.inOut",
             onUpdate: () => {
@@ -83,7 +86,7 @@ export function AttendanceRingChart() {
         "-=0.4"
       );
     },
-    { scope: containerRef }
+    { scope: containerRef, dependencies: [attendancePct] }
   );
 
   return (
@@ -128,7 +131,7 @@ export function AttendanceRingChart() {
               ref={countRef}
               className="text-xl font-semibold tracking-normal text-slate-800"
             >
-              0%
+              {attendancePct}%
             </span>
             <span className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
               Present Today
@@ -140,7 +143,7 @@ export function AttendanceRingChart() {
         <div className="status-badge mt-4 flex items-center gap-2 rounded-full border border-slate-100 bg-slate-50/80 px-3 py-1 shadow-2xs">
           <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-xs font-medium text-slate-600">
-            Good Standing
+            {attendancePct >= 75 ? "Good Standing" : "Needs Attention"}
           </span>
         </div>
       </div>

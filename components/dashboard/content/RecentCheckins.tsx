@@ -4,10 +4,13 @@ import { useRef } from "react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { InitialsAvatar } from "@/components/dashboard/content/InitialsAvatar";
-import { RECENT_CHECKINS } from "@/lib/dashboard-mock";
+import { useWardenAttendanceStats } from "@/hooks/useWardenAttendanceStats";
 
 export function RecentCheckins() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { stats } = useWardenAttendanceStats();
+  // Display only the latest 3 check-in records visibly with no scrollbar
+  const checkins = stats.recentCheckins.slice(0, 3);
 
   useGSAP(
     () => {
@@ -49,25 +52,25 @@ export function RecentCheckins() {
         }
       );
     },
-    { scope: containerRef }
+    { scope: containerRef, dependencies: [checkins] }
   );
 
   return (
     <DashboardCard
       title="Recent Check-ins"
-      className="sa-dashboard-card sa-dashboard-card--mist flex h-full flex-col"
-      bodyClassName="flex flex-1 flex-col px-4 pb-4 pt-3 sm:px-5"
+      className="sa-dashboard-card sa-dashboard-card--mist flex h-full flex-col overflow-hidden"
+      bodyClassName="flex flex-1 flex-col px-4 pb-4 pt-3 sm:px-5 overflow-hidden"
     >
       <div ref={containerRef} className="flex flex-1 flex-col justify-between">
         {/* Table Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
           <span>Student Name</span>
           <span>Check-in</span>
         </div>
 
-        {/* Check-ins List */}
+        {/* Check-ins List - Exactly 3 items visible, no scrollbar */}
         <div className="flex flex-1 flex-col justify-center gap-2 py-1">
-          {RECENT_CHECKINS.map((item) => (
+          {checkins.map((item) => (
             <div
               key={item.id}
               className="checkin-item group flex items-center gap-3 rounded-xl p-2 transition-all duration-200 hover:bg-slate-50/80"

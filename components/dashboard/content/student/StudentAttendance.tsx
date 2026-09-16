@@ -971,6 +971,109 @@ export function StudentAttendance() {
           />
         )}
       </div>
+
+      {/* Student Attendance History */}
+      <StudentAttendanceHistory key={stage} />
     </div>
   );
 }
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* STUDENT ATTENDANCE HISTORY SECTION                                */
+/* ═══════════════════════════════════════════════════════════════════ */
+interface HistoryRecord {
+  id: string;
+  date: string;
+  formattedDate: string;
+  time: string;
+  status: string;
+  distanceMeters?: number;
+  markingMethod: string;
+  roomNumber?: string;
+}
+
+function StudentAttendanceHistory() {
+  const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchHistory() {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/attendance/history", { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setHistory(data.history || []);
+      } catch {
+        // Continue silently
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading || history.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-col gap-3">
+      <h3 className="px-1 text-[16px] font-bold text-heading sm:text-[18px]">
+        Your Attendance History
+      </h3>
+
+      <StageCard className="p-4 sm:p-6 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[500px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-heading/10 pb-2.5 text-[11px] font-bold uppercase tracking-wider text-heading/40">
+                <th className="py-2.5 px-2">Date</th>
+                <th className="py-2.5 px-2">Check-in Time</th>
+                <th className="py-2.5 px-2">Status</th>
+                <th className="py-2.5 px-2">Method</th>
+                <th className="py-2.5 px-2 text-right">Distance</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-heading/[0.05]">
+              {history.map((rec) => (
+                <tr key={rec.id} className="transition-colors hover:bg-heading/[0.02]">
+                  <td className="py-3 px-2 text-[13px] font-semibold text-heading">
+                    {rec.formattedDate || rec.date}
+                  </td>
+                  <td className="py-3 px-2 text-[13px] font-medium text-heading/70">
+                    {rec.time}
+                  </td>
+                  <td className="py-3 px-2">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase ${
+                        rec.status.toLowerCase() === "present"
+                          ? "bg-emerald-500/10 text-emerald-600"
+                          : rec.status.toLowerCase() === "late"
+                          ? "bg-amber-500/10 text-amber-600"
+                          : "bg-rose-500/10 text-rose-500"
+                      }`}
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      {rec.status}
+                    </span>
+                  </td>
+                  <td className="py-3 px-2 text-[12px] font-mono text-heading/60">
+                    {rec.markingMethod || "QR_GPS"}
+                  </td>
+                  <td className="py-3 px-2 text-right text-[12px] font-mono text-heading/60">
+                    {rec.distanceMeters !== undefined ? `${rec.distanceMeters} m` : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </StageCard>
+    </div>
+  );
+}
+

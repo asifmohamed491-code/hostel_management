@@ -9,11 +9,16 @@ export interface IAttendanceRecord extends Document {
   student: Schema.Types.ObjectId;
   studentName: string;
   registerNumber: string;
+  department?: string;
+  year?: string;
+  hostelBlock?: string;
   roomNumber: string;
   date: string; // "YYYY-MM-DD"
   markedAt: Date;
   status: "present" | "late" | "absent";
   attendanceSession: Schema.Types.ObjectId;
+  markingMethod?: "QR_GPS" | "GPS";
+  distanceFromHostel?: number;
   location?: {
     latitude: number;
     longitude: number;
@@ -39,6 +44,21 @@ const attendanceRecordSchema = new Schema<IAttendanceRecord>(
       default: "",
       trim: true,
     },
+    department: {
+      type: String,
+      default: "Computer Science",
+      trim: true,
+    },
+    year: {
+      type: String,
+      default: "3rd Year",
+      trim: true,
+    },
+    hostelBlock: {
+      type: String,
+      default: "Block A",
+      trim: true,
+    },
     roomNumber: {
       type: String,
       default: "",
@@ -62,6 +82,14 @@ const attendanceRecordSchema = new Schema<IAttendanceRecord>(
       ref: "AttendanceSession",
       required: true,
     },
+    markingMethod: {
+      type: String,
+      enum: ["QR_GPS", "GPS"],
+      default: "QR_GPS",
+    },
+    distanceFromHostel: {
+      type: Number,
+    },
     location: {
       latitude: { type: Number },
       longitude: { type: Number },
@@ -74,10 +102,11 @@ const attendanceRecordSchema = new Schema<IAttendanceRecord>(
 
 // Prevent duplicate: one record per student per day
 attendanceRecordSchema.index({ student: 1, date: 1 }, { unique: true });
+attendanceRecordSchema.index({ date: 1, status: 1 });
+attendanceRecordSchema.index({ markedAt: -1 });
 
 export const AttendanceRecord: Model<IAttendanceRecord> =
   (models.AttendanceRecord as Model<IAttendanceRecord>) ||
   model<IAttendanceRecord>("AttendanceRecord", attendanceRecordSchema);
 
 export default AttendanceRecord;
-

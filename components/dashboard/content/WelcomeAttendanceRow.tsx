@@ -2,8 +2,8 @@
 
 import { useRef } from "react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
-import { TODAY_ATTENDANCE, TODAY_ATTENDANCE_STATS } from "@/lib/dashboard-mock";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useWardenAttendanceStats } from "@/hooks/useWardenAttendanceStats";
 
 export interface WelcomeCardProps {
   greeting?: string;
@@ -95,21 +95,30 @@ function TodayAttendanceCard() {
   const percentRef = useRef<HTMLSpanElement>(null);
   const circleRef = useRef<SVGCircleElement>(null);
 
+  const { stats } = useWardenAttendanceStats();
+  const todayAttendance = stats.todayAttendance;
+
   const size = 120;
   const strokeWidth = 11;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const targetOffset = circumference - (TODAY_ATTENDANCE.attendancePct / 100) * circumference;
+  const targetOffset = circumference - (todayAttendance.attendancePct / 100) * circumference;
+
+  const todayStats = [
+    { label: "Present", value: todayAttendance.present },
+    { label: "Late", value: todayAttendance.late },
+    { label: "Absent", value: todayAttendance.absent },
+  ];
 
   useGSAP(
     () => {
       if (prefersReducedMotion()) {
         gsap.set([circleRef.current, ".stat-num-value"], { clearProps: "all" });
         if (percentRef.current) {
-          percentRef.current.textContent = `${TODAY_ATTENDANCE.attendancePct}%`;
+          percentRef.current.textContent = `${todayAttendance.attendancePct}%`;
         }
         gsap.utils.toArray<HTMLElement>(".stat-num-value").forEach((el, index) => {
-          el.textContent = `${TODAY_ATTENDANCE_STATS[index]?.value ?? 0}`;
+          el.textContent = `${todayStats[index]?.value ?? 0}`;
         });
         if (circleRef.current) {
           gsap.set(circleRef.current, { strokeDashoffset: targetOffset });
@@ -146,7 +155,7 @@ function TodayAttendanceCard() {
         tl.to(
           obj,
           {
-            val: TODAY_ATTENDANCE.attendancePct,
+            val: todayAttendance.attendancePct,
             duration: 1.4,
             ease: "power3.inOut",
             onUpdate: () => {
@@ -161,7 +170,7 @@ function TodayAttendanceCard() {
 
       const statElements = gsap.utils.toArray<HTMLElement>(".stat-num-value");
       statElements.forEach((el, index) => {
-        const targetVal = TODAY_ATTENDANCE_STATS[index]?.value || 0;
+        const targetVal = todayStats[index]?.value || 0;
         const obj = { val: 0 };
 
         tl.to(
@@ -178,7 +187,7 @@ function TodayAttendanceCard() {
         );
       });
     },
-    { scope: cardRef }
+    { scope: cardRef, dependencies: [todayAttendance] }
   );
 
   return (
@@ -208,19 +217,19 @@ function TodayAttendanceCard() {
             </span>
           </div>
 
-          <span className="flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-bold text-rose-600 border border-rose-200 shadow-xs backdrop-blur-md">
-            <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-            QR Expired
+          <span className="flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-bold text-emerald-600 border border-emerald-200 shadow-xs backdrop-blur-md">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            Active
           </span>
         </div>
 
         <p className="mt-0.5 text-[12.5px] font-semibold text-heading/60 xl:text-sm">
-          Last updated on {TODAY_ATTENDANCE.lastUpdated}
+          Last updated on {todayAttendance.lastUpdated}
         </p>
 
         <div className="mt-4 flex flex-1 items-center justify-between gap-3 xl:mt-5 xl:gap-4">
           <div className="flex flex-1 flex-wrap gap-2.5 xl:gap-3">
-            {TODAY_ATTENDANCE_STATS.map((stat) => (
+            {todayStats.map((stat) => (
               <div
                 key={stat.label}
                 className="min-w-[80px] flex-1 rounded-xl border border-white/60 bg-white/30 px-4 py-2.5 backdrop-blur-[10.8px] xl:px-5 xl:py-3 transition-transform hover:scale-[1.02]"
@@ -229,7 +238,7 @@ function TodayAttendanceCard() {
                   {stat.label}
                 </p>
                 <p className="stat-num-value mt-0.5 text-xl font-bold text-heading xl:text-[26px]">
-                  0
+                  {stat.value}
                 </p>
               </div>
             ))}
@@ -264,7 +273,7 @@ function TodayAttendanceCard() {
                 ref={percentRef}
                 className="text-xl font-bold leading-none text-heading xl:text-2xl"
               >
-                0%
+                {todayAttendance.attendancePct}%
               </span>
               <span className="mt-1 text-[10px] font-semibold tracking-tight text-heading/70 xl:text-[11px]">
                 Attendance %

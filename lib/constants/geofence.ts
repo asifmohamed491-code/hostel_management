@@ -43,3 +43,4 @@ export function calculateDistanceMeters(
 
   return EARTH_RADIUS_METERS * c;
 }
+

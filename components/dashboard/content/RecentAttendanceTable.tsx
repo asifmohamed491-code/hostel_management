@@ -5,7 +5,7 @@ import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { InitialsAvatar } from "@/components/dashboard/content/InitialsAvatar";
 import { cn } from "@/lib/cn";
-import { ATTENDANCE_TABLE } from "@/lib/dashboard-mock";
+import { useWardenAttendanceStats } from "@/hooks/useWardenAttendanceStats";
 
 const STATUS_STYLES: Record<string, string> = {
   Present: "bg-emerald-500/10 text-emerald-600",
@@ -15,17 +15,19 @@ const STATUS_STYLES: Record<string, string> = {
 
 export function RecentAttendanceTable() {
   const tableRef = useRef<HTMLDivElement>(null);
+  const { stats } = useWardenAttendanceStats();
+  const rows = stats.recentAttendanceTable;
 
   useGSAP(
     () => {
-      const rows = tableRef.current
+      const rowElements = tableRef.current
         ? gsap.utils.toArray<HTMLElement>(".table-row-item", tableRef.current)
         : [];
       const scrollerEl =
         document.getElementById("dashboard-scroll-container") || undefined;
 
       if (prefersReducedMotion()) {
-        gsap.set(rows, { opacity: 1, y: 0 });
+        gsap.set(rowElements, { opacity: 1, y: 0 });
         return;
       }
 
@@ -41,7 +43,7 @@ export function RecentAttendanceTable() {
 
       // Step-by-Step One-by-One Row GSAP Sequence
       tl.fromTo(
-        rows,
+        rowElements,
         {
           opacity: 0,
           y: 15,
@@ -54,20 +56,19 @@ export function RecentAttendanceTable() {
         }
       );
     },
-    { scope: tableRef }
+    { scope: tableRef, dependencies: [rows] }
   );
 
   return (
     <DashboardCard
       title="Recent Attendance Table"
-      className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col"
-      bodyClassName="flex flex-1 flex-col px-[19px] pb-4 pt-3"
+      className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col overflow-hidden"
+      bodyClassName="flex flex-1 flex-col px-[19px] pb-3 pt-3 overflow-hidden"
     >
-      {/* Mobile-ல Table ஒடுங்காமல் இருக்க 'overflow-x-auto' சேர்க்கப்பட்டுள்ளது */}
       <div ref={tableRef} className="flex flex-1 flex-col overflow-x-auto">
         <div className="min-w-[600px] flex flex-1 flex-col">
-          {/* Header */}
-          <div className="grid grid-cols-[24px_1.6fr_0.9fr_1fr_1fr_28px] items-center gap-3 border-b border-heading/[0.06] pb-2.5 text-[11.5px] font-semibold uppercase tracking-wide text-heading/35">
+          {/* Header - Fixed & Sticky */}
+          <div className="grid grid-cols-[24px_1.6fr_0.9fr_1fr_1fr_28px] items-center gap-3 border-b border-heading/[0.06] pb-2.5 text-[11.5px] font-semibold uppercase tracking-wide text-heading/35 shrink-0">
             <input type="checkbox" className="h-3.5 w-3.5 rounded accent-primary cursor-pointer" aria-label="Select all" />
             <span>Student</span>
             <span>Status</span>
@@ -76,12 +77,12 @@ export function RecentAttendanceTable() {
             <span />
           </div>
 
-          {/* Rows */}
-          <div className="flex flex-1 flex-col justify-center divide-y divide-heading/[0.05]">
-            {ATTENDANCE_TABLE.map((row) => (
+          {/* Rows - Scrollable Table Body: exactly 3 rows visible in viewport (~150px), remaining accessible via internal scroll */}
+          <div className="flex flex-1 flex-col divide-y divide-heading/[0.05] max-h-[155px] overflow-y-auto pr-1">
+            {rows.map((row) => (
               <div
                 key={row.id}
-                className="table-row-item grid grid-cols-[24px_1.6fr_0.9fr_1fr_1fr_28px] items-center gap-3 py-3"
+                className="table-row-item grid grid-cols-[24px_1.6fr_0.9fr_1fr_1fr_28px] items-center gap-3 py-2.5 shrink-0"
               >
                 <input type="checkbox" className="h-3.5 w-3.5 rounded accent-primary cursor-pointer" aria-label={`Select ${row.name}`} />
                 <div className="flex min-w-0 items-center gap-2.5">
@@ -94,7 +95,7 @@ export function RecentAttendanceTable() {
                 <span
                   className={cn(
                     "w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold",
-                    STATUS_STYLES[row.status]
+                    STATUS_STYLES[row.status] || "bg-emerald-500/10 text-emerald-600"
                   )}
                 >
                   {row.status}

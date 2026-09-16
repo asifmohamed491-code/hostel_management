@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
-import { WEEKLY_ATTENDANCE } from "@/lib/dashboard-mock";
+import { useWardenAttendanceStats } from "@/hooks/useWardenAttendanceStats";
 
 export function WeeklyBarChart() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -11,6 +11,9 @@ export function WeeklyBarChart() {
     label: string;
     value: number;
   } | null>(null);
+
+  const { stats } = useWardenAttendanceStats();
+  const data = stats.weeklyAttendance && stats.weeklyAttendance.length > 0 ? stats.weeklyAttendance : [];
 
   useGSAP(
     () => {
@@ -24,7 +27,7 @@ export function WeeklyBarChart() {
 
       if (prefersReducedMotion()) {
         bars.forEach((bar, index) => {
-          bar.style.height = `${WEEKLY_ATTENDANCE[index]?.value || 0}%`;
+          bar.style.height = `${data[index]?.value || 0}%`;
         });
         return;
       }
@@ -34,7 +37,7 @@ export function WeeklyBarChart() {
         bars,
         { height: "0%" },
         {
-          height: (index) => `${WEEKLY_ATTENDANCE[index]?.value || 0}%`,
+          height: (index) => `${data[index]?.value || 0}%`,
           duration: 1.2,
           stagger: 0.1,
           ease: "back.out(1.2)",
@@ -47,7 +50,7 @@ export function WeeklyBarChart() {
         }
       );
     },
-    { scope: containerRef }
+    { scope: containerRef, dependencies: [data] }
   );
 
   return (
@@ -81,7 +84,7 @@ export function WeeklyBarChart() {
             </div>
 
             {/* Bars Column */}
-            {WEEKLY_ATTENDANCE.map((point) => (
+            {data.map((point) => (
               <div
                 key={point.label}
                 className="group relative flex h-full flex-1 flex-col items-center justify-end z-10"
@@ -102,7 +105,7 @@ export function WeeklyBarChart() {
 
         {/* X-Axis Day Labels */}
         <div className="mt-3 flex pl-6 sm:pl-8 text-[10.5px] font-semibold text-slate-400 sm:text-[12px]">
-          {WEEKLY_ATTENDANCE.map((point) => (
+          {data.map((point) => (
             <span
               key={point.label}
               className={`flex-1 text-center transition-all duration-200 ${
@@ -118,4 +121,4 @@ export function WeeklyBarChart() {
       </div>
     </DashboardCard>
   );
-} 
+}
