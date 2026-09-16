@@ -21,6 +21,7 @@ import {
   Users,
   Timer,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface SessionData {
@@ -259,14 +260,22 @@ export function WardenAttendanceCard() {
 
         {/* Right: Large QR Visual (2/5 width) */}
         <div className="flex flex-col items-center justify-center gap-4 border-t border-white/20 px-6 py-8 sm:px-10 lg:col-span-2 lg:border-l lg:border-t-0">
-          {/* Large QR container */}
-          <div className="relative flex h-48 w-48 items-center justify-center rounded-3xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 shadow-glass sm:h-56 sm:w-56">
-            <QrCode className="h-24 w-24 text-primary/70 sm:h-28 sm:w-28" />
-            {/* Corner markers for QR appearance */}
-            <span className="absolute left-3 top-3 h-7 w-7 rounded-tl-lg border-l-[3px] border-t-[3px] border-primary/40" />
-            <span className="absolute right-3 top-3 h-7 w-7 rounded-tr-lg border-r-[3px] border-t-[3px] border-primary/40" />
-            <span className="absolute bottom-3 left-3 h-7 w-7 rounded-bl-lg border-b-[3px] border-l-[3px] border-primary/40" />
-            <span className="absolute bottom-3 right-3 h-7 w-7 rounded-br-lg border-b-[3px] border-r-[3px] border-primary/40" />
+          {/* Real QR Code Container */}
+          <div className="relative flex items-center justify-center rounded-3xl border-2 border-primary/20 bg-white p-3.5 shadow-glass sm:p-4.5">
+            <QRCodeSVG
+              value={session.token}
+              size={184}
+              level="M"
+              fgColor="#150B2D"
+              bgColor="#FFFFFF"
+              className="h-44 w-44 rounded-lg sm:h-48 sm:w-48"
+              title="Today's Attendance QR Code"
+            />
+            {/* Corner framing markers */}
+            <span className="pointer-events-none absolute -left-1.5 -top-1.5 h-6 w-6 rounded-tl-xl border-l-[3px] border-t-[3px] border-primary/40" />
+            <span className="pointer-events-none absolute -right-1.5 -top-1.5 h-6 w-6 rounded-tr-xl border-r-[3px] border-t-[3px] border-primary/40" />
+            <span className="pointer-events-none absolute -bottom-1.5 -left-1.5 h-6 w-6 rounded-bl-xl border-b-[3px] border-l-[3px] border-primary/40" />
+            <span className="pointer-events-none absolute -bottom-1.5 -right-1.5 h-6 w-6 rounded-br-xl border-b-[3px] border-r-[3px] border-primary/40" />
           </div>
 
           {/* Session Token display */}
