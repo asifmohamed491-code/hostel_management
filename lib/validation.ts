@@ -52,6 +52,53 @@ export const signupSchema = z
     path: ["confirmPassword"],
   });
 
+// Warden "Add Student" form schema — includes all 10 required fields:
+// Full Name, Register Number, College Email, Phone Number,
+// Department (short code), Year, Hostel Block, Room Number,
+// Password, Confirm Password
+export const addStudentSchema = z
+  .object({
+    fullName: z
+      .string()
+      .min(2, "Full name must be at least 2 characters")
+      .max(60, "Full name is too long"),
+    registerNumber: z
+      .string()
+      .min(1, "Register number is required")
+      .max(30, "Register number is too long"),
+    email: collegeEmailSchema,
+    phoneNumber: z
+      .string()
+      .min(10, "Enter a valid phone number")
+      .max(15, "Enter a valid phone number")
+      .regex(/^[0-9+\s-]+$/, "Enter a valid phone number"),
+    department: z
+      .string()
+      .min(1, "Department is required")
+      .max(20, "Department is too long"),
+    year: z
+      .string()
+      .min(1, "Year is required")
+      .max(20, "Year is too long"),
+    hostelBlock: z
+      .string()
+      .min(1, "Hostel block is required")
+      .refine(
+        (val) => ["Block A", "Block B", "Block C"].includes(val),
+        { message: "Select a valid hostel block (Block A, Block B, or Block C)" }
+      ),
+    roomNumber: z
+      .string()
+      .min(1, "Room number is required")
+      .max(20, "Room number is too long"),
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 export const wardenSchema = z.object({
   fullName: z
     .string()
@@ -114,6 +161,7 @@ export const resetPasswordApiSchema = z.object({
 export type LoginSchema = z.infer<typeof loginSchema>;
 export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
 export type SignupSchema = z.infer<typeof signupSchema>;
+export type AddStudentSchema = z.infer<typeof addStudentSchema>;
 export type WardenSchema = z.infer<typeof wardenSchema>;
 export type WardenCreateFormSchema = z.infer<typeof wardenCreateFormSchema>;
 export type OtpVerifySchema = z.infer<typeof otpVerifySchema>;
