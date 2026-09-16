@@ -14,6 +14,12 @@ export interface IAttendanceRecord extends Document {
   markedAt: Date;
   status: "present" | "late" | "absent";
   attendanceSession: Schema.Types.ObjectId;
+  location?: {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    distanceMeters: number;
+  };
 }
 
 const attendanceRecordSchema = new Schema<IAttendanceRecord>(
@@ -55,6 +61,12 @@ const attendanceRecordSchema = new Schema<IAttendanceRecord>(
       type: Schema.Types.ObjectId,
       ref: "AttendanceSession",
       required: true,
+    },
+    location: {
+      latitude: { type: Number },
+      longitude: { type: Number },
+      accuracy: { type: Number },
+      distanceMeters: { type: Number },
     },
   },
   { timestamps: true }

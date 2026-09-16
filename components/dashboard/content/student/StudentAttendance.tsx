@@ -1,18 +1,14 @@
-// StudentAttendance.tsx
+// components/dashboard/content/student/StudentAttendance.tsx
 //
-// Full student attendance flow — NO camera, NO QR scanning.
-// The student clicks "Mark Attendance", the app verifies location
-// (simulated for now), then calls the backend to validate the
-// active attendance session and record the student's attendance.
+// Full student attendance flow with real browser GPS & server-authoritative geofencing.
+// NO camera, NO QR scanning.
 //
 // ─── FLOW ────────────────────────────────────────────────────────────
-//   1. Check location (dummy GPS simulation → ready for real later)
-//   2. Location verified → "Continue"
-//   3. Verify attendance against backend (active session check)
-//   4. Success / Already Marked / No Session / Expired
-// ─── FUTURE REPLACEMENT POINTS ──────────────────────────────────────
-//   • Location check  → real navigator.geolocation + geofencing
-//   • Backend already handles real session tokens from warden
+//   1. Check location via navigator.geolocation (high accuracy, timeout: 15s)
+//   2. Location verified → displays actual measured distance & allowed 320m radius
+//   3. Student clicks "Continue" → POST /api/attendance/mark with { latitude, longitude, accuracy }
+//   4. Backend validates session, calculates Haversine distance, checks geofence & duplicate
+//   5. Success / Already Marked / Out of Bounds / Poor Accuracy / No Session / Expired
 // ─────────────────────────────────────────────────────────────────────
 
 "use client";
@@ -35,9 +31,12 @@ import {
   AlertTriangle,
   Fingerprint,
   User,
+  RotateCcw,
+  Navigation,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { STUDENT_PROFILE } from "@/lib/student-dashboard-mock";
+import { HOSTEL_GEOFENCE, calculateDistanceMeters } from "@/lib/constants/geofence";
 
 /* ── Flow stages ──────────────────────────────────────────────────── */
 type Stage =
@@ -48,6 +47,11 @@ type Stage =
   | "already-marked"
   | "no-session"
   | "session-expired"
+  | "out-of-bounds"
+  | "poor-accuracy"
+  | "permission-denied"
+  | "position-unavailable"
+  | "location-timeout"
   | "error";
 
 /* ── Attendance record from backend ───────────────────────────────── */
@@ -58,17 +62,101 @@ interface AttendanceResult {
   date?: string;
   markedAt?: string;
   status?: string;
+  distanceMeters?: number;
+}
+
+interface Coords {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+}
+
+interface GeoExtra {
+  distanceMeters?: number;
+  allowedRadius?: number;
+  accuracy?: number;
+  maxAccuracy?: number;
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* STEP 1: CHECKING LOCATION                                         */
+/* STEP 1: CHECKING LOCATION (Real navigator.geolocation)             */
 /* ═══════════════════════════════════════════════════════════════════ */
-function CheckingLocationStage({ onVerified }: { onVerified: () => void }) {
+function CheckingLocationStage({
+  onVerified,
+  onError,
+}: {
+  onVerified: (coords: Coords, distanceMeters: number) => void;
+  onError: (stage: Stage, extra?: GeoExtra) => void;
+}) {
   useEffect(() => {
-    // Simulate location check — 1.8s delay
-    const t = setTimeout(onVerified, 1800);
-    return () => clearTimeout(t);
-  }, [onVerified]);
+    let cancelled = false;
+
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      onError("position-unavailable");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (cancelled) return;
+
+        const coords: Coords = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        };
+
+        const distance = calculateDistanceMeters(
+          coords.latitude,
+          coords.longitude,
+          HOSTEL_GEOFENCE.latitude,
+          HOSTEL_GEOFENCE.longitude
+        );
+        const roundedDistance = Math.round(distance);
+
+        // Pre-check GPS accuracy threshold
+        if (coords.accuracy > HOSTEL_GEOFENCE.maxAccuracyMeters) {
+          onError("poor-accuracy", {
+            accuracy: Math.round(coords.accuracy),
+            maxAccuracy: HOSTEL_GEOFENCE.maxAccuracyMeters,
+          });
+          return;
+        }
+
+        // Pre-check geofence boundary client-side
+        if (distance > HOSTEL_GEOFENCE.radiusMeters) {
+          onError("out-of-bounds", {
+            distanceMeters: roundedDistance,
+            allowedRadius: HOSTEL_GEOFENCE.radiusMeters,
+          });
+          return;
+        }
+
+        onVerified(coords, roundedDistance);
+      },
+      (error) => {
+        if (cancelled) return;
+        if (error.code === error.PERMISSION_DENIED) {
+          onError("permission-denied");
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          onError("position-unavailable");
+        } else if (error.code === error.TIMEOUT) {
+          onError("location-timeout");
+        } else {
+          onError("error");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onVerified, onError]);
 
   return (
     <StageCard>
@@ -92,7 +180,7 @@ function CheckingLocationStage({ onVerified }: { onVerified: () => void }) {
           </p>
           <div className="flex items-center gap-2 text-[12px] font-semibold text-heading/40">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            Verifying GPS coordinates…
+            Reading GPS satellite coordinates…
           </div>
         </div>
       </div>
@@ -103,7 +191,15 @@ function CheckingLocationStage({ onVerified }: { onVerified: () => void }) {
 /* ═══════════════════════════════════════════════════════════════════ */
 /* STEP 2: LOCATION VERIFIED                                         */
 /* ═══════════════════════════════════════════════════════════════════ */
-function LocationVerifiedStage({ onContinue }: { onContinue: () => void }) {
+function LocationVerifiedStage({
+  distanceMeters,
+  allowedRadius,
+  onContinue,
+}: {
+  distanceMeters: number;
+  allowedRadius: number;
+  onContinue: () => void;
+}) {
   return (
     <StageCard>
       <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:px-14 lg:py-16 lg:flex-row lg:gap-10 lg:text-left">
@@ -128,11 +224,11 @@ function LocationVerifiedStage({ onContinue }: { onContinue: () => void }) {
           <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
             <span className="inline-flex items-center gap-2 rounded-xl border border-heading/5 bg-heading/[0.02] px-4 py-2.5 text-[13px] font-semibold text-heading/70">
               <Wifi className="h-4 w-4 text-emerald-500" />
-              Distance from Hostel: 32 m
+              Distance from Hostel: {distanceMeters} m
             </span>
             <span className="inline-flex items-center gap-2 rounded-xl border border-heading/5 bg-heading/[0.02] px-4 py-2.5 text-[13px] font-semibold text-heading/70">
               <CircleDot className="h-4 w-4 text-primary" />
-              Allowed Radius: 100 m
+              Allowed Radius: {allowedRadius} m
             </span>
           </div>
 
@@ -151,17 +247,19 @@ function LocationVerifiedStage({ onContinue }: { onContinue: () => void }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* STEP 3: VERIFYING ATTENDANCE (backend call)                      */
+/* STEP 3: VERIFYING ATTENDANCE (backend call with GPS payload)       */
 /* ═══════════════════════════════════════════════════════════════════ */
 function VerifyingStage({
+  coords,
   onResult,
 }: {
-  onResult: (stage: Stage, data?: AttendanceResult) => void;
+  coords: Coords | null;
+  onResult: (stage: Stage, data?: AttendanceResult, extra?: GeoExtra) => void;
 }) {
   const [steps, setSteps] = useState([
-    { label: "Location verified", done: true },
+    { label: "GPS location verified", done: true },
     { label: "Active attendance session found", done: false },
-    { label: "Validating attendance", done: false },
+    { label: "Validating geofence & attendance", done: false },
     { label: "Recording attendance", done: false },
   ]);
 
@@ -169,35 +267,56 @@ function VerifyingStage({
     let cancelled = false;
 
     async function verify() {
-      // Step 2: check session
-      await delay(800);
+      // Step 2: session check simulation step in UI
+      await delay(600);
       if (cancelled) return;
       setSteps((s) => s.map((st, i) => (i === 1 ? { ...st, done: true } : st)));
 
-      // Step 3: validate
-      await delay(600);
+      // Step 3: validation step
+      await delay(500);
       if (cancelled) return;
       setSteps((s) => s.map((st, i) => (i === 2 ? { ...st, done: true } : st)));
 
-      // Step 4: call backend
+      // Step 4: Call backend with real GPS coordinates
       try {
+        const payload = coords
+          ? {
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+              accuracy: coords.accuracy,
+            }
+          : {};
+
         const res = await fetch("/api/attendance/mark", {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
         });
 
         const data = await res.json();
         if (cancelled) return;
 
         setSteps((s) => s.map((st, i) => (i === 3 ? { ...st, done: true } : st)));
-        await delay(500);
+        await delay(400);
         if (cancelled) return;
 
         if (res.status === 201) {
           onResult("success", data.record);
         } else if (data.code === "ALREADY_MARKED") {
           onResult("already-marked", data.record);
+        } else if (data.code === "OUT_OF_BOUNDS") {
+          onResult("out-of-bounds", undefined, {
+            distanceMeters: data.distanceMeters,
+            allowedRadius: data.allowedRadius,
+          });
+        } else if (data.code === "POOR_GPS_ACCURACY") {
+          onResult("poor-accuracy", undefined, {
+            accuracy: data.accuracy,
+            maxAccuracy: data.maxAllowedAccuracy,
+          });
+        } else if (data.code === "LOCATION_REQUIRED") {
+          onResult("permission-denied");
         } else if (data.code === "SESSION_EXPIRED") {
           onResult("session-expired");
         } else if (data.code === "NO_SESSION") {
@@ -214,8 +333,7 @@ function VerifyingStage({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [coords, onResult]);
 
   return (
     <StageCard>
@@ -232,7 +350,7 @@ function VerifyingStage({
               Verify Attendance
             </h2>
             <p className="mt-1.5 text-[14px] font-medium text-heading/55 sm:text-[15px]">
-              Checking today&apos;s active attendance session…
+              Checking today&apos;s active attendance session & hostel geofence…
             </p>
           </div>
 
@@ -327,7 +445,7 @@ function SuccessStage({
           <button
             type="button"
             onClick={() => router.push("/dashboard/student")}
-            className="mt-2 inline-flex items-center gap-2 rounded-2xl bg-primary px-7 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-[15px]"
+            className="mt-2 inline-flex items-center gap-2 rounded-2xl bg-primary px-7 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-[15px] cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
@@ -419,7 +537,7 @@ function AlreadyMarkedStage({ record }: { record?: AttendanceResult }) {
           <button
             type="button"
             onClick={() => router.push("/dashboard/student")}
-            className="mt-2 inline-flex w-fit items-center gap-2 self-center rounded-2xl bg-primary px-7 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 lg:self-start sm:text-[15px]"
+            className="mt-2 inline-flex w-fit items-center gap-2 self-center rounded-2xl bg-primary px-7 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 lg:self-start sm:text-[15px] cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
@@ -431,31 +549,85 @@ function AlreadyMarkedStage({ record }: { record?: AttendanceResult }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* NO SESSION / EXPIRED / ERROR STATES                              */
+/* UNAVAILABLE / ERROR / GEOFENCE STATES                             */
 /* ═══════════════════════════════════════════════════════════════════ */
 function UnavailableStage({
   type,
+  extra,
   onRetry,
 }: {
-  type: "no-session" | "session-expired" | "error";
+  type:
+    | "no-session"
+    | "session-expired"
+    | "out-of-bounds"
+    | "poor-accuracy"
+    | "permission-denied"
+    | "position-unavailable"
+    | "location-timeout"
+    | "error";
+  extra?: GeoExtra;
   onRetry: () => void;
 }) {
   const router = useRouter();
 
-  const config = {
+  const config: Record<
+    typeof type,
+    {
+      icon: typeof XCircle;
+      iconColor: string;
+      iconBg: string;
+      title: string;
+      desc: string;
+    }
+  > = {
     "no-session": {
       icon: XCircle,
       iconColor: "text-red-400",
       iconBg: "bg-red-500/10",
       title: "Attendance Unavailable",
-      desc: "No active attendance session is currently available.",
+      desc: "No active attendance session is currently available. Please check back when the warden starts attendance.",
     },
     "session-expired": {
       icon: AlertTriangle,
       iconColor: "text-amber-500",
       iconBg: "bg-amber-500/10",
       title: "Attendance Session Expired",
-      desc: "The current attendance session is no longer active.",
+      desc: "Today's attendance session has ended.",
+    },
+    "out-of-bounds": {
+      icon: Navigation,
+      iconColor: "text-red-500",
+      iconBg: "bg-red-500/10",
+      title: "Outside Hostel Geofence",
+      desc: "You must be inside the hostel premises to mark attendance.",
+    },
+    "poor-accuracy": {
+      icon: Wifi,
+      iconColor: "text-amber-500",
+      iconBg: "bg-amber-500/10",
+      title: "Low GPS Accuracy",
+      desc: "Your GPS accuracy is insufficient. Please move to an open area or enable high accuracy GPS and try again.",
+    },
+    "permission-denied": {
+      icon: MapPin,
+      iconColor: "text-red-500",
+      iconBg: "bg-red-500/10",
+      title: "Location Permission Denied",
+      desc: "Location access is required to verify that you are in the hostel. Please enable location permissions in your browser settings.",
+    },
+    "position-unavailable": {
+      icon: MapPin,
+      iconColor: "text-amber-500",
+      iconBg: "bg-amber-500/10",
+      title: "Location Unavailable",
+      desc: "Unable to retrieve your GPS location. Please ensure your device location/GPS is switched on.",
+    },
+    "location-timeout": {
+      icon: Clock,
+      iconColor: "text-amber-500",
+      iconBg: "bg-amber-500/10",
+      title: "Location Check Timed Out",
+      desc: "Obtaining GPS coordinates took too long. Please check your signal and try again.",
     },
     error: {
       icon: XCircle,
@@ -466,7 +638,7 @@ function UnavailableStage({
     },
   };
 
-  const c = config[type];
+  const c = config[type] || config.error;
   const Icon = c.icon;
 
   return (
@@ -484,20 +656,54 @@ function UnavailableStage({
             <p className="mt-2 max-w-lg text-[14px] font-medium leading-relaxed text-heading/55 sm:text-[15px]">
               {c.desc}
             </p>
+            {type === "poor-accuracy" && (extra?.accuracy ?? 0) >= 1000 && (
+              <p className="mt-2 max-w-lg text-[14px] font-medium leading-relaxed text-heading/55 sm:text-[15px]">
+                Your device could not determine a precise location. For accurate attendance verification, please use a mobile device with location services enabled.
+              </p>
+            )}
           </div>
+
+          {/* Out of bounds details */}
+          {type === "out-of-bounds" && extra?.distanceMeters !== undefined && (
+            <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
+              <span className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-2 text-[13px] font-semibold text-red-600">
+                <Navigation className="h-4 w-4 text-red-500" />
+                Your Distance: {extra.distanceMeters} m
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-xl border border-heading/10 bg-heading/[0.02] px-4 py-2 text-[13px] font-semibold text-heading/70">
+                <CircleDot className="h-4 w-4 text-primary" />
+                Allowed Radius: {extra.allowedRadius ?? HOSTEL_GEOFENCE.radiusMeters} m
+              </span>
+            </div>
+          )}
+
+          {/* Poor accuracy details */}
+          {type === "poor-accuracy" && extra?.accuracy !== undefined && (
+            <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
+              <span className="inline-flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2 text-[13px] font-semibold text-amber-700">
+                <Wifi className="h-4 w-4 text-amber-500" />
+                Current Accuracy: ±{extra.accuracy} m
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-xl border border-heading/10 bg-heading/[0.02] px-4 py-2 text-[13px] font-semibold text-heading/70">
+                <CircleDot className="h-4 w-4 text-primary" />
+                Required Accuracy: ≤ {extra.maxAccuracy ?? HOSTEL_GEOFENCE.maxAccuracyMeters} m
+              </span>
+            </div>
+          )}
 
           <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex items-center gap-2 rounded-2xl bg-primary px-7 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-[15px]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-primary px-7 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-[15px] cursor-pointer"
             >
+              <RotateCcw className="h-4 w-4" />
               Try Again
             </button>
             <button
               type="button"
               onClick={() => router.push("/dashboard/student")}
-              className="inline-flex items-center gap-2 rounded-2xl border border-heading/10 bg-white/50 px-7 py-3.5 text-[14px] font-semibold text-heading/70 transition-all duration-200 hover:bg-white/80 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-[15px]"
+              className="inline-flex items-center gap-2 rounded-2xl border border-heading/10 bg-white/50 px-7 py-3.5 text-[14px] font-semibold text-heading/70 transition-all duration-200 hover:bg-white/80 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-[15px] cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Dashboard
@@ -544,6 +750,9 @@ export function StudentAttendance() {
   const { user, loading } = useCurrentUser();
 
   const [stage, setStage] = useState<Stage>("checking-location");
+  const [coords, setCoords] = useState<Coords | null>(null);
+  const [distanceMeters, setDistanceMeters] = useState<number>(0);
+  const [geoExtra, setGeoExtra] = useState<GeoExtra | undefined>(undefined);
   const [record, setRecord] = useState<AttendanceResult>({});
 
   const studentName = user?.fullName?.trim() || "Student";
@@ -571,8 +780,15 @@ export function StudentAttendance() {
     };
   }, []);
 
-  const handleLocationVerified = useCallback(() => {
+  const handleLocationVerified = useCallback((userCoords: Coords, calculatedDistance: number) => {
+    setCoords(userCoords);
+    setDistanceMeters(calculatedDistance);
     setStage("location-verified");
+  }, []);
+
+  const handleLocationError = useCallback((errorStage: Stage, extra?: GeoExtra) => {
+    if (extra) setGeoExtra(extra);
+    setStage(errorStage);
   }, []);
 
   const handleContinueToVerify = useCallback(() => {
@@ -580,14 +796,16 @@ export function StudentAttendance() {
   }, []);
 
   const handleVerifyResult = useCallback(
-    (resultStage: Stage, data?: AttendanceResult) => {
+    (resultStage: Stage, data?: AttendanceResult, extra?: GeoExtra) => {
       if (data) setRecord(data);
+      if (extra) setGeoExtra(extra);
       setStage(resultStage);
     },
     []
   );
 
   const handleRetry = useCallback(() => {
+    setGeoExtra(undefined);
     setStage("checking-location");
   }, []);
 
@@ -609,22 +827,29 @@ export function StudentAttendance() {
           Mark Attendance
         </h1>
         <p className="mt-1 text-[13px] font-medium text-heading/50 sm:text-[14px]">
-          Verify your location and mark today&apos;s attendance.
+          Verify your GPS location and mark today&apos;s attendance.
         </p>
       </div>
 
       {/* Stage content — fills available width */}
       <div className="pb-4">
         {stage === "checking-location" && (
-          <CheckingLocationStage onVerified={handleLocationVerified} />
+          <CheckingLocationStage
+            onVerified={handleLocationVerified}
+            onError={handleLocationError}
+          />
         )}
 
         {stage === "location-verified" && (
-          <LocationVerifiedStage onContinue={handleContinueToVerify} />
+          <LocationVerifiedStage
+            distanceMeters={distanceMeters}
+            allowedRadius={HOSTEL_GEOFENCE.radiusMeters}
+            onContinue={handleContinueToVerify}
+          />
         )}
 
         {stage === "verifying" && (
-          <VerifyingStage onResult={handleVerifyResult} />
+          <VerifyingStage coords={coords} onResult={handleVerifyResult} />
         )}
 
         {stage === "success" && (
@@ -638,8 +863,17 @@ export function StudentAttendance() {
 
         {(stage === "no-session" ||
           stage === "session-expired" ||
+          stage === "out-of-bounds" ||
+          stage === "poor-accuracy" ||
+          stage === "permission-denied" ||
+          stage === "position-unavailable" ||
+          stage === "location-timeout" ||
           stage === "error") && (
-          <UnavailableStage type={stage} onRetry={handleRetry} />
+          <UnavailableStage
+            type={stage}
+            extra={geoExtra}
+            onRetry={handleRetry}
+          />
         )}
       </div>
     </div>

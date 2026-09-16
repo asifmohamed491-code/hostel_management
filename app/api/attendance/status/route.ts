@@ -10,6 +10,7 @@ import "@/models/User";
 import { AttendanceSession } from "@/models/AttendanceSession";
 import { AttendanceRecord } from "@/models/AttendanceRecord";
 import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt";
+import { HOSTEL_GEOFENCE } from "@/lib/constants/geofence";
 
 function getTodayString(): string {
   return new Date().toISOString().slice(0, 10);
@@ -44,6 +45,9 @@ export async function GET(request: NextRequest) {
           hasActiveSession: false,
           session: null,
           studentRecord: null,
+          geofence: {
+            radiusMeters: HOSTEL_GEOFENCE.radiusMeters,
+          },
         },
         { status: 200 }
       );
@@ -66,6 +70,7 @@ export async function GET(request: NextRequest) {
           date: record.date,
           markedAt: record.markedAt,
           status: record.status,
+          distanceMeters: record.location?.distanceMeters,
         };
       }
     }
@@ -88,6 +93,9 @@ export async function GET(request: NextRequest) {
           generatedBy: wardenName,
         },
         studentRecord,
+        geofence: {
+          radiusMeters: HOSTEL_GEOFENCE.radiusMeters,
+        },
       },
       { status: 200 }
     );
