@@ -136,9 +136,17 @@ export function QuickActionsPanel() {
         const records = data.records || [];
 
         if (actionId === "pdf") {
-          exportAttendanceToPdf(records);
+          exportAttendanceToPdf(data.allRecordsForExport || records, {
+            selectedDate: data.date,
+            formattedDate: data.formattedDate,
+            summary: data.summary,
+            blockSummary: data.blockSummary,
+          });
         } else {
-          exportAttendanceToCsv(records);
+          exportAttendanceToCsv(
+            data.allRecordsForExport || records,
+            `OASYS-Attendance-Report-${data.date || new Date().toISOString().slice(0, 10)}.csv`
+          );
         }
       } catch (err) {
         alert(err instanceof Error ? err.message : "Export failed.");

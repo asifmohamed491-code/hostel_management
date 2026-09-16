@@ -13,6 +13,8 @@ export interface IUser extends Document {
   department?: string;
   year?: string;
   roomNumber?: string;
+  hostelBlock?: string;
+  registerNumber?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
@@ -55,6 +57,14 @@ const userSchema = new Schema<IUser>(
       trim: true,
     },
     roomNumber: {
+      type: String,
+      trim: true,
+    },
+    hostelBlock: {
+      type: String,
+      trim: true,
+    },
+    registerNumber: {
       type: String,
       trim: true,
     },

@@ -46,17 +46,17 @@ const attendanceRecordSchema = new Schema<IAttendanceRecord>(
     },
     department: {
       type: String,
-      default: "Computer Science",
+      default: "",
       trim: true,
     },
     year: {
       type: String,
-      default: "3rd Year",
+      default: "",
       trim: true,
     },
     hostelBlock: {
       type: String,
-      default: "Block A",
+      default: "",
       trim: true,
     },
     roomNumber: {

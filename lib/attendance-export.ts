@@ -1,6 +1,8 @@
 // lib/attendance-export.ts
 //
-// Utilities for exporting actual database attendance records to CSV (Excel) and PDF.
+// Official OASYS Hostel Attendance Export Utility
+// Supports PDF Export (clean multi-page college report format with SVG logo)
+// and Excel / CSV Export.
 
 export interface ExportAttendanceRecord {
   studentName: string;
@@ -8,27 +10,97 @@ export interface ExportAttendanceRecord {
   department?: string;
   year?: string;
   hostelBlock?: string;
-  roomNumber: string;
+  roomNumber?: string;
   date: string;
   time?: string;
-  status: string;
+  status: string; // "Present" | "Absent"
   distanceMeters?: number;
   markingMethod?: string;
 }
 
+export interface AttendanceBlockSummary {
+  hostelBlock: string;
+  totalStudents: number;
+  present: number;
+  absent: number;
+  attendancePct: string;
+}
+
+export interface AttendanceReportSummary {
+  totalStudents: number;
+  present: number;
+  absent: number;
+  overallAttendancePct: string;
+}
+
+export interface ExportPdfOptions {
+  selectedDate?: string;
+  formattedDate?: string;
+  summary?: AttendanceReportSummary;
+  blockSummary?: AttendanceBlockSummary[];
+}
+
+const OASYS_LOGO_SVG = `<svg width="72" height="65" viewBox="0 0 120 109" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M67.4785 36.3404L81.3562 35.7198C80.5535 41.3374 76.4711 46.6013 71.2972 49.5259C67.5845 51.6245 63.1854 52.4713 59.4538 52.6881C54.9332 52.6881 50.3444 52.0045 46.6182 50.2716L49.6899 42.1523C51.911 42.9448 54.4053 43.3182 56.7111 43.3182C61.267 43.3182 65.5447 40.3851 67.4785 36.3404Z" fill="url(#paint0_linear_120_21)"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M67.4787 36.3408C68.1681 34.8988 68.5596 33.3156 68.5596 31.6736C68.5596 28.3122 67.448 24.9877 65.2761 22.6336L66.6946 12.0209C76.7994 13.4638 81.5001 24.7708 81.5001 33.7239C81.5001 34.392 81.451 35.0586 81.3565 35.7202C75.9354 36.3629 72.8966 36.522 67.4787 36.3408Z" fill="url(#paint1_linear_120_21)"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M66.6942 12.0208C66.5956 16.1642 66.2454 18.488 65.2757 22.6334C63.411 20.6123 60.7647 19.3063 57.3692 19.3063C51.1891 19.3063 42.9978 27.1805 42.9977 34.3892C42.9977 38.3057 45.9581 40.8208 49.6898 42.1525C48.6541 45.3896 47.9889 47.1735 46.618 50.2718C41.854 48.0564 38.4998 44.1259 38.4998 37.7163C38.4998 31.4628 41.0813 26.3641 45.0821 21.8031C49.028 17.3048 54.455 13.3659 61.3186 12.1545C63.2562 11.8125 65.047 11.7855 66.6942 12.0208Z" fill="url(#paint2_linear_120_21)"/>
+<path d="M28.1886 74.4329C28.1886 77.0863 27.7388 79.3993 26.8407 81.3703C25.9411 83.3428 24.6172 84.878 22.869 85.9772C21.1192 87.0764 18.9498 87.6268 16.3626 87.6268C13.7021 87.6268 11.4912 87.0764 9.73027 85.9772C7.96772 84.878 6.65654 83.3365 5.79361 81.3528C4.93068 79.3691 4.5 77.0513 4.5 74.3979C4.5 71.7684 4.93068 69.4744 5.79361 67.5146C6.65654 65.5548 7.96772 64.0244 9.73027 62.9252C11.4912 61.826 13.7132 61.2772 16.3977 61.2772C18.9626 61.2772 21.1192 61.8212 22.869 62.9077C24.6172 63.9958 25.9411 65.5246 26.8407 67.4971C27.7388 69.4681 28.1886 71.7811 28.1886 74.4329ZM7.91507 74.4329C7.91507 77.6606 8.59778 80.1995 9.96316 82.0512C11.3301 83.9044 13.4628 84.8302 16.3626 84.8302C19.2864 84.8302 21.4191 83.9044 22.7605 82.0512C24.102 80.1995 24.7735 77.6606 24.7735 74.4329C24.7735 71.2068 24.102 68.6791 22.7605 66.8513C21.4191 65.0235 19.2976 64.1088 16.3977 64.1088C13.4979 64.1088 11.3588 65.0235 9.9807 66.8513C8.60416 68.6791 7.91507 71.2068 7.91507 74.4329ZM50.4942 87.2673L47.4029 79.3452H37.2295L34.1749 87.2673H30.9034L40.9333 61.5635H43.8443L53.8375 87.2673H50.4942ZM43.5572 68.7332C43.4854 68.5423 43.3642 68.1955 43.1967 67.6944C43.0292 67.1917 42.8681 66.6715 42.7118 66.1338C42.5555 65.5961 42.4311 65.1841 42.3338 64.8978C42.1663 65.6391 41.9749 66.3613 41.7595 67.066C41.5442 67.7707 41.364 68.3275 41.2204 68.7332L38.3078 76.4771H46.4331L43.5572 68.7332ZM72.4346 80.4206C72.4346 82.6906 71.6083 84.4596 69.9542 85.7258C68.3001 86.9937 66.0718 87.6268 63.2676 87.6268C61.8305 87.6268 60.5002 87.5187 59.2783 87.3039C58.0565 87.0891 57.0372 86.7901 56.2222 86.4067L56.546 83.3238C57.4089 83.7071 58.1586 84.0539 59.4394 84.3641C60.7219 84.6743 62.0458 84.8302 63.4128 84.8302C65.3285 84.8302 66.7736 84.4596 67.7434 83.7183C68.7148 82.977 69.1998 81.9732 69.1998 80.7069C69.1998 79.8702 69.0195 79.1655 68.6606 78.5928C68.3001 78.0185 67.6844 77.4872 66.8087 76.9973C65.9346 76.5073 64.7176 75.9871 63.1608 75.4367C60.9803 74.6493 59.3326 73.6805 58.2176 72.5335C57.1027 71.3866 56.546 69.8212 56.546 67.8376C56.546 66.4743 56.8937 65.3098 57.5892 64.3426C58.283 63.3738 59.248 62.6278 60.4826 62.1012C61.7172 61.5763 63.1369 61.3122 64.7415 61.3122C66.1563 61.3122 67.45 61.4442 68.6239 61.7067C69.7979 61.9692 70.865 62.316 71.8237 62.7471L70.8172 65.5071C69.9303 65.1253 68.9653 64.8023 67.9237 64.5383C66.8805 64.2758 65.7958 64.1454 64.6697 64.1454C63.0651 64.1454 61.8544 64.4858 61.0393 65.1666C60.2242 65.8475 59.8175 66.7495 59.8175 67.8725C59.8175 68.7332 59.9977 69.4506 60.3566 70.0233C60.7155 70.5975 61.3025 71.1114 62.1176 71.5663C62.9327 72.0197 64.0349 72.5097 65.4258 73.0362C66.9347 73.585 68.2108 74.1768 69.254 74.8099C70.2956 75.4431 71.0867 76.2019 71.6259 77.0863C72.165 77.9708 72.4346 79.0828 72.4346 80.4206ZM84.814 74.2547L91.499 61.6717H94.9859L86.4314 77.3377V87.2673H83.1966V77.4808L74.6406 61.6717H78.1641L84.814 74.2547ZM113.549 80.4206C113.549 82.6906 112.723 84.4596 111.069 85.7258C109.415 86.9937 107.187 87.6268 104.382 87.6268C102.945 87.6268 101.615 87.5187 100.393 87.3039C99.1714 87.0891 98.1521 86.7901 97.337 86.4067V83.3238C98.1999 83.7071 99.2734 84.0539 100.554 84.3641C101.837 84.6743 103.161 84.8302 104.528 84.8302C106.443 84.8302 107.888 84.4596 108.858 83.7183C109.83 82.977 110.315 81.9732 110.315 80.7069C110.315 79.8702 110.134 79.1655 109.775 78.5928C109.415 78.0185 108.799 77.4872 107.924 76.9973C107.049 76.5073 105.832 75.9871 104.276 75.4367C102.095 74.6493 100.447 73.6805 99.3325 72.5335C98.2175 71.3866 97.6608 69.8212 97.6608 67.8376C97.6608 66.4743 98.0085 65.3098 98.704 64.3426C99.3979 63.3738 100.363 62.6278 101.597 62.1012C102.832 61.5763 104.252 61.3122 105.856 61.3122C107.271 61.3122 108.565 61.4442 109.739 61.7067C110.913 61.9692 111.98 62.316 112.939 62.7471L111.932 65.5071C111.045 65.1253 110.08 64.8023 109.039 64.5383C107.995 64.2758 106.911 64.1454 105.785 64.1454C104.18 64.1454 102.969 64.4858 102.154 65.1666C101.339 65.8475 100.932 66.7495 100.932 67.8725C100.932 68.7332 101.113 69.4506 101.471 70.0233C101.83 70.5975 102.417 71.1114 103.232 71.5663C104.048 72.0197 105.15 72.5097 106.541 73.0362C108.05 73.585 109.326 74.1768 110.369 74.8099C111.41 75.4431 112.202 76.2019 112.741 77.0863C113.28 77.9708 113.549 79.0828 113.549 80.4206Z" fill="#650E5A"/>
+<path d="M113.628 92.3097L113.629 92.9446L4.10297 93.1033L4.10205 92.4684L113.628 92.3097Z" fill="black"/>
+<path d="M111.415 101.833H110.728V99.6022L108.784 95.9978H109.527L111.071 98.9156L112.628 95.9978H113.363L111.415 99.5703V101.833Z" fill="black"/>
+<path d="M108.1 101.614C107.48 101.814 106.796 101.913 106.048 101.913C105.164 101.913 104.477 101.651 103.984 101.127C103.492 100.598 103.246 99.8604 103.246 98.9157C103.246 98.3063 103.367 97.7741 103.609 97.3191C103.851 96.8641 104.201 96.5168 104.659 96.2773C105.119 96.0351 105.657 95.9141 106.271 95.9141C106.889 95.9141 107.469 96.0285 108.012 96.2573L107.748 96.8561C107.221 96.6325 106.715 96.5208 106.228 96.5208C105.517 96.5208 104.962 96.7323 104.563 97.1554C104.164 97.5785 103.964 98.1746 103.964 98.9437C103.964 99.7127 104.156 100.301 104.539 100.708C104.925 101.115 105.49 101.319 106.236 101.319C106.632 101.319 107.027 101.272 107.421 101.179V99.3827H106.116V98.776H108.1V101.614Z" fill="black"/>
+<path d="M96.7935 98.9117C96.7935 97.9563 97.0276 97.2166 97.496 96.6923C97.9643 96.1681 98.6229 95.906 99.4718 95.906C100.323 95.906 100.985 96.1721 101.456 96.7043C101.927 97.2365 102.162 97.971 102.162 98.9077C102.162 99.8444 101.925 100.58 101.452 101.115C100.981 101.647 100.319 101.913 99.4678 101.913C98.6189 101.913 97.9603 101.651 97.492 101.127C97.0263 100.603 96.7935 99.8643 96.7935 98.9117ZM101.444 98.9157C101.444 98.1253 101.279 97.5279 100.949 97.1234C100.621 96.7163 100.134 96.5127 99.4878 96.5127C98.8438 96.5127 98.3528 96.7176 98.0149 97.1274C97.6796 97.5346 97.5119 98.1306 97.5119 98.9157C97.5119 99.698 97.6796 100.294 98.0149 100.704C98.3528 101.114 98.8438 101.319 99.4878 101.319C100.132 101.319 100.619 101.115 100.949 100.708C101.279 100.301 101.444 99.7033 101.444 98.9157Z" fill="black"/>
+<path d="M93.4466 101.219H96.0212V101.833H92.7681V95.9978H93.4466V101.219Z" fill="black"/>
+<path d="M86.0125 98.9117C86.0125 97.9563 86.2466 97.2166 86.715 96.6923C87.1833 96.1681 87.8419 95.906 88.6908 95.906C89.5423 95.906 90.2036 96.1721 90.6746 96.7043C91.1456 97.2365 91.3811 97.971 91.3811 98.9077C91.3811 99.8444 91.1443 100.58 90.6706 101.115C90.1996 101.647 89.5383 101.913 88.6868 101.913C87.8379 101.913 87.1793 101.651 86.711 101.127C86.2453 100.603 86.0125 99.8643 86.0125 98.9117ZM90.6626 98.9157C90.6626 98.1253 90.4976 97.5279 90.1677 97.1234C89.8404 96.7163 89.3534 96.5127 88.7068 96.5127C88.0628 96.5127 87.5718 96.7176 87.2339 97.1274C86.8986 97.5346 86.7309 98.1306 86.7309 98.9157C86.7309 99.698 86.8986 100.294 87.2339 100.704C87.5718 101.114 88.0628 101.319 88.7068 101.319C89.3507 101.319 89.8377 101.115 90.1677 100.708C90.4976 100.301 90.6626 99.7033 90.6626 98.9157Z" fill="black"/>
+<path d="M84.6292 101.833H83.8548L80.6655 96.9358H80.6336C80.6762 97.492 80.6975 98.0189 80.6975 98.5165V101.833H80.0708V95.9978H80.8372L84.0185 100.876H84.0504L84.0145 100.185C84.0012 99.9082 83.9945 99.7113 83.9945 99.5942C83.9945 99.4745 83.9945 99.392 83.9945 99.3467V95.9978H84.6292V101.833Z" fill="black"/>
+<path d="M78.3847 101.833H77.7062V99.0873H74.6327V101.833H73.9541V95.9978H74.6327V98.4806H77.7062V95.9978H78.3847V101.833Z" fill="black"/>
+<path d="M71.098 101.913C70.2359 101.913 69.5719 101.653 69.1062 101.131C68.6406 100.609 68.4077 99.8684 68.4077 98.9077C68.4077 98.8944 68.4077 98.8811 68.4077 98.8678C68.4077 98.2877 68.5195 97.7728 68.743 97.3231C68.9692 96.8734 69.2938 96.5261 69.717 96.2813C70.1427 96.0365 70.631 95.9141 71.1819 95.9141C71.1952 95.9141 71.2071 95.9141 71.2178 95.9141C71.8272 95.9141 72.362 96.0258 72.8224 96.2494L72.535 96.8321C72.0906 96.6246 71.6489 96.5208 71.2098 96.5208C70.5685 96.5208 70.0616 96.735 69.689 97.1634C69.3191 97.5892 69.1342 98.1786 69.1342 98.9317C69.1342 99.6821 69.3125 100.268 69.6691 100.688C70.0283 101.103 70.5392 101.311 71.2018 101.311C71.6116 101.311 72.076 101.237 72.5949 101.091V101.686C72.1798 101.838 71.6808 101.913 71.098 101.913Z" fill="black"/>
+<path d="M67.3361 96.6005H64.7616V98.4806H67.1765V99.0793H64.7616V101.227H67.3361V101.833H64.083V95.9978H67.3361V96.6005Z" fill="black"/>
+<path d="M63.1191 96.6005H61.271V101.833H60.5925V96.6005H58.7444V95.9978H63.1191V96.6005Z" fill="black"/>
+<path d="M56.2177 96.6005H53.6432V98.736H56.0581V99.3387H53.6432V101.833H52.9646V95.9978H56.2177V96.6005Z" fill="black"/>
+<path d="M46.209 98.9117C46.209 97.9563 46.4432 97.2166 46.9115 96.6923C47.3798 96.1681 48.0385 95.906 48.8873 95.906C49.7389 95.906 50.4001 96.1721 50.8711 96.7043C51.3421 97.2365 51.5776 97.971 51.5776 98.9077C51.5776 99.8444 51.3408 100.58 50.8671 101.115C50.3961 101.647 49.7349 101.913 48.8833 101.913C48.0345 101.913 47.3759 101.651 46.9075 101.127C46.4418 100.603 46.209 99.8643 46.209 98.9117ZM50.8592 98.9157C50.8592 98.1253 50.6942 97.5279 50.3642 97.1234C50.0369 96.7163 49.5499 96.5127 48.9033 96.5127C48.2593 96.5127 47.7684 96.7176 47.4304 97.1274C47.0951 97.5346 46.9275 98.1306 46.9275 98.9157C46.9275 99.698 47.0951 100.294 47.4304 100.704C47.7684 101.114 48.2593 101.319 48.9033 101.319C49.5473 101.319 50.0342 101.115 50.3642 100.708C50.6942 100.301 50.8592 99.7033 50.8592 98.9157Z" fill="black"/>
+<path d="M42.9282 96.6005H40.3536V98.4806H42.7685V99.0793H40.3536V101.227H42.9282V101.833H39.675V95.9978H42.9282V96.6005Z" fill="black"/>
+<path d="M38.7109 96.6005H36.8628V101.833H36.1843V96.6005H34.3362V95.9978H38.7109V96.6005Z" fill="black"/>
+<path d="M33.4363 95.9978V99.7738C33.4363 100.442 33.2341 100.966 32.8296 101.347C32.4278 101.724 31.8769 101.913 31.1771 101.913C30.4772 101.913 29.933 101.722 29.5445 101.339C29.1613 100.955 28.9697 100.428 28.9697 99.7579V95.9978H29.6483V99.8058C29.6483 100.295 29.7813 100.671 30.0475 100.931C30.3162 101.19 30.7021 101.319 31.205 101.319C31.7079 101.319 32.0925 101.187 32.3586 100.923C32.6247 100.66 32.7577 100.285 32.7577 99.7978V95.9978H33.4363Z" fill="black"/>
+<path d="M28.0657 96.6005H26.2176V101.833H25.539V96.6005H23.6909V95.9978H28.0657V96.6005Z" fill="black"/>
+<path d="M22.7352 101.833H22.0566V95.9978H22.7352V101.833Z" fill="black"/>
+<path d="M21.0928 96.6005H19.2447V101.833H18.5661V96.6005H16.718V95.9978H21.0928V96.6005Z" fill="black"/>
+<path d="M14.1213 101.319C14.5684 101.319 14.9077 101.233 15.1392 101.063C15.3707 100.893 15.4864 100.653 15.4864 100.345C15.4864 100.145 15.4452 99.9801 15.3627 99.8498C15.2829 99.7194 15.1485 99.6009 14.9595 99.4945C14.7733 99.3854 14.4832 99.2603 14.0894 99.1193C13.5439 98.9224 13.1554 98.6909 12.9238 98.4248C12.6923 98.1587 12.5766 97.8074 12.5766 97.371C12.5766 96.9319 12.7455 96.5793 13.0835 96.3132C13.4215 96.0471 13.8738 95.9141 14.4406 95.9141C15.0074 95.9141 15.5343 96.0205 16.0213 96.2334L15.8137 96.8241C15.3347 96.6219 14.8664 96.5208 14.4087 96.5208C14.0495 96.5208 13.7687 96.598 13.5665 96.7523C13.3642 96.9066 13.2631 97.1208 13.2631 97.3949C13.2631 97.5945 13.3004 97.7595 13.3749 97.8899C13.4494 98.0203 13.5718 98.1387 13.7421 98.2451C13.9151 98.3489 14.1892 98.4687 14.5644 98.6044C15.1817 98.8279 15.6035 99.0647 15.8297 99.3149C16.0586 99.565 16.173 99.887 16.173 100.281C16.173 100.789 15.9867 101.19 15.6142 101.482C15.2416 101.77 14.7214 101.913 14.0535 101.913C13.3855 101.913 12.868 101.824 12.5007 101.646V100.991C13.0143 101.21 13.5545 101.319 14.1213 101.319Z" fill="black"/>
+<path d="M11.1936 101.833H10.4193L7.23 96.9358H7.19807C7.24064 97.492 7.26193 98.0189 7.26193 98.5165V101.833H6.63525V95.9978H7.40164L10.5829 100.876H10.6149L10.5789 100.185C10.5656 99.9082 10.559 99.7113 10.559 99.5942C10.559 99.4745 10.559 99.392 10.559 99.3467V95.9978H11.1936V101.833Z" fill="black"/>
+<path d="M4.94907 101.833H4.27051V95.9976H4.94907V101.833Z" fill="black"/>
+<path d="M113.63 104.532L113.629 105.167L4.10308 105.008L4.104 104.373L113.63 104.532Z" fill="black"/>
+<defs>
+<linearGradient id="paint0_linear_120_21" x1="56.4917" y1="46.3578" x2="73.5022" y2="48.529" gradientUnits="userSpaceOnUse">
+<stop stop-color="#330C52"/>
+<stop offset="0.956731" stop-color="#7B066D"/>
+</linearGradient>
+<linearGradient id="paint1_linear_120_21" x1="66.2558" y1="21.0721" x2="80.6712" y2="35.2222" gradientUnits="userSpaceOnUse">
+<stop stop-color="#40347F"/>
+<stop offset="1" stop-color="#6890C0"/>
+</linearGradient>
+<linearGradient id="paint2_linear_120_21" x1="66.8039" y1="6.98719" x2="34.9275" y2="25.2083" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E27618"/>
+<stop offset="0.985981" stop-color="#EDCC06"/>
+</linearGradient>
+</defs>
+</svg>`;
+
 /**
- * Exports attendance records to a CSV file (Excel-compatible)
+ * Exports attendance records to a CSV file (Excel-compatible with UTF-8 BOM)
  */
 export function exportAttendanceToCsv(
   records: ExportAttendanceRecord[],
-  filename = `oasys-attendance-report-${new Date().toISOString().slice(0, 10)}.csv`
+  filename?: string
 ) {
   if (!records || records.length === 0) {
     alert("No attendance records to export.");
     return;
   }
 
+  const dateTag = records[0]?.date || new Date().toISOString().slice(0, 10);
+  const finalFilename = filename || `OASYS-Attendance-Report-${dateTag}.csv`;
+
   const headers = [
+    "S.No",
     "Student Name",
     "Register Number",
     "Department",
@@ -39,21 +111,20 @@ export function exportAttendanceToCsv(
     "Check-in Time",
     "Status",
     "Distance from Hostel (m)",
-    "Method",
   ];
 
-  const rows = records.map((r) => [
-    `"${r.studentName.replace(/"/g, '""')}"`,
-    `"${(r.registerNumber || "—").replace(/"/g, '""')}"`,
-    `"${(r.department || "Computer Science").replace(/"/g, '""')}"`,
-    `"${(r.year || "3rd Year").replace(/"/g, '""')}"`,
-    `"${(r.hostelBlock || "Block A").replace(/"/g, '""')}"`,
-    `"${(r.roomNumber || "—").replace(/"/g, '""')}"`,
-    `"${r.date}"`,
+  const rows = records.map((r, index) => [
+    index + 1,
+    `"${(r.studentName || "").replace(/"/g, '""')}"`,
+    `"${(r.registerNumber || "").replace(/"/g, '""')}"`,
+    `"${(r.department || "").replace(/"/g, '""')}"`,
+    `"${(r.year || "").replace(/"/g, '""')}"`,
+    `"${(r.hostelBlock || "").replace(/"/g, '""')}"`,
+    `"${(r.roomNumber || "").replace(/"/g, '""')}"`,
+    `"${r.date || ""}"`,
     `"${r.time || "—"}"`,
     `"${r.status.toUpperCase()}"`,
     `"${r.distanceMeters !== undefined ? r.distanceMeters : "—"}"`,
-    `"${r.markingMethod || "QR_GPS"}"`,
   ]);
 
   const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\r\n");
@@ -62,7 +133,7 @@ export function exportAttendanceToCsv(
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute("download", filename);
+  link.setAttribute("download", finalFilename);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -70,110 +141,501 @@ export function exportAttendanceToCsv(
 }
 
 /**
- * Exports attendance records to a beautifully styled, printable PDF document
+ * Exports attendance records to a professional, multi-page OASYS College Attendance Report PDF.
  */
 export function exportAttendanceToPdf(
   records: ExportAttendanceRecord[],
-  title = "OASYS Hostel Attendance Report"
+  options?: ExportPdfOptions | string
 ) {
   if (!records || records.length === 0) {
     alert("No attendance records to export.");
     return;
   }
 
-  const dateStr = new Date().toLocaleDateString("en-IN", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
+  const opts: ExportPdfOptions =
+    typeof options === "string" ? { selectedDate: options } : options || {};
+
+  const selectedDate = opts.selectedDate || records[0]?.date || new Date().toISOString().slice(0, 10);
+  
+  // Format selected date nicely
+  const parsedDate = new Date(selectedDate + "T00:00:00");
+  const dateHeading = opts.formattedDate || (
+    !isNaN(parsedDate.getTime())
+      ? parsedDate.toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : selectedDate
+  );
+
+  const generatedTimestamp = new Date().toLocaleDateString("en-IN", {
     day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
   });
+
+  // Calculate Overall Summary if not passed
+  const totalStudents = opts.summary?.totalStudents ?? records.length;
+  const presentCount =
+    opts.summary?.present ??
+    records.filter((r) => r.status.toLowerCase() === "present").length;
+  const absentCount = opts.summary?.absent ?? (totalStudents - presentCount);
+  const overallAttendancePct =
+    opts.summary?.overallAttendancePct ??
+    (totalStudents > 0 ? `${((presentCount / totalStudents) * 100).toFixed(1)}%` : "0%");
+
+  // Calculate Block-wise Summary if not passed
+  let blockSummaries = opts.blockSummary;
+  if (!blockSummaries || blockSummaries.length === 0) {
+    const blockMap = new Map<string, { total: number; present: number; absent: number }>();
+    for (const r of records) {
+      const b = r.hostelBlock?.trim() || "Unassigned";
+      const existing = blockMap.get(b) || { total: 0, present: 0, absent: 0 };
+      existing.total += 1;
+      if (r.status.toLowerCase() === "present") {
+        existing.present += 1;
+      } else {
+        existing.absent += 1;
+      }
+      blockMap.set(b, existing);
+    }
+    blockSummaries = Array.from(blockMap.entries()).map(([blockName, counts]) => ({
+      hostelBlock: blockName,
+      totalStudents: counts.total,
+      present: counts.present,
+      absent: counts.absent,
+      attendancePct:
+        counts.total > 0 ? `${((counts.present / counts.total) * 100).toFixed(1)}%` : "0%",
+    }));
+  }
 
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
-    alert("Please allow popups to export PDF.");
+    alert("Please allow popups to export the PDF report.");
     return;
   }
 
-  const rowsHtml = records
+  // Student Details rows
+  const studentRowsHtml = records
+    .map((r, i) => {
+      const isPresent = r.status.toLowerCase() === "present";
+      return `
+      <tr class="student-row">
+        <td class="text-center font-mono">${i + 1}</td>
+        <td class="font-bold text-dark">${r.studentName}</td>
+        <td class="font-mono text-muted">${r.registerNumber || "—"}</td>
+        <td class="text-muted">${r.department || "—"}</td>
+        <td class="text-muted text-center">${r.year || "—"}</td>
+        <td class="text-muted text-center">${r.hostelBlock || "—"}</td>
+        <td class="text-muted text-center">${r.roomNumber || "—"}</td>
+        <td class="text-muted text-center">${r.time || "—"}</td>
+        <td class="text-center">
+          <span class="status-badge ${isPresent ? "badge-present" : "badge-absent"}">
+            ${isPresent ? "PRESENT" : "ABSENT"}
+          </span>
+        </td>
+        <td class="text-right font-mono text-muted">${r.distanceMeters !== undefined ? `${r.distanceMeters} m` : "—"}</td>
+      </tr>
+    `;
+    })
+    .join("");
+
+  // Block summary rows
+  const blockRowsHtml = blockSummaries
     .map(
-      (r, i) => `
-    <tr style="border-bottom: 1px solid #e2e8f0; ${i % 2 === 1 ? "background-color: #f8fafc;" : ""}">
-      <td style="padding: 10px 12px; font-weight: 600; color: #1e293b;">${r.studentName}</td>
-      <td style="padding: 10px 12px; color: #475569;">${r.registerNumber || "—"}</td>
-      <td style="padding: 10px 12px; color: #475569;">${r.department || "Computer Science"}</td>
-      <td style="padding: 10px 12px; color: #475569;">${r.roomNumber || "—"}</td>
-      <td style="padding: 10px 12px; color: #475569;">${r.date}</td>
-      <td style="padding: 10px 12px; color: #475569;">${r.time || "—"}</td>
-      <td style="padding: 10px 12px; text-align: center;">
-        <span style="display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; ${
-          r.status.toLowerCase() === "present"
-            ? "background-color: #dcfce7; color: #15803d;"
-            : r.status.toLowerCase() === "late"
-            ? "background-color: #fef3c7; color: #b45309;"
-            : "background-color: #fee2e2; color: #b91c1c;"
-        }">
-          ${r.status.toUpperCase()}
-        </span>
-      </td>
-      <td style="padding: 10px 12px; color: #64748b; font-size: 12px; text-align: right;">${r.distanceMeters ?? "—"} m</td>
-    </tr>
-  `
+      (b) => `
+      <tr>
+        <td class="font-bold text-dark">${b.hostelBlock}</td>
+        <td class="text-center font-semibold">${b.totalStudents}</td>
+        <td class="text-center font-semibold text-emerald">${b.present}</td>
+        <td class="text-center font-semibold text-rose">${b.absent}</td>
+        <td class="text-center font-bold text-primary">${b.attendancePct}</td>
+      </tr>
+    `
     )
     .join("");
 
   const html = `
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
       <head>
-        <title>${title}</title>
+        <meta charset="UTF-8" />
+        <title>OASYS-Attendance-Report-${selectedDate}</title>
         <style>
-          @page { size: A4 landscape; margin: 15mm; }
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; margin: 0; padding: 20px; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #7c5cd6; padding-bottom: 12px; margin-bottom: 20px; }
-          .title { font-size: 22px; font-weight: bold; color: #7c5cd6; }
-          .meta { font-size: 13px; color: #64748b; }
-          table { width: 100%; border-collapse: collapse; font-size: 13px; }
-          th { background-color: #f1f5f9; padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; letter-spacing: 0.05em; }
-          .footer { margin-top: 24px; text-align: right; font-size: 11px; color: #94a3b8; }
+          @page {
+            size: A4 portrait;
+            margin: 12mm 10mm 15mm 10mm;
+            @bottom-left {
+              content: "OASYS Hostel Management System";
+              font-size: 8pt;
+              color: #94a3b8;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+            @bottom-center {
+              content: "This is a system-generated attendance report.";
+              font-size: 8pt;
+              color: #94a3b8;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+            @bottom-right {
+              content: "Page " counter(page) " of " counter(pages);
+              font-size: 8pt;
+              color: #94a3b8;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+          }
+
+          * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            font-size: 11px;
+            line-height: 1.4;
+          }
+
+          .report-container {
+            width: 100%;
+            max-width: 100%;
+          }
+
+          /* Header Section */
+          .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2.5px solid #7c5cd6;
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+          }
+
+          .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+          }
+
+          .logo-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .college-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #1e1b4b;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            line-height: 1.2;
+          }
+
+          .system-subtitle {
+            font-size: 12px;
+            font-weight: 700;
+            color: #7c5cd6;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-top: 2px;
+          }
+
+          .report-badge {
+            display: inline-block;
+            background: #ede9fe;
+            color: #5b21b6;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            padding: 2px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            margin-top: 4px;
+          }
+
+          .header-right {
+            text-align: right;
+            font-size: 10.5px;
+            color: #475569;
+          }
+
+          .header-right .date-val {
+            font-size: 12px;
+            font-weight: 700;
+            color: #0f172a;
+          }
+
+          .header-right .time-val {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 2px;
+          }
+
+          /* Summary Cards Grid */
+          .section-title {
+            font-size: 11.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #475569;
+            margin-bottom: 6px;
+            margin-top: 12px;
+          }
+
+          .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+          }
+
+          .summary-card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px 10px;
+            text-align: center;
+          }
+
+          .summary-card.card-primary {
+            background-color: #f5f3ff;
+            border-color: #ddd6fe;
+          }
+
+          .summary-card.card-emerald {
+            background-color: #f0fdf4;
+            border-color: #bbf7d0;
+          }
+
+          .summary-card.card-rose {
+            background-color: #fff1f2;
+            border-color: #fecdd3;
+          }
+
+          .summary-label {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+          }
+
+          .summary-card.card-emerald .summary-label { color: #16a34a; }
+          .summary-card.card-rose .summary-label { color: #e11d48; }
+          .summary-card.card-primary .summary-label { color: #7c5cd6; }
+
+          .summary-value {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-top: 2px;
+          }
+
+          .summary-card.card-emerald .summary-value { color: #15803d; }
+          .summary-card.card-rose .summary-value { color: #be123c; }
+          .summary-card.card-primary .summary-value { color: #6d28d9; }
+
+          /* Tables */
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-bottom: 12px;
+          }
+
+          thead {
+            display: table-header-group;
+          }
+
+          tr {
+            page-break-inside: avoid;
+          }
+
+          th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            text-align: left;
+          }
+
+          td {
+            padding: 5px 8px;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+          }
+
+          .student-row:nth-child(even) {
+            background-color: #fafaf9;
+          }
+
+          .total-row {
+            background-color: #f1f5f9;
+            font-weight: 800;
+          }
+
+          .total-row td {
+            border-top: 2px solid #94a3b8;
+            color: #0f172a;
+            font-size: 10.5px;
+          }
+
+          /* Utilities */
+          .text-center { text-align: center; }
+          .text-right { text-align: right; }
+          .font-bold { font-weight: 700; }
+          .font-semibold { font-weight: 600; }
+          .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+          .text-dark { color: #0f172a; }
+          .text-muted { color: #64748b; }
+          .text-emerald { color: #15803d; }
+          .text-rose { color: #be123c; }
+          .text-primary { color: #6d28d9; }
+
+          .status-badge {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 9999px;
+            font-size: 8.5px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+          }
+
+          .badge-present {
+            background-color: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+          }
+
+          .badge-absent {
+            background-color: #ffe4e6;
+            color: #be123c;
+            border: 1px solid #fda4af;
+          }
+
+          /* Print Footer Fallback */
+          .print-footer {
+            display: none;
+          }
+
+          @media print {
+            body {
+              padding: 0;
+            }
+            .no-print {
+              display: none !important;
+            }
+          }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div>
-            <div class="title">OASYS HOSTEL MANAGEMENT</div>
-            <div style="font-size: 14px; font-weight: 600; color: #334155; margin-top: 2px;">${title}</div>
+        <div class="report-container">
+          <!-- 1. Header -->
+          <div class="header-container">
+            <div class="header-left">
+              <div class="logo-wrapper">
+                ${OASYS_LOGO_SVG}
+              </div>
+              <div>
+                <div class="college-title">OASYS INSTITUTE OF TECHNOLOGY</div>
+                <div class="system-subtitle">HOSTEL MANAGEMENT SYSTEM</div>
+                <span class="report-badge">ATTENDANCE REPORT</span>
+              </div>
+            </div>
+            <div class="header-right">
+              <div>Attendance Date: <span class="date-val">${dateHeading}</span></div>
+              <div class="time-val">Generated On: ${generatedTimestamp}</div>
+            </div>
           </div>
-          <div class="meta" style="text-align: right;">
-            <div><strong>Date:</strong> ${dateStr}</div>
-            <div><strong>Total Records:</strong> ${records.length}</div>
+
+          <!-- 2. Overall Attendance Summary (4 metrics only) -->
+          <div class="section-title">Overall Attendance Summary</div>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="summary-label">Total Students</div>
+              <div class="summary-value">${totalStudents}</div>
+            </div>
+            <div class="summary-card card-emerald">
+              <div class="summary-label">Present</div>
+              <div class="summary-value">${presentCount}</div>
+            </div>
+            <div class="summary-card card-rose">
+              <div class="summary-label">Absent</div>
+              <div class="summary-value">${absentCount}</div>
+            </div>
+            <div class="summary-card card-primary">
+              <div class="summary-label">Overall Attendance %</div>
+              <div class="summary-value">${overallAttendancePct}</div>
+            </div>
           </div>
-        </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Student Name</th>
-              <th>Register No</th>
-              <th>Department</th>
-              <th>Room</th>
-              <th>Date</th>
-              <th>Time</th>
-              <th style="text-align: center;">Status</th>
-              <th style="text-align: right;">Distance</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
+          <!-- 3. Block-wise Attendance Summary -->
+          <div class="section-title">Block-wise Attendance Summary</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Hostel Block</th>
+                <th class="text-center">Total Students</th>
+                <th class="text-center">Present</th>
+                <th class="text-center">Absent</th>
+                <th class="text-center">Attendance %</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${blockRowsHtml}
+              <tr class="total-row">
+                <td>TOTAL</td>
+                <td class="text-center">${totalStudents}</td>
+                <td class="text-center text-emerald">${presentCount}</td>
+                <td class="text-center text-rose">${absentCount}</td>
+                <td class="text-center text-primary">${overallAttendancePct}</td>
+              </tr>
+            </tbody>
+          </table>
 
-        <div class="footer">
-          Generated automatically by OASYS Attendance System &bull; ${new Date().toLocaleTimeString()}
+          <!-- 4. Student Attendance Details -->
+          <div class="section-title">Student Attendance Details</div>
+          <table>
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 32px;">S.No</th>
+                <th>Student Name</th>
+                <th>Register No</th>
+                <th>Department</th>
+                <th class="text-center">Year</th>
+                <th class="text-center">Hostel Block</th>
+                <th class="text-center">Room</th>
+                <th class="text-center">Check-in Time</th>
+                <th class="text-center">Status</th>
+                <th class="text-right">Distance (m)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${studentRowsHtml}
+            </tbody>
+          </table>
         </div>
 
         <script>
           window.onload = function() {
-            window.print();
+            setTimeout(function() {
+              window.print();
+            }, 300);
           };
         </script>
       </body>
@@ -184,4 +646,5 @@ export function exportAttendanceToPdf(
   printWindow.document.write(html);
   printWindow.document.close();
 }
+
 
