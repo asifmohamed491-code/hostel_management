@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { AttendanceSession } from "@/models/AttendanceSession";
+import { Notification } from "@/models/Notification";
 import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt";
 
 function getTodayString(): string {
@@ -62,6 +63,18 @@ export async function POST(request: NextRequest) {
       expiresAt,
       active: true,
     });
+
+    const students = await User.find({ role: "student" }).select("_id").lean();
+    if (students.length) {
+      await Notification.insertMany(
+        students.map((student) => ({
+          recipient: student._id,
+          title: "Attendance is now open",
+          message: "Today's hostel attendance is now available. Mark your attendance before the session closes.",
+          href: "/dashboard/student/attendance",
+        }))
+      );
+    }
 
     return NextResponse.json(
       {

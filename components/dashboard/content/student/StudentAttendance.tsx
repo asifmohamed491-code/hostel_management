@@ -13,7 +13,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -33,15 +33,19 @@ import {
   User,
   RotateCcw,
   Navigation,
+  QrCode,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { STUDENT_PROFILE } from "@/lib/student-dashboard-mock";
 import { HOSTEL_GEOFENCE, calculateDistanceMeters } from "@/lib/constants/geofence";
+import { Html5Qrcode } from "html5-qrcode";
 
 /* ── Flow stages ──────────────────────────────────────────────────── */
 type Stage =
+  | "checking-session"
   | "checking-location"
   | "location-verified"
+  | "scanning-qr"
   | "verifying"
   | "success"
   | "already-marked"
@@ -49,6 +53,7 @@ type Stage =
   | "session-expired"
   | "out-of-bounds"
   | "poor-accuracy"
+  | "invalid-qr"
   | "permission-denied"
   | "position-unavailable"
   | "location-timeout"
@@ -79,7 +84,26 @@ interface GeoExtra {
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* STEP 1: CHECKING LOCATION (Real navigator.geolocation)             */
+/* STEP 1: CHECKING ACTIVE WARDEN SESSION                              */
+function CheckingSessionStage() {
+  return (
+    <StageCard>
+      <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:flex-row lg:gap-10 lg:px-14 lg:py-16 lg:text-left">
+        <Loader2 className="h-14 w-14 animate-spin text-primary" />
+        <div className="flex flex-col gap-3">
+          <span className="text-[12px] font-bold uppercase tracking-wider text-primary">Mark Attendance</span>
+          <h2 className="text-[20px] font-bold text-heading sm:text-[24px]">Checking attendance status…</h2>
+          <p className="max-w-lg text-[14px] font-medium leading-relaxed text-heading/55 sm:text-[15px]">
+            Checking whether today&apos;s attendance session is open.
+          </p>
+        </div>
+      </div>
+    </StageCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* STEP 2: CHECKING LOCATION (Real navigator.geolocation)             */
 /* ═══════════════════════════════════════════════════════════════════ */
 function CheckingLocationStage({
   onVerified,
@@ -189,7 +213,7 @@ function CheckingLocationStage({
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* STEP 2: LOCATION VERIFIED                                         */
+/* STEP 3: LOCATION VERIFIED                                         */
 /* ═══════════════════════════════════════════════════════════════════ */
 function LocationVerifiedStage({
   distanceMeters,
@@ -202,25 +226,16 @@ function LocationVerifiedStage({
 }) {
   return (
     <StageCard>
-      <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:px-14 lg:py-16 lg:flex-row lg:gap-10 lg:text-left">
-        {/* Large check icon */}
+      <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:flex-row lg:gap-10 lg:px-14 lg:py-16 lg:text-left">
         <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-emerald-500/10 lg:h-28 lg:w-28 animate-fade-up">
           <ShieldCheck className="h-12 w-12 text-emerald-500 lg:h-14 lg:w-14" />
           <span className="absolute inset-0 rounded-3xl border-2 border-emerald-500/20 animate-pulse" />
         </div>
-
-        {/* Content */}
         <div className="flex flex-1 flex-col gap-4 animate-fade-up">
           <div>
-            <h2 className="text-[20px] font-bold text-heading sm:text-[24px]">
-              Location Verified
-            </h2>
-            <p className="mt-1.5 text-[14px] font-medium text-heading/55 sm:text-[15px]">
-              You are inside the hostel attendance zone.
-            </p>
+            <h2 className="text-[20px] font-bold text-heading sm:text-[24px]">Location Verified</h2>
+            <p className="mt-1.5 text-[14px] font-medium text-heading/55 sm:text-[15px]">You are inside the hostel attendance zone.</p>
           </div>
-
-          {/* Location details */}
           <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
             <span className="inline-flex items-center gap-2 rounded-xl border border-heading/5 bg-heading/[0.02] px-4 py-2.5 text-[13px] font-semibold text-heading/70">
               <Wifi className="h-4 w-4 text-emerald-500" />
@@ -231,12 +246,7 @@ function LocationVerifiedStage({
               Allowed Radius: {allowedRadius} m
             </span>
           </div>
-
-          <button
-            type="button"
-            onClick={onContinue}
-            className="mt-2 inline-flex w-fit items-center gap-2 self-center rounded-2xl bg-primary px-8 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer lg:self-start sm:text-[15px]"
-          >
+          <button type="button" onClick={onContinue} className="mt-2 inline-flex w-fit items-center gap-2 self-center rounded-2xl bg-primary px-8 py-3.5 text-[14px] font-semibold text-white shadow-glass transition-all duration-200 hover:bg-primary-dark hover:shadow-glass-lg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer lg:self-start sm:text-[15px]">
             Continue
             <ArrowLeft className="h-4 w-4 rotate-180" />
           </button>
@@ -247,13 +257,62 @@ function LocationVerifiedStage({
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* STEP 3: VERIFYING ATTENDANCE (backend call with GPS payload)       */
+/* STEP 4: SCAN ACTIVE WARDEN QR                                     */
+function ScanQrStage({
+  onScanned,
+  onError,
+}: {
+  onScanned: (token: string) => void;
+  onError: () => void;
+}) {
+  const scannerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = scannerRef.current;
+    if (!element) return;
+    const elementId = `attendance-qr-reader-${Math.random().toString(36).slice(2)}`;
+    element.id = elementId;
+    const scanner = new Html5Qrcode(elementId);
+    let stopped = false;
+    scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 220, height: 220 } }, (decodedText) => {
+      if (!stopped) onScanned(decodedText);
+    }, () => undefined).catch(() => {
+      if (!stopped) onError();
+    });
+    return () => {
+      stopped = true;
+      void scanner.stop().catch(() => undefined);
+    };
+  }, [onError, onScanned]);
+
+  return (
+    <StageCard>
+      <div className="flex flex-col items-center gap-6 px-6 py-8 text-center sm:px-10 sm:py-12 lg:flex-row lg:gap-10 lg:px-14 lg:py-16 lg:text-left">
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-primary/10 lg:h-28 lg:w-28">
+          <QrCode className="h-12 w-12 text-primary lg:h-14 lg:w-14" />
+        </div>
+        <div className="flex flex-1 flex-col gap-4">
+          <div>
+            <h2 className="text-[20px] font-bold text-heading sm:text-[24px]">Scan Warden QR</h2>
+            <p className="mt-1.5 text-[14px] font-medium text-heading/55 sm:text-[15px]">Scan the active attendance QR displayed by your warden.</p>
+          </div>
+          <div ref={scannerRef} className="w-full max-w-[320px] overflow-hidden rounded-2xl bg-white/40" />
+        </div>
+      </div>
+    </StageCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* STEP 5: VERIFYING ATTENDANCE (backend call with GPS and QR payload) */
 /* ═══════════════════════════════════════════════════════════════════ */
 function VerifyingStage({
   coords,
+  qrToken,
   onResult,
 }: {
   coords: Coords | null;
+  qrToken: string;
   onResult: (stage: Stage, data?: AttendanceResult, extra?: GeoExtra) => void;
 }) {
   const [steps, setSteps] = useState([
@@ -284,6 +343,7 @@ function VerifyingStage({
               latitude: coords.latitude,
               longitude: coords.longitude,
               accuracy: coords.accuracy,
+              qrToken,
             }
           : {};
 
@@ -317,6 +377,8 @@ function VerifyingStage({
           });
         } else if (data.code === "LOCATION_REQUIRED") {
           onResult("permission-denied");
+        } else if (data.code === "INVALID_QR") {
+          onResult("invalid-qr");
         } else if (data.code === "SESSION_EXPIRED") {
           onResult("session-expired");
         } else if (data.code === "NO_SESSION") {
@@ -333,7 +395,7 @@ function VerifyingStage({
     return () => {
       cancelled = true;
     };
-  }, [coords, onResult]);
+  }, [coords, onResult, qrToken]);
 
   return (
     <StageCard>
@@ -561,6 +623,7 @@ function UnavailableStage({
     | "session-expired"
     | "out-of-bounds"
     | "poor-accuracy"
+    | "invalid-qr"
     | "permission-denied"
     | "position-unavailable"
     | "location-timeout"
@@ -607,6 +670,13 @@ function UnavailableStage({
       iconBg: "bg-amber-500/10",
       title: "Low GPS Accuracy",
       desc: "Your GPS accuracy is insufficient. Please move to an open area or enable high accuracy GPS and try again.",
+    },
+    "invalid-qr": {
+      icon: QrCode,
+      iconColor: "text-red-500",
+      iconBg: "bg-red-500/10",
+      title: "Invalid Attendance QR",
+      desc: "This QR code is invalid, inactive, or no longer valid. Please scan the active QR displayed by your warden.",
     },
     "permission-denied": {
       icon: MapPin,
@@ -749,8 +819,9 @@ export function StudentAttendance() {
   const router = useRouter();
   const { user, loading } = useCurrentUser();
 
-  const [stage, setStage] = useState<Stage>("checking-location");
+  const [stage, setStage] = useState<Stage>("checking-session");
   const [coords, setCoords] = useState<Coords | null>(null);
+  const [qrToken, setQrToken] = useState("");
   const [distanceMeters, setDistanceMeters] = useState<number>(0);
   const [geoExtra, setGeoExtra] = useState<GeoExtra | undefined>(undefined);
   const [record, setRecord] = useState<AttendanceResult>({});
@@ -769,9 +840,15 @@ export function StudentAttendance() {
         if (data.studentRecord) {
           setRecord(data.studentRecord);
           setStage("already-marked");
+        } else if (!data.hasActiveSession) {
+          setStage("no-session");
+        } else if (!data.session?.active || data.session.expired) {
+          setStage("session-expired");
+        } else {
+          setStage("checking-location");
         }
       } catch {
-        // Continue with normal location checking flow
+        if (!cancelled) setStage("error");
       }
     }
     checkExistingAttendance();
@@ -792,7 +869,16 @@ export function StudentAttendance() {
   }, []);
 
   const handleContinueToVerify = useCallback(() => {
+    setStage("scanning-qr");
+  }, []);
+
+  const handleQrScanned = useCallback((token: string) => {
+    setQrToken(token);
     setStage("verifying");
+  }, []);
+
+  const handleQrError = useCallback(() => {
+    setStage("invalid-qr");
   }, []);
 
   const handleVerifyResult = useCallback(
@@ -806,7 +892,9 @@ export function StudentAttendance() {
 
   const handleRetry = useCallback(() => {
     setGeoExtra(undefined);
-    setStage("checking-location");
+    setCoords(null);
+    setQrToken("");
+    setStage("checking-session");
   }, []);
 
   return (
@@ -833,6 +921,8 @@ export function StudentAttendance() {
 
       {/* Stage content — fills available width */}
       <div className="pb-4">
+        {stage === "checking-session" && <CheckingSessionStage />}
+
         {stage === "checking-location" && (
           <CheckingLocationStage
             onVerified={handleLocationVerified}
@@ -848,8 +938,12 @@ export function StudentAttendance() {
           />
         )}
 
+        {stage === "scanning-qr" && (
+          <ScanQrStage onScanned={handleQrScanned} onError={handleQrError} />
+        )}
+
         {stage === "verifying" && (
-          <VerifyingStage coords={coords} onResult={handleVerifyResult} />
+          <VerifyingStage coords={coords} qrToken={qrToken} onResult={handleVerifyResult} />
         )}
 
         {stage === "success" && (
@@ -865,6 +959,7 @@ export function StudentAttendance() {
           stage === "session-expired" ||
           stage === "out-of-bounds" ||
           stage === "poor-accuracy" ||
+          stage === "invalid-qr" ||
           stage === "permission-denied" ||
           stage === "position-unavailable" ||
           stage === "location-timeout" ||

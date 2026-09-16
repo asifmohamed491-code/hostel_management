@@ -4,7 +4,7 @@
 // Student-only: marks attendance for today by validating:
 // 1. Authenticated student session (JWT)
 // 2. No duplicate attendance marked today
-// 3. Active, unexpired Warden attendance session
+// 3. Active, unexpired Warden attendance session and QR token
 // 4. Valid GPS payload & acceptable accuracy (<= 150m)
 // 5. Server-side Haversine geofence calculation (<= 320m)
 import { NextRequest, NextResponse } from "next/server";
@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
 
     // ── 5. Parse & validate GPS payload ──
     const body = await request.json().catch(() => null);
+    const qrToken = typeof body?.qrToken === "string" ? body.qrToken.trim() : "";
     const latitude = typeof body?.latitude === "number" ? body.latitude : NaN;
     const longitude = typeof body?.longitude === "number" ? body.longitude : NaN;
     const accuracy = typeof body?.accuracy === "number" ? body.accuracy : NaN;
@@ -125,6 +126,13 @@ export async function POST(request: NextRequest) {
           code: "LOCATION_REQUIRED",
           message: "Location permission and valid GPS coordinates are required to mark attendance.",
         },
+        { status: 400 }
+      );
+    }
+
+    if (!qrToken || qrToken !== activeSession.token) {
+      return NextResponse.json(
+        { code: "INVALID_QR", message: "The attendance QR code is invalid or expired." },
         { status: 400 }
       );
     }

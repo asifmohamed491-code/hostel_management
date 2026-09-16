@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Bell, ChevronDown, X, Menu } from "lucide-react";
 import { useMobileNav } from "@/components/dashboard/MobileNavContext";
 import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
@@ -12,10 +13,55 @@ const TODAY = new Date().toLocaleDateString("en-US", {
   day: "numeric",
 });
 
+interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  href?: string;
+  read: boolean;
+  createdAt: string;
+}
+
 export function Topbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const { toggle: toggleMobileNav } = useMobileNav();
+  const router = useRouter();
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/notifications", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { notifications?: NotificationItem[] } | null) => {
+        if (!cancelled && data?.notifications) setNotifications(data.notifications);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
+
+  const handleNotificationClick = async (notification: NotificationItem) => {
+    if (!notification.read) {
+      setNotifications((current) =>
+        current.map((item) =>
+          item.id === notification.id ? { ...item, read: true } : item
+        )
+      );
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationId: notification.id }),
+      }).catch(() => undefined);
+    }
+    setNotificationsOpen(false);
+    if (notification.href) router.push(notification.href);
+  };
 
   useEffect(() => {
     const scrollContainer = document.getElementById("dashboard-scroll-container");
@@ -113,14 +159,47 @@ export function Topbar() {
             </button>
 
             {/* Notifications */}
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="liquid-glass relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/40 transition-colors hover:bg-white/55"
-            >
-              <Bell className="h-[18px] w-[18px] text-heading/70" />
-              <span className="absolute right-[9px] top-[9px] h-2 w-2 rounded-full border border-white bg-[#F0A420]" />
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="Notifications"
+                aria-expanded={notificationsOpen}
+                onClick={() => setNotificationsOpen((open) => !open)}
+                className="liquid-glass relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/40 transition-colors hover:bg-white/55"
+              >
+                <Bell className="h-[18px] w-[18px] text-heading/70" />
+                {unreadCount > 0 && (
+                  <span className="absolute right-[9px] top-[9px] h-2 w-2 rounded-full border border-white bg-[#F0A420]" />
+                )}
+              </button>
+              {notificationsOpen && (
+                <div className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-2rem))] rounded-2xl border border-white/60 bg-white/90 p-2 shadow-xl backdrop-blur-xl">
+                  <p className="px-3 py-2 text-[12px] font-bold uppercase tracking-wide text-heading/45">
+                    Notifications
+                  </p>
+                  {notifications.length === 0 ? (
+                    <p className="px-3 py-4 text-[13px] font-medium text-heading/50">
+                      No notifications yet.
+                    </p>
+                  ) : (
+                    notifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() => handleNotificationClick(notification)}
+                        className="flex w-full flex-col gap-1 rounded-xl px-3 py-2 text-left transition-colors hover:bg-primary/5"
+                      >
+                        <span className="flex items-center gap-2 text-[13px] font-bold text-heading">
+                          {!notification.read && <span className="h-1.5 w-1.5 rounded-full bg-[#F0A420]" />}
+                          {notification.title}
+                        </span>
+                        <span className="text-[12px] leading-relaxed text-heading/55">{notification.message}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* User Profile */}
             <ProfileMenu />
