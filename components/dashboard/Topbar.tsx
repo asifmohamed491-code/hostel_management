@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Bell, ChevronDown, X, Menu } from "lucide-react";
+import { Search, Bell, X, Menu } from "lucide-react";
 import { useMobileNav } from "@/components/dashboard/MobileNavContext";
 import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
 
@@ -148,15 +148,6 @@ export function Topbar() {
             <span className="hidden whitespace-nowrap text-[13px] font-semibold text-heading/80 lg:inline">
               {TODAY}
             </span>
-
-            {/* Hostel block selector - Hidden on Small Mobile Screens */}
-            <button
-              type="button"
-              className="liquid-glass hidden h-10 items-center gap-2 whitespace-nowrap rounded-full bg-white/40 px-3.5 text-[12px] font-semibold text-heading/75 transition-colors hover:bg-white/55 sm:flex sm:px-4 sm:text-[12.5px]"
-            >
-              Hostel Block: Block A
-              <ChevronDown className="h-3.5 w-3.5 text-heading/45" />
-            </button>
 
             {/* Notifications */}
             <div className="relative">

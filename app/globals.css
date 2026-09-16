@@ -101,6 +101,31 @@
     display: none;
   }
 
+  /* Subtle, minimal OASYS lavender scrollbar for internal table scrolling */
+  .oasys-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(124, 92, 214, 0.35) transparent;
+  }
+
+  .oasys-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .oasys-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .oasys-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(124, 92, 214, 0.28);
+    border-radius: 9999px;
+    transition: background-color 0.2s ease;
+  }
+
+  .oasys-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(124, 92, 214, 0.55);
+  }
+
   /* Viewport-safe full-height utility. `100vh` is kept first as a
      fallback for browsers without `dvh` support; `100dvh` on the line
      below overrides it wherever supported. This is what actually fixes

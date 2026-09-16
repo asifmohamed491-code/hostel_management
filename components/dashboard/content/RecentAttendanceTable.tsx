@@ -63,12 +63,13 @@ export function RecentAttendanceTable() {
     <DashboardCard
       title="Recent Attendance Table"
       className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col overflow-hidden"
-      bodyClassName="flex flex-1 flex-col px-[19px] pb-3 pt-3 overflow-hidden"
+      bodyClassName="flex flex-1 flex-col px-[19px] pb-3.5 pt-3 overflow-hidden"
     >
-      <div ref={tableRef} className="flex flex-1 flex-col overflow-x-auto">
-        <div className="min-w-[600px] flex flex-1 flex-col">
-          {/* Header - Fixed & Sticky */}
-          <div className="grid grid-cols-[24px_1.6fr_0.9fr_1fr_1fr_28px] items-center gap-3 border-b border-heading/[0.06] pb-2.5 text-[11.5px] font-semibold uppercase tracking-wide text-heading/35 shrink-0">
+      {/* Outer wrapper: only handles horizontal scroll on mobile, strictly prevents vertical scroll */}
+      <div ref={tableRef} className="flex flex-1 flex-col overflow-x-auto overflow-y-hidden">
+        <div className="min-w-[600px] flex flex-1 flex-col overflow-hidden">
+          {/* Header - Fixed & Pinned at the top */}
+          <div className="grid grid-cols-[24px_1.6fr_0.9fr_1fr_1fr_28px] items-center gap-3 border-b border-heading/[0.06] pb-2 text-[11.5px] font-semibold uppercase tracking-wide text-heading/35 shrink-0">
             <input type="checkbox" className="h-3.5 w-3.5 rounded accent-primary cursor-pointer" aria-label="Select all" />
             <span>Student</span>
             <span>Status</span>
@@ -77,8 +78,8 @@ export function RecentAttendanceTable() {
             <span />
           </div>
 
-          {/* Rows - Scrollable Table Body: exactly 3 rows visible in viewport (~150px), remaining accessible via internal scroll */}
-          <div className="flex flex-1 flex-col divide-y divide-heading/[0.05] max-h-[155px] overflow-y-auto pr-1">
+          {/* Only Table Body Scrolls: exactly 3 rows visible, thin lavender scrollbar */}
+          <div className="flex flex-col divide-y divide-heading/[0.05] max-h-[148px] overflow-y-auto oasys-scrollbar pr-1.5">
             {rows.map((row) => (
               <div
                 key={row.id}
