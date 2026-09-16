@@ -1,8 +1,9 @@
 // lib/attendance-export.ts
 //
 // Official OASYS Hostel Attendance Export Utility
-// Supports PDF Export (clean multi-page college report format with SVG logo)
-// and Excel / CSV Export.
+// Supports PDF Export (clean multi-page college report format with SVG logo, Distance removed, Room No)
+// and Real Excel (.xlsx) Export using SheetJS.
+import * as XLSX from "xlsx";
 
 export interface ExportAttendanceRecord {
   studentName: string;
@@ -85,9 +86,11 @@ const OASYS_LOGO_SVG = `<svg width="72" height="65" viewBox="0 0 120 109" fill="
 </svg>`;
 
 /**
- * Exports attendance records to a CSV file (Excel-compatible with UTF-8 BOM)
+ * Exports attendance records to a real Excel (.xlsx) file using SheetJS (XLSX).
+ * Required Columns in order:
+ * S.No, Student Name, Register No, Department, Year, Hostel Block, Room No, Date, Check-in Time, Status
  */
-export function exportAttendanceToCsv(
+export function exportAttendanceToExcel(
   records: ExportAttendanceRecord[],
   filename?: string
 ) {
@@ -97,51 +100,50 @@ export function exportAttendanceToCsv(
   }
 
   const dateTag = records[0]?.date || new Date().toISOString().slice(0, 10);
-  const finalFilename = filename || `OASYS-Attendance-Report-${dateTag}.csv`;
+  const finalFilename = filename || `OASYS-Attendance-Report-${dateTag}.xlsx`;
 
-  const headers = [
-    "S.No",
-    "Student Name",
-    "Register Number",
-    "Department",
-    "Year",
-    "Hostel Block",
-    "Room Number",
-    "Date",
-    "Check-in Time",
-    "Status",
-    "Distance from Hostel (m)",
+  const rows = records.map((r, index) => ({
+    "S.No": index + 1,
+    "Student Name": r.studentName || "",
+    "Register No": r.registerNumber || "",
+    "Department": r.department || "",
+    "Year": r.year || "",
+    "Hostel Block": r.hostelBlock || "",
+    "Room No": r.roomNumber || "",
+    "Date": r.date || dateTag,
+    "Check-in Time": r.time || "—",
+    "Status": r.status.toLowerCase() === "present" ? "Present" : "Absent",
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+
+  // Set appropriate column widths for Excel formatting
+  worksheet["!cols"] = [
+    { wch: 6 },  // S.No
+    { wch: 22 }, // Student Name
+    { wch: 16 }, // Register No
+    { wch: 22 }, // Department
+    { wch: 10 }, // Year
+    { wch: 14 }, // Hostel Block
+    { wch: 12 }, // Room No
+    { wch: 14 }, // Date
+    { wch: 16 }, // Check-in Time
+    { wch: 12 }, // Status
   ];
 
-  const rows = records.map((r, index) => [
-    index + 1,
-    `"${(r.studentName || "").replace(/"/g, '""')}"`,
-    `"${(r.registerNumber || "").replace(/"/g, '""')}"`,
-    `"${(r.department || "").replace(/"/g, '""')}"`,
-    `"${(r.year || "").replace(/"/g, '""')}"`,
-    `"${(r.hostelBlock || "").replace(/"/g, '""')}"`,
-    `"${(r.roomNumber || "").replace(/"/g, '""')}"`,
-    `"${r.date || ""}"`,
-    `"${r.time || "—"}"`,
-    `"${r.status.toUpperCase()}"`,
-    `"${r.distanceMeters !== undefined ? r.distanceMeters : "—"}"`,
-  ]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Report");
 
-  const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\r\n");
-
-  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", finalFilename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  XLSX.writeFile(workbook, finalFilename);
 }
+
+// Alias for backwards compatibility
+export const exportAttendanceToCsv = exportAttendanceToExcel;
 
 /**
  * Exports attendance records to a professional, multi-page OASYS College Attendance Report PDF.
+ * Columns: S.No | Student Name | Register No | Department | Year | Hostel Block | Room No | Check-in Time | Status
+ * Note: Distance is excluded. Header is "Room No".
  */
 export function exportAttendanceToPdf(
   records: ExportAttendanceRecord[],
@@ -219,7 +221,7 @@ export function exportAttendanceToPdf(
     return;
   }
 
-  // Student Details rows
+  // Student Details rows (No Distance, Room No)
   const studentRowsHtml = records
     .map((r, i) => {
       const isPresent = r.status.toLowerCase() === "present";
@@ -238,7 +240,6 @@ export function exportAttendanceToPdf(
             ${isPresent ? "PRESENT" : "ABSENT"}
           </span>
         </td>
-        <td class="text-right font-mono text-muted">${r.distanceMeters !== undefined ? `${r.distanceMeters} m` : "—"}</td>
       </tr>
     `;
     })
@@ -608,7 +609,7 @@ export function exportAttendanceToPdf(
             </tbody>
           </table>
 
-          <!-- 4. Student Attendance Details -->
+          <!-- 4. Student Attendance Details (No Distance, Room No) -->
           <div class="section-title">Student Attendance Details</div>
           <table>
             <thead>
@@ -619,10 +620,9 @@ export function exportAttendanceToPdf(
                 <th>Department</th>
                 <th class="text-center">Year</th>
                 <th class="text-center">Hostel Block</th>
-                <th class="text-center">Room</th>
+                <th class="text-center">Room No</th>
                 <th class="text-center">Check-in Time</th>
                 <th class="text-center">Status</th>
-                <th class="text-right">Distance (m)</th>
               </tr>
             </thead>
             <tbody>

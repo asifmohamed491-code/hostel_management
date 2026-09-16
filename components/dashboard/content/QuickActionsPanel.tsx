@@ -12,7 +12,7 @@ import {
 } from "@/components/icons/QuickActionIcons";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { QUICK_ACTIONS, type QuickActionItem } from "@/lib/dashboard-mock";
-import { exportAttendanceToCsv, exportAttendanceToPdf } from "@/lib/attendance-export";
+import { exportAttendanceToExcel, exportAttendanceToPdf } from "@/lib/attendance-export";
 
 const ICONS = {
   qr: QrCodeIcon,
@@ -143,9 +143,9 @@ export function QuickActionsPanel() {
             blockSummary: data.blockSummary,
           });
         } else {
-          exportAttendanceToCsv(
+          exportAttendanceToExcel(
             data.allRecordsForExport || records,
-            `OASYS-Attendance-Report-${data.date || new Date().toISOString().slice(0, 10)}.csv`
+            `OASYS-Attendance-Report-${data.date || new Date().toISOString().slice(0, 10)}.xlsx`
           );
         }
       } catch (err) {

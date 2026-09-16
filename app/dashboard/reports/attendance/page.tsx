@@ -18,7 +18,7 @@ import {
 import { InitialsAvatar } from "@/components/dashboard/content/InitialsAvatar";
 import { cn } from "@/lib/cn";
 import {
-  exportAttendanceToCsv,
+  exportAttendanceToExcel,
   exportAttendanceToPdf,
   type ExportAttendanceRecord,
   type AttendanceBlockSummary,
@@ -97,9 +97,9 @@ export default function AttendanceReportPage() {
 
   const handleExportExcel = () => {
     const dataToExport = allExportRecords.length > 0 ? allExportRecords : records;
-    exportAttendanceToCsv(
+    exportAttendanceToExcel(
       dataToExport,
-      `OASYS-Attendance-Report-${dateFilter || getTodayString()}.csv`
+      `OASYS-Attendance-Report-${dateFilter || getTodayString()}.xlsx`
     );
   };
 
@@ -286,7 +286,7 @@ export default function AttendanceReportPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse text-left">
+            <table className="w-full min-w-[850px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-heading/10 pb-3 text-[11px] font-bold uppercase tracking-wider text-heading/40">
                   <th className="py-3 px-3 text-center" style={{ width: "40px" }}>S.No</th>
@@ -295,10 +295,9 @@ export default function AttendanceReportPage() {
                   <th className="py-3 px-3">Department</th>
                   <th className="py-3 px-3 text-center">Year</th>
                   <th className="py-3 px-3 text-center">Hostel Block</th>
-                  <th className="py-3 px-3 text-center">Room</th>
+                  <th className="py-3 px-3 text-center">Room No</th>
                   <th className="py-3 px-3 text-center">Check-in Time</th>
                   <th className="py-3 px-3 text-center">Status</th>
-                  <th className="py-3 px-3 text-right">Distance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-heading/[0.05]">
@@ -352,9 +351,6 @@ export default function AttendanceReportPage() {
                           )}
                           {row.status}
                         </span>
-                      </td>
-                      <td className="py-3 px-3 text-right text-[12.5px] font-mono font-medium text-heading/60">
-                        {row.distanceMeters !== undefined ? `${row.distanceMeters} m` : "—"}
                       </td>
                     </tr>
                   );
