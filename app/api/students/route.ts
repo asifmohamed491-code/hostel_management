@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { getAuthPayload, toSafeUser } from "@/lib/auth";
-import { addStudentSchema } from "@/lib/validation";
+import { addStudentSchema, type AddStudentSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,9 +31,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const studentData = parsed.data as AddStudentSchema;
+
+    // Never trust a role from the client — confirmPassword is intentionally
+    // dropped since only the hashed `password` is persisted.
+    const { fullName, email: rawEmail, phoneNumber, department, year, roomNumber, password, registerNumber, hostelBlock } = studentData;
+
     await connectToDatabase();
 
-    const email = parsed.data.email.trim().toLowerCase();
+    const email = rawEmail.trim().toLowerCase();
     const existing = await User.findOne({ email });
 
     if (existing) {
@@ -42,10 +48,6 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
-
-    // Never trust a role from the client — confirmPassword is intentionally
-    // dropped since only the hashed `password` is persisted.
-    const { fullName, phoneNumber, department, year, roomNumber, password, registerNumber, hostelBlock } = parsed.data;
 
     // Check register number uniqueness
     if (registerNumber) {
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
       year,
       roomNumber,
       hostelBlock,
-      registerNumber: registerNumber?.trim(),
+      registerNumber: registerNumber.trim(),
       password,
       role: "student",
     });

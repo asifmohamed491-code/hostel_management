@@ -26,6 +26,8 @@ export interface SafeUser {
   department?: string;
   year?: string;
   roomNumber?: string;
+  hostelBlock?: string;
+  registerNumber?: string;
 }
 
 export function toSafeUser(user: IUser): SafeUser {
@@ -38,6 +40,8 @@ export function toSafeUser(user: IUser): SafeUser {
     department: user.department,
     year: user.year,
     roomNumber: user.roomNumber,
+    hostelBlock: user.hostelBlock,
+    registerNumber: user.registerNumber,
   };
 }
 

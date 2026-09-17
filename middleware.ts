@@ -41,6 +41,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(home, request.url));
   }
 
+  // Allow warden and super_admin to access /dashboard/reports
+  if (pathname.startsWith("/dashboard/reports")) {
+    if (payload.role !== "warden" && payload.role !== "super_admin") {
+      return NextResponse.redirect(new URL(home, request.url));
+    }
+    return NextResponse.next();
+  }
+
   // Every other /dashboard/* route must match the user's own role home;
   // opening another role's dashboard redirects back to their own.
   if (!pathname.startsWith(home)) {

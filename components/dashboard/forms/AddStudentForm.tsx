@@ -13,14 +13,10 @@ import Image from "next/image";
 import { AuthCard } from "@/components/AuthCard";
 import { InputField } from "@/components/InputField";
 import { addStudentSchema, type AddStudentSchema } from "@/lib/validation";
+import { DEPARTMENTS } from "@/lib/constants/departments";
 import { cn } from "@/lib/cn";
 
 // ─── Constants ───────────────────────────────────────────────────────
-const DEPARTMENTS = [
-  "CSE", "IT", "ECE", "EEE", "MECH", "CIVIL",
-  "AIML", "AIDS", "CSE(CS)", "BME", "AUTO", "CHEM",
-] as const;
-
 const HOSTEL_BLOCKS = ["Block A", "Block B", "Block C"] as const;
 
 const YEARS = ["I", "II", "III", "IV"] as const;
