@@ -15,6 +15,7 @@
 //  3. Muted gray placeholder color for all custom select fields (text-heading/40).
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useForm, type Path } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import gsap from "gsap";
@@ -65,15 +66,35 @@ function CustomSelect({
   onOpen,
   onClose,
 }: CustomSelectProps) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
+  // Track trigger position for portal panel placement
+  const [rect, setRect] = useState<DOMRect | null>(null);
+
+  // Recalculate position whenever dropdown opens or window scrolls/resizes
+  useEffect(() => {
+    if (!isOpen) return;
+    function updateRect() {
+      if (triggerRef.current) setRect(triggerRef.current.getBoundingClientRect());
+    }
+    updateRect();
+    window.addEventListener("scroll", updateRect, { passive: true, capture: true });
+    window.addEventListener("resize", updateRect, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", updateRect, { capture: true });
+      window.removeEventListener("resize", updateRect);
+    };
+  }, [isOpen]);
+
+  // Outside-click: close if tap is outside trigger AND outside panel
   useEffect(() => {
     if (!isOpen) return;
     function onPointerDown(e: PointerEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        onClose();
-      }
+      const target = e.target as Node;
+      const insideTrigger = triggerRef.current?.contains(target) ?? false;
+      const insidePanel = panelRef.current?.contains(target) ?? false;
+      if (!insideTrigger && !insidePanel) onClose();
     }
     document.addEventListener("pointerdown", onPointerDown, { capture: true });
     return () => document.removeEventListener("pointerdown", onPointerDown, { capture: true });
@@ -81,12 +102,62 @@ function CustomSelect({
 
   const displayValue = value || null;
 
+  // Portal dropdown panel — rendered into document.body so it escapes every
+  // parent stacking context (grid, contentRef wrapper, form, AuthCard, etc.)
+  // Uses `position: fixed` with coordinates from the trigger's bounding rect.
+  const dropdownPanel =
+    isOpen && rect
+      ? createPortal(
+          <div
+            ref={panelRef}
+            role="listbox"
+            style={{
+              position: "fixed",
+              top: rect.bottom + 4,
+              left: rect.left,
+              width: rect.width,
+              zIndex: 99999,
+            }}
+            className={cn(
+              "rounded-xl border border-white/60 p-1 shadow-[0_10px_30px_rgba(76,29,149,0.18)]",
+              "bg-white/70 backdrop-blur-[24px] [-webkit-backdrop-filter:blur(24px)]",
+              "max-h-48 overflow-y-auto",
+              "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              "animate-[dropdownIn_0.18s_cubic-bezier(0.22,1,0.36,1)_both]",
+            )}
+          >
+            {options.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                role="option"
+                aria-selected={value === opt}
+                onClick={() => {
+                  onChange(opt);
+                  onClose();
+                }}
+                className={cn(
+                  "flex w-full items-center rounded-lg px-3 py-2 text-left text-[12.5px] font-medium transition-colors duration-150",
+                  value === opt
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-heading/80 hover:bg-primary/5 hover:text-primary",
+                )}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
-    <div ref={wrapperRef} className="relative flex flex-col gap-1 text-left">
+    <div className="relative flex flex-col gap-1 text-left">
       <label className="text-[12px] font-semibold text-heading/90">{label}</label>
 
-      {/* Trigger */}
+      {/* Trigger button */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => (isOpen ? onClose() : onOpen())}
         aria-haspopup="listbox"
@@ -122,47 +193,14 @@ function CustomSelect({
         />
       </button>
 
-      {/* Dropdown panel */}
-      {isOpen && (
-        <div
-          role="listbox"
-          className={cn(
-            // Glassmorphism panel — same visual language as liquid-glass cards
-            "absolute left-0 right-0 top-[calc(100%+4px)] z-50",
-            "rounded-xl border border-white/60 p-1 shadow-[0_10px_30px_rgba(76,29,149,0.18)]",
-            "bg-white/70 backdrop-blur-[24px] [-webkit-backdrop-filter:blur(24px)]",
-            "max-h-48 overflow-y-auto",
-            // Animate in with a subtle scale + fade
-            "animate-[dropdownIn_0.18s_cubic-bezier(0.22,1,0.36,1)_both]",
-          )}
-        >
-          {options.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              role="option"
-              aria-selected={value === opt}
-              onClick={() => {
-                onChange(opt);
-                onClose();
-              }}
-              className={cn(
-                "flex w-full items-center rounded-lg px-3 py-2 text-left text-[12.5px] font-medium transition-colors duration-150",
-                value === opt
-                  ? "bg-primary/10 text-primary font-semibold"
-                  : "text-heading/80 hover:bg-primary/5 hover:text-primary",
-              )}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Portal-rendered dropdown — above all stacking contexts */}
+      {dropdownPanel}
 
       {error && <p className="text-[11px] font-medium text-red-500">{error}</p>}
     </div>
   );
 }
+
 
 // ─── Component ───────────────────────────────────────────────────────
 export function AddStudentForm() {
