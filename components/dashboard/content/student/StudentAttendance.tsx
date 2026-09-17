@@ -4,8 +4,10 @@
 // NO camera, NO QR scanning.
 //
 // ─── FLOW ────────────────────────────────────────────────────────────
-//   1. Check location via navigator.geolocation (high accuracy, timeout: 15s)
-//   2. Location verified → displays actual measured distance & allowed 320m radius
+//   1. Check location via navigator.geolocation.watchPosition (25s acquisition window)
+//      Collects multiple readings, picks the best by lowest accuracy value.
+//      Accepts early once accuracy ≤ 80m and ≥ 2 readings collected.
+//   2. Location acquired → displays actual measured distance & allowed 320m radius
 //   3. Student clicks "Continue" → POST /api/attendance/mark with { latitude, longitude, accuracy }
 //   4. Backend validates session, calculates Haversine distance, checks geofence & duplicate
 //   5. Success / Already Marked / Out of Bounds / Poor Accuracy / No Session / Expired
@@ -102,8 +104,15 @@ function CheckingSessionStage() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/* STEP 2: CHECKING LOCATION (Real navigator.geolocation)             */
+/* STEP 2: CHECKING LOCATION (watchPosition best-reading strategy)    */
 /* ═══════════════════════════════════════════════════════════════════ */
+// GPS acquisition constants (kept separate from geofence security constants)
+const GPS_ACQUISITION_WINDOW_MS = 25000;  // 25 s max window to collect readings
+const GPS_MIN_READINGS_BEFORE_ACCEPT = 2; // wait for at least 2 readings before accepting
+const GPS_TARGET_ACCURACY_M = 80;         // eagerly accept if we hit this or better
+const GPS_MAX_USABLE_ACCURACY_M = 200;    // readings worse than this are discarded
+const GPS_WATCH_TIMEOUT_MS = 10000;       // per-position watchPosition timeout
+
 function CheckingLocationStage({
   onVerified,
   onError,
@@ -111,75 +120,166 @@ function CheckingLocationStage({
   onVerified: (coords: Coords, distanceMeters: number) => void;
   onError: (stage: Stage, extra?: GeoExtra) => void;
 }) {
+  const [statusText, setStatusText] = useState("Requesting location access…");
+  const [readingCount, setReadingCount] = useState(0);
+  const [bestAccuracy, setBestAccuracy] = useState<number | null>(null);
+
   useEffect(() => {
     let cancelled = false;
+    let watchId: number | null = null;
+    let windowTimer: ReturnType<typeof setTimeout> | null = null;
+    let permissionDenied = false;
+    let positionUnavailable = false;
+    let gotAnyReading = false;
+
+    // Accumulated readings — we pick the best by accuracy
+    const readings: Array<{ lat: number; lng: number; acc: number }> = [];
 
     if (typeof window === "undefined" || !navigator.geolocation) {
       onError("position-unavailable");
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (cancelled) return;
+    function getBestReading() {
+      if (readings.length === 0) return null;
+      // Sort by accuracy ascending (lower = better)
+      const sorted = [...readings].sort((a, b) => a.acc - b.acc);
+      return sorted[0];
+    }
 
-        const coords: Coords = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        };
+    function commitBestReading() {
+      const best = getBestReading();
+      if (!best) return false;
 
-        const distance = calculateDistanceMeters(
-          coords.latitude,
-          coords.longitude,
-          HOSTEL_GEOFENCE.latitude,
-          HOSTEL_GEOFENCE.longitude
-        );
-        const roundedDistance = Math.round(distance);
+      const coords: Coords = {
+        latitude: best.lat,
+        longitude: best.lng,
+        accuracy: best.acc,
+      };
+      const distance = calculateDistanceMeters(
+        coords.latitude,
+        coords.longitude,
+        HOSTEL_GEOFENCE.latitude,
+        HOSTEL_GEOFENCE.longitude
+      );
+      const roundedDistance = Math.round(distance);
 
-        // Pre-check GPS accuracy threshold
-        if (coords.accuracy > HOSTEL_GEOFENCE.maxAccuracyMeters) {
+      if (!cancelled) {
+        // NOTE: We do NOT pre-reject out-of-bounds or poor-accuracy here.
+        // We forward the best coordinates we have to the backend, which performs
+        // the authoritative Haversine + accuracy check server-side.
+        // We only pre-reject if accuracy is still above our server-side threshold,
+        // because the backend would reject it anyway.
+        if (coords.accuracy > GPS_MAX_USABLE_ACCURACY_M) {
           onError("poor-accuracy", {
             accuracy: Math.round(coords.accuracy),
             maxAccuracy: HOSTEL_GEOFENCE.maxAccuracyMeters,
           });
-          return;
+          return true;
         }
-
-        // Pre-check geofence boundary client-side
-        if (distance > HOSTEL_GEOFENCE.radiusMeters) {
-          onError("out-of-bounds", {
-            distanceMeters: roundedDistance,
-            allowedRadius: HOSTEL_GEOFENCE.radiusMeters,
-          });
-          return;
-        }
-
         onVerified(coords, roundedDistance);
-      },
-      (error) => {
-        if (cancelled) return;
-        if (error.code === error.PERMISSION_DENIED) {
-          onError("permission-denied");
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
+      }
+      return true;
+    }
+
+    function finalize() {
+      if (cancelled) return;
+      // Stop the watcher
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      if (windowTimer !== null) {
+        clearTimeout(windowTimer);
+        windowTimer = null;
+      }
+    }
+
+    function onPosition(position: GeolocationPosition) {
+      if (cancelled) return;
+      const acc = position.coords.accuracy;
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      // Discard clearly unusable readings
+      if (acc > GPS_MAX_USABLE_ACCURACY_M * 3) return;
+
+      gotAnyReading = true;
+      readings.push({ lat, lng, acc });
+      setReadingCount(readings.length);
+      setBestAccuracy(Math.round(readings.reduce((a, b) => (b.acc < a ? b.acc : a), Infinity)));
+      setStatusText(`Getting precise location… (${Math.round(acc)}m accuracy)`);
+
+      // If we have a good-enough reading and at least minimum samples, commit early
+      if (acc <= GPS_TARGET_ACCURACY_M && readings.length >= GPS_MIN_READINGS_BEFORE_ACCEPT) {
+        finalize();
+        commitBestReading();
+      }
+    }
+
+    function onWatchError(error: GeolocationPositionError) {
+      if (cancelled) return;
+      if (error.code === error.PERMISSION_DENIED) {
+        permissionDenied = true;
+        finalize();
+        onError("permission-denied");
+      } else if (error.code === error.POSITION_UNAVAILABLE) {
+        positionUnavailable = true;
+        // Don't fail immediately — position unavailable can be transient.
+        // The acquisition window timer will handle final failure.
+        setStatusText("GPS signal weak — keep trying…");
+      } else if (error.code === error.TIMEOUT) {
+        // watchPosition timeout is per-call; don't fail — keep watching
+        setStatusText("GPS still acquiring — please wait…");
+      }
+    }
+
+    // Start the acquisition window — when it expires, commit the best reading we have
+    windowTimer = setTimeout(() => {
+      if (cancelled) return;
+      finalize();
+
+      if (permissionDenied) return; // already handled above
+
+      if (!gotAnyReading) {
+        // Never got any reading at all
+        if (positionUnavailable) {
           onError("position-unavailable");
-        } else if (error.code === error.TIMEOUT) {
-          onError("location-timeout");
         } else {
-          onError("error");
+          onError("location-timeout");
         }
-      },
+        return;
+      }
+
+      // Commit the best reading we have, even if below target accuracy
+      commitBestReading();
+    }, GPS_ACQUISITION_WINDOW_MS);
+
+    setStatusText("Requesting location access…");
+
+    watchId = navigator.geolocation.watchPosition(
+      onPosition,
+      onWatchError,
       {
         enableHighAccuracy: true,
-        timeout: 15000,
+        timeout: GPS_WATCH_TIMEOUT_MS,
         maximumAge: 0,
       }
     );
 
     return () => {
       cancelled = true;
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      if (windowTimer !== null) clearTimeout(windowTimer);
     };
-  }, [onVerified, onError]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Separate onVerified/onError from the effect deps so they don't restart acquisition
+  const onVerifiedRef = useRef(onVerified);
+  const onErrorRef = useRef(onError);
+  useEffect(() => { onVerifiedRef.current = onVerified; }, [onVerified]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
 
   return (
     <StageCard>
@@ -201,9 +301,17 @@ function CheckingLocationStage({
           <p className="max-w-lg text-[14px] font-medium leading-relaxed text-heading/55 sm:text-[15px]">
             Please allow location access to verify that you are inside the hostel premises.
           </p>
-          <div className="flex items-center gap-2 text-[12px] font-semibold text-heading/40">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            Reading GPS satellite coordinates…
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-[12px] font-semibold text-heading/40">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              {statusText}
+            </div>
+            {readingCount > 0 && bestAccuracy !== null && (
+              <div className="flex items-center gap-2 text-[11px] font-medium text-heading/30">
+                <CircleDot className="h-3.5 w-3.5 text-primary/40" />
+                {readingCount} {readingCount === 1 ? "reading" : "readings"} · Best accuracy: {bestAccuracy}m
+              </div>
+            )}
           </div>
         </div>
       </div>

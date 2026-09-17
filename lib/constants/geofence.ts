@@ -7,7 +7,11 @@ export const HOSTEL_GEOFENCE = {
   latitude: Number(process.env.HOSTEL_LATITUDE) || 11.027882,
   longitude: Number(process.env.HOSTEL_LONGITUDE) || 78.627426,
   radiusMeters: Number(process.env.HOSTEL_RADIUS_METERS) || 320,
-  maxAccuracyMeters: 150,
+  // Maximum acceptable GPS accuracy in meters.
+  // A reading with accuracy > this value is considered too unreliable to trust for geofence.
+  // 200m allows typical mobile GPS that reports 80–180m accuracy on indoor/urban signals.
+  // The backend rejects any reading less accurate than this threshold.
+  maxAccuracyMeters: 200,
 } as const;
 
 /**
