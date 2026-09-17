@@ -36,7 +36,6 @@ import {
   QrCode,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { STUDENT_PROFILE } from "@/lib/student-dashboard-mock";
 import { HOSTEL_GEOFENCE, calculateDistanceMeters } from "@/lib/constants/geofence";
 import { Html5Qrcode } from "html5-qrcode";
 
@@ -475,9 +474,9 @@ function SuccessStage({
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   const details = [
-    { icon: Hash, label: "Register Number", value: record.registerNumber || STUDENT_PROFILE.registerNo },
-    { icon: User, label: "Student Name", value: studentName },
-    { icon: DoorOpen, label: "Room Number", value: record.roomNumber || STUDENT_PROFILE.room },
+    { icon: Hash, label: "Register Number", value: record.registerNumber || "—" },
+    { icon: User, label: "Student Name", value: studentName || record.studentName || "—" },
+    { icon: DoorOpen, label: "Room Number", value: record.roomNumber || "—" },
     { icon: CalendarDays, label: "Date", value: dateStr },
     { icon: Clock, label: "Time", value: timeStr },
     { icon: CheckCircle2, label: "Status", value: "Present", accent: true },

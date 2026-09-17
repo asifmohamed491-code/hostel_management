@@ -40,10 +40,11 @@ export function AttendanceTrendChart() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const areaRef = useRef<SVGPathElement>(null);
+  const hasAnimatedRef = useRef(false);
   const [activePoint, setActivePoint] = useState<{ x: number; y: number; value: number; label: string } | null>(null);
 
   const { stats } = useWardenAttendanceStats();
-  const data = stats.weeklyAttendance && stats.weeklyAttendance.length > 0 ? stats.weeklyAttendance : [];
+  const data = stats?.weeklyAttendance && stats.weeklyAttendance.length > 0 ? stats.weeklyAttendance : [];
 
   const usableWidth = WIDTH - PADDING_X * 2;
   const usableHeight = HEIGHT - PADDING_Y * 2;
@@ -72,10 +73,11 @@ export function AttendanceTrendChart() {
 
       const length = line.getTotalLength();
 
-      if (prefersReducedMotion()) {
+      if (prefersReducedMotion() || hasAnimatedRef.current) {
         gsap.set(line, { strokeDasharray: length, strokeDashoffset: 0 });
         gsap.set(area, { opacity: 1 });
         gsap.set(dots, { scale: 1, opacity: 1 });
+        hasAnimatedRef.current = true;
         return;
       }
 
@@ -93,6 +95,9 @@ export function AttendanceTrendChart() {
           scroller: scrollerEl,
           start: "top 85%",
           once: true,
+        },
+        onComplete: () => {
+          hasAnimatedRef.current = true;
         },
       });
 

@@ -54,7 +54,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               restructured. */}
           <main
             id="dashboard-scroll-container"
-            className="no-scrollbar flex-1 overflow-y-auto overscroll-contain px-6 pb-24 md:pb-8 lg:px-8"
+            className="no-scrollbar flex-1 overflow-y-auto overscroll-contain px-3.5 sm:px-6 pb-24 md:pb-8 lg:px-8"
           >
             {children}
           </main>

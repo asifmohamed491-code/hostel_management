@@ -4,8 +4,7 @@ import { useRef } from "react";
 import type { ComponentType, SVGProps } from "react";
 import { BedDouble, CircleCheck, CircleMinus, Flag, Gauge, Users } from "lucide-react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
-import type { StatCardData } from "@/lib/dashboard-mock";
-import { useWardenAttendanceStats } from "@/hooks/useWardenAttendanceStats";
+import { useWardenAttendanceStats, type StatCardData } from "@/hooks/useWardenAttendanceStats";
 
 const ICONS: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   "total-students": Users,
@@ -18,6 +17,7 @@ const ICONS: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
 
 export function StatCardsRow() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
   const { statCards } = useWardenAttendanceStats();
 
   useGSAP(
@@ -36,6 +36,18 @@ export function StatCardsRow() {
         valueElements.forEach((el, index) => {
           el.textContent = String(statCards[index]?.value ?? "0");
         });
+        hasAnimatedRef.current = true;
+        return;
+      }
+
+      // If already animated once on mount, update values smoothly without replaying card entrance
+      if (hasAnimatedRef.current) {
+        valueElements.forEach((el, index) => {
+          const newVal = String(statCards[index]?.value ?? "0");
+          if (el.textContent !== newVal) {
+            el.textContent = newVal;
+          }
+        });
         return;
       }
 
@@ -47,9 +59,12 @@ export function StatCardsRow() {
           start: "top 85%",
           once: true,
         },
+        onComplete: () => {
+          hasAnimatedRef.current = true;
+        },
       });
 
-      // 1. Cards Entrance Animation (Slide & Scale Up)
+      // 1. Cards Entrance Animation (Slide & Scale Up) - PLAYS ONLY ONCE
       tl.fromTo(
         cards,
         {
@@ -100,7 +115,7 @@ export function StatCardsRow() {
   return (
     <div
       ref={containerRef}
-      className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 xl:flex xl:gap-4.5"
+      className="grid grid-cols-2 gap-3 sm:gap-3.5 sm:grid-cols-3 xl:flex xl:gap-4.5"
     >
       {statCards.map((card: StatCardData) => {
         const Icon = ICONS[card.id] ?? Gauge;
@@ -110,7 +125,7 @@ export function StatCardsRow() {
             key={card.id}
             className={
               "stat-card-item group relative flex flex-1 flex-col justify-between overflow-hidden rounded-[22px] " +
-              "sa-dashboard-card sa-dashboard-card--stat border border-white/60 bg-white/70 p-4 backdrop-blur-[20px] transition-all duration-300 ease-out xl:p-5 " +
+              "sa-dashboard-card sa-dashboard-card--stat border border-white/60 bg-white/70 p-3.5 sm:p-4 backdrop-blur-[20px] transition-all duration-300 ease-out xl:p-5 " +
               "hover:-translate-y-1.5 hover:border-white hover:shadow-xl active:scale-[0.98]"
             }
             style={{ boxShadow: "0 4px 14px 0 rgba(120,90,200,0.07)" }}

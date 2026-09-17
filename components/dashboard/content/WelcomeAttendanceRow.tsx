@@ -94,9 +94,16 @@ function TodayAttendanceCard() {
   const cardRef = useRef<HTMLDivElement>(null);
   const percentRef = useRef<HTMLSpanElement>(null);
   const circleRef = useRef<SVGCircleElement>(null);
+  const hasAnimatedRef = useRef(false);
 
   const { stats } = useWardenAttendanceStats();
-  const todayAttendance = stats.todayAttendance;
+  const todayAttendance = stats?.todayAttendance || {
+    present: 0,
+    late: 0,
+    absent: 0,
+    attendancePct: 0,
+    lastUpdated: "—",
+  };
 
   const size = 120;
   const strokeWidth = 11;
@@ -123,10 +130,33 @@ function TodayAttendanceCard() {
         if (circleRef.current) {
           gsap.set(circleRef.current, { strokeDashoffset: targetOffset });
         }
+        hasAnimatedRef.current = true;
         return;
       }
 
       if (!cardRef.current) return;
+
+      // If already animated once on initial load, update stroke and numbers smoothly without replaying entrance
+      if (hasAnimatedRef.current) {
+        if (circleRef.current) {
+          gsap.to(circleRef.current, {
+            strokeDashoffset: targetOffset,
+            duration: 0.8,
+            ease: "power2.out",
+          });
+        }
+        if (percentRef.current) {
+          percentRef.current.textContent = `${todayAttendance.attendancePct}%`;
+        }
+        const statElements = gsap.utils.toArray<HTMLElement>(".stat-num-value");
+        statElements.forEach((el, index) => {
+          const newVal = `${todayStats[index]?.value ?? 0}`;
+          if (el.textContent !== newVal) {
+            el.textContent = newVal;
+          }
+        });
+        return;
+      }
 
       const scrollerEl =
         document.getElementById("dashboard-scroll-container") || undefined;
@@ -138,6 +168,9 @@ function TodayAttendanceCard() {
           scroller: scrollerEl,
           start: "top 90%",
           once: true,
+        },
+        onComplete: () => {
+          hasAnimatedRef.current = true;
         },
       });
 

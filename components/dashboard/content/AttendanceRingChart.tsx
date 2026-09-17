@@ -9,9 +9,10 @@ export function AttendanceRingChart() {
   const containerRef = useRef<HTMLDivElement>(null);
   const countRef = useRef<HTMLSpanElement>(null);
   const circleRef = useRef<SVGCircleElement>(null);
+  const hasAnimatedRef = useRef(false);
 
   const { stats } = useWardenAttendanceStats();
-  const attendancePct = stats.todayAttendance.attendancePct;
+  const attendancePct = stats?.todayAttendance?.attendancePct ?? 0;
 
   // Circle Dimensions
   const size = 160;
@@ -36,6 +37,21 @@ export function AttendanceRingChart() {
           countRef.current.textContent = `${attendancePct}%`;
         }
         gsap.set(statusBadges, { opacity: 1, y: 0 });
+        hasAnimatedRef.current = true;
+        return;
+      }
+
+      if (hasAnimatedRef.current) {
+        if (circleRef.current) {
+          gsap.to(circleRef.current, {
+            strokeDashoffset: targetOffset,
+            duration: 0.8,
+            ease: "power2.out",
+          });
+        }
+        if (countRef.current) {
+          countRef.current.textContent = `${attendancePct}%`;
+        }
         return;
       }
 
@@ -46,6 +62,9 @@ export function AttendanceRingChart() {
           scroller: scrollerEl,
           start: "top 85%",
           once: true,
+        },
+        onComplete: () => {
+          hasAnimatedRef.current = true;
         },
       });
 

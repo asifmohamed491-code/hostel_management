@@ -182,18 +182,16 @@ export async function POST(request: NextRequest) {
     const markedAt = new Date();
     const timeStr = formatTime(markedAt);
 
-    const regNumber = student.department
-      ? `${new Date().getFullYear() - (parseInt(student.year || "1", 10) - 1)}${student.department?.substring(0, 3).toUpperCase()}0124`
-      : "2023CSE0124";
+    const regNumber = student.registerNumber?.trim() || "—";
 
     const record = await AttendanceRecord.create({
       student: student._id,
       studentName: student.fullName,
       registerNumber: regNumber,
-      department: student.department || "Computer Science",
-      year: student.year ? `${student.year} Year` : "3rd Year",
-      hostelBlock: "Block A",
-      roomNumber: student.roomNumber?.trim() || "214",
+      department: student.department?.trim() || "—",
+      year: student.year?.trim() || "—",
+      hostelBlock: student.hostelBlock?.trim() || "—",
+      roomNumber: student.roomNumber?.trim() || "—",
       date: today,
       markedAt,
       status: "present",

@@ -75,7 +75,7 @@ export function Topbar() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 isolate flex h-16 w-full items-center justify-between gap-2 px-4 sm:h-20 lg:px-8">
+    <header className="sticky top-0 z-20 isolate flex h-16 w-full items-center justify-between gap-1.5 sm:gap-2 px-3.5 sm:px-4 sm:h-20 lg:px-8">
       <div
         aria-hidden
         className={`pointer-events-none absolute inset-0 z-0 border-b transition-[background-color,backdrop-filter,border-color,box-shadow] duration-300 ${

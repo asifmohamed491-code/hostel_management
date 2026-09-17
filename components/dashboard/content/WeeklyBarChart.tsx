@@ -7,13 +7,14 @@ import { useWardenAttendanceStats } from "@/hooks/useWardenAttendanceStats";
 
 export function WeeklyBarChart() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
   const [hoveredBar, setHoveredBar] = useState<{
     label: string;
     value: number;
   } | null>(null);
 
   const { stats } = useWardenAttendanceStats();
-  const data = stats.weeklyAttendance && stats.weeklyAttendance.length > 0 ? stats.weeklyAttendance : [];
+  const data = stats?.weeklyAttendance && stats.weeklyAttendance.length > 0 ? stats.weeklyAttendance : [];
 
   useGSAP(
     () => {
@@ -28,6 +29,18 @@ export function WeeklyBarChart() {
       if (prefersReducedMotion()) {
         bars.forEach((bar, index) => {
           bar.style.height = `${data[index]?.value || 0}%`;
+        });
+        hasAnimatedRef.current = true;
+        return;
+      }
+
+      if (hasAnimatedRef.current) {
+        bars.forEach((bar, index) => {
+          gsap.to(bar, {
+            height: `${data[index]?.value || 0}%`,
+            duration: 0.6,
+            ease: "power2.out",
+          });
         });
         return;
       }
@@ -46,6 +59,9 @@ export function WeeklyBarChart() {
             scroller: scrollerEl,
             start: "top 85%",
             once: true,
+          },
+          onComplete: () => {
+            hasAnimatedRef.current = true;
           },
         }
       );

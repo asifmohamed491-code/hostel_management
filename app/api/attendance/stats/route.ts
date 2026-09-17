@@ -114,9 +114,6 @@ export async function GET(request: NextRequest) {
     monday.setDate(now.getDate() + mondayOffset);
 
     const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    // Baseline realistic values for past days if not yet in DB
-    const defaultWeeklyValues = [88, 92, 76, 90, 84, 60];
-
     const weeklyAttendance = await Promise.all(
       dayLabels.map(async (label, index) => {
         const dayDate = new Date(monday);
@@ -130,90 +127,69 @@ export async function GET(request: NextRequest) {
         });
 
         if (dateStr === today) {
-          // For today, compute based on totalPresentToday
-          const pct = Math.max(Math.round((totalPresentToday / (totalStudents || 1)) * 100), totalPresentToday > 0 ? Math.min(100, Math.round((totalPresentToday / 5) * 85)) : 0);
-          return { label, value: pct || defaultWeeklyValues[index], count: totalPresentToday, date: dateStr };
+          const pct = totalStudents > 0 ? Math.round((totalPresentToday / totalStudents) * 100) : 0;
+          return { label, value: pct, count: totalPresentToday, date: dateStr };
         }
 
         if (count > 0) {
-          const pct = Math.round((count / (totalStudents || 1)) * 100);
+          const pct = totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0;
           return { label, value: pct, count, date: dateStr };
         }
 
-        return { label, value: defaultWeeklyValues[index], count: 0, date: dateStr };
+        return { label, value: 0, count: 0, date: dateStr };
       })
     );
 
-    // 5. Recent Check-ins (latest 5 records from today or recent)
+    // 5. Recent Check-ins (latest real records from MongoDB)
     const recentRecords = await AttendanceRecord.find()
       .sort({ markedAt: -1 })
-      .limit(10)
+      .limit(20)
       .lean();
 
-    const recentCheckins = recentRecords.slice(0, 5).map((rec) => ({
+    // Deduplicate by student._id or studentName so each student appears at most once in recent check-ins
+    const seenStudents = new Set<string>();
+    const uniqueStudentRecords = [];
+    for (const rec of recentRecords) {
+      const studentKey = rec.student ? rec.student.toString() : rec.studentName;
+      if (!seenStudents.has(studentKey)) {
+        seenStudents.add(studentKey);
+        uniqueStudentRecords.push(rec);
+      }
+    }
+
+    const recentCheckins = uniqueStudentRecords.slice(0, 3).map((rec) => ({
       id: rec._id.toString(),
       name: rec.studentName,
-      room: rec.roomNumber?.startsWith("Room") ? rec.roomNumber : `Room ${rec.roomNumber || "214"}`,
+      room: rec.roomNumber?.startsWith("Room") ? rec.roomNumber : `Room ${rec.roomNumber || "—"}`,
       time: formatTime(new Date(rec.markedAt)),
       initials: getInitials(rec.studentName),
       status: rec.status,
     }));
 
-    // Fallback recent checkins if database has none yet
-    const finalRecentCheckins = recentCheckins.length > 0 ? recentCheckins : [
-      { id: "chk-1", name: "Aaliyah Khan", room: "Room 214", time: "1:33 PM", initials: "AK", status: "present" },
-      { id: "chk-2", name: "Benjamin Lee", room: "Room 118", time: "1:33 PM", initials: "BL", status: "present" },
-      { id: "chk-3", name: "Zoe Chen", room: "Room 305", time: "1:33 AM", initials: "ZC", status: "present" },
-    ];
-
-    // 6. Recent Attendance Table records
-    const recentAttendanceTable = recentRecords.map((rec) => {
-      const markedDate = new Date(rec.markedAt);
-      const capStatus = rec.status === "late" ? "Late" : rec.status === "absent" ? "Absent" : "Present";
-      return {
-        id: rec._id.toString(),
-        name: rec.studentName,
-        room: rec.roomNumber?.startsWith("Room") ? rec.roomNumber : `Room ${rec.roomNumber || "214"}`,
-        status: capStatus as "Present" | "Late" | "Absent",
-        date: formatDate(markedDate),
-        lastUpdated: formatDate(markedDate),
-        initials: getInitials(rec.studentName),
-        registerNumber: rec.registerNumber,
-        department: rec.department || "Computer Science",
-        year: rec.year || "3rd Year",
-        hostelBlock: rec.hostelBlock || "Block A",
-      };
-    });
-
-    // Fallback table rows if database has none yet
-    const finalAttendanceTable = recentAttendanceTable.length > 0 ? recentAttendanceTable : [
-      {
-        id: "row-1",
-        name: "Priya Sharma",
-        room: "Room 214",
-        status: "Present" as const,
-        date: "Jan 12, 1:33 PM",
-        lastUpdated: "Jan 12, 7:00 AM",
-        initials: "PS",
-        registerNumber: "2023CSE0124",
-        department: "Computer Science",
-        year: "3rd Year",
-        hostelBlock: "Block A",
-      },
-      {
-        id: "row-2",
-        name: "Rohan Mehta",
-        room: "Room 118",
-        status: "Late" as const,
-        date: "Jan 12, 1:33 PM",
-        lastUpdated: "Jan 12, 7:00 AM",
-        initials: "RM",
-        registerNumber: "2023ECE0098",
-        department: "ECE",
-        year: "2nd Year",
-        hostelBlock: "Block A",
-      },
-    ];
+    // 6. Recent Attendance Table records (deduplicated by record ID)
+    const seenRecordIds = new Set<string>();
+    const recentAttendanceTable = [];
+    for (const rec of recentRecords) {
+      const recId = rec._id.toString();
+      if (!seenRecordIds.has(recId)) {
+        seenRecordIds.add(recId);
+        const markedDate = new Date(rec.markedAt);
+        const capStatus = rec.status === "late" ? "Late" : rec.status === "absent" ? "Absent" : "Present";
+        recentAttendanceTable.push({
+          id: recId,
+          name: rec.studentName,
+          room: rec.roomNumber?.startsWith("Room") ? rec.roomNumber : `Room ${rec.roomNumber || "—"}`,
+          status: capStatus as "Present" | "Late" | "Absent",
+          date: formatDate(markedDate),
+          lastUpdated: formatDate(markedDate),
+          initials: getInitials(rec.studentName),
+          registerNumber: rec.registerNumber || "—",
+          department: rec.department || "—",
+          year: rec.year || "—",
+          hostelBlock: rec.hostelBlock || "—",
+        });
+      }
+    }
 
     // Calculated stats
     const stats = {
@@ -231,8 +207,8 @@ export async function GET(request: NextRequest) {
         lastUpdated: lastUpdatedTime,
       },
       weeklyAttendance,
-      recentCheckins: finalRecentCheckins,
-      recentAttendanceTable: finalAttendanceTable,
+      recentCheckins,
+      recentAttendanceTable,
     };
 
     return NextResponse.json(stats, {

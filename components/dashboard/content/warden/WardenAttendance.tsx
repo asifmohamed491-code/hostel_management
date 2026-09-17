@@ -6,13 +6,15 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { WardenAttendanceStatsProvider } from "@/hooks/useWardenAttendanceStats";
 import { WardenAttendanceCard } from "./WardenAttendanceCard";
 
 export function WardenAttendance() {
   const router = useRouter();
 
   return (
-    <div className="flex w-full flex-col gap-4 pt-4 xl:gap-5 xl:pt-5">
+    <WardenAttendanceStatsProvider>
+      <div className="flex w-full flex-col gap-4 pt-4 xl:gap-5 xl:pt-5">
       {/* Back nav */}
       <button
         type="button"
@@ -38,5 +40,6 @@ export function WardenAttendance() {
         <WardenAttendanceCard />
       </div>
     </div>
+    </WardenAttendanceStatsProvider>
   );
 }

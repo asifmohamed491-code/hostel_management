@@ -7,7 +7,7 @@
 // the dedicated Attendance management page.
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import {
   CheckCircle2,
   Clock,
@@ -23,48 +23,14 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-
-interface SessionData {
-  id: string;
-  token: string;
-  date: string;
-  createdAt: string;
-  expiresAt: string;
-  active: boolean;
-  expired?: boolean;
-  generatedBy: string;
-}
+import { useWardenAttendanceStats } from "@/hooks/useWardenAttendanceStats";
 
 export function WardenAttendanceCard() {
   const { user } = useCurrentUser();
+  const { session, updateSession } = useWardenAttendanceStats();
 
-  const [session, setSession] = useState<SessionData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  /* ── Fetch current session on mount ─────────────────────────────── */
-  const fetchStatus = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/attendance/status", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch status");
-      const data = await res.json();
-      if (data.hasActiveSession && data.session) {
-        setSession(data.session);
-      } else {
-        setSession(null);
-      }
-    } catch {
-      setError("Could not load attendance status.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchStatus();
-  }, [fetchStatus]);
 
   /* ── Generate new session ───────────────────────────────────────── */
   const handleGenerate = async () => {
@@ -80,7 +46,7 @@ export function WardenAttendanceCard() {
         throw new Error(data.message || "Failed to generate session");
       }
       const data = await res.json();
-      setSession(data.session);
+      updateSession(data.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate session.");
     } finally {
@@ -108,23 +74,12 @@ export function WardenAttendanceCard() {
 
   const wardenName = user?.fullName?.trim() || "Warden";
 
-  if (loading) {
-    return (
-      <div className="sa-dashboard-card flex w-full items-center justify-center rounded-[20px] border border-white/10 bg-white/[0.79] px-8 py-16 backdrop-blur-[30px]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-[13px] font-medium text-heading/50">Loading attendance status…</p>
-        </div>
-      </div>
-    );
-  }
-
   if (!session) {
     return (
       <section className="sa-dashboard-card w-full rounded-[20px] border border-white/10 bg-white/[0.79] shadow-sm backdrop-blur-[30px]">
         <div className="grid grid-cols-1 gap-0 lg:grid-cols-2">
           {/* Left: Info & Action */}
-          <div className="flex flex-col justify-center gap-5 px-6 py-8 sm:px-10 sm:py-10 lg:py-12">
+          <div className="flex flex-col justify-center gap-5 px-4 py-6 sm:px-10 sm:py-10 lg:py-12">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 sm:h-14 sm:w-14">
               <QrCode className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
             </div>
@@ -189,7 +144,7 @@ export function WardenAttendanceCard() {
     <section className="sa-dashboard-card w-full rounded-[20px] border border-white/10 bg-white/[0.79] shadow-sm backdrop-blur-[30px]">
       <div className="grid grid-cols-1 gap-0 lg:grid-cols-5">
         {/* Left: Session status (3/5 width) */}
-        <div className="flex flex-col gap-5 px-6 py-8 sm:px-10 sm:py-9 lg:col-span-3">
+        <div className="flex flex-col gap-5 px-4 py-6 sm:px-10 sm:py-9 lg:col-span-3">
           {/* Header with status badge */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10">
@@ -259,7 +214,7 @@ export function WardenAttendanceCard() {
         </div>
 
         {/* Right: Large QR Visual (2/5 width) */}
-        <div className="flex flex-col items-center justify-center gap-4 border-t border-white/20 px-6 py-8 sm:px-10 lg:col-span-2 lg:border-l lg:border-t-0">
+        <div className="flex flex-col items-center justify-center gap-4 border-t border-white/20 px-4 py-6 sm:px-10 lg:col-span-2 lg:border-l lg:border-t-0">
           {/* Real QR Code Container */}
           <div className="relative flex items-center justify-center rounded-3xl border-2 border-primary/20 bg-white p-3.5 shadow-glass sm:p-4.5">
             <QRCodeSVG

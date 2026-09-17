@@ -11,8 +11,21 @@ import {
   QuickReportIcon,
 } from "@/components/icons/QuickActionIcons";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
-import { QUICK_ACTIONS, type QuickActionItem } from "@/lib/dashboard-mock";
 import { exportAttendanceToExcel, exportAttendanceToPdf } from "@/lib/attendance-export";
+
+export interface QuickActionItem {
+  id: string;
+  label: string[];
+  icon: "qr" | "report" | "pdf" | "excel";
+  size: "lg" | "sm";
+}
+
+const QUICK_ACTIONS: QuickActionItem[] = [
+  { id: "qr", label: ["Generate", "Today's QR"], icon: "qr", size: "lg" },
+  { id: "report", label: ["View", "Attendance", "Report"], icon: "report", size: "lg" },
+  { id: "pdf", label: ["Export PDF"], icon: "pdf", size: "sm" },
+  { id: "excel", label: ["Export Excel"], icon: "excel", size: "sm" },
+];
 
 const ICONS = {
   qr: QrCodeIcon,
