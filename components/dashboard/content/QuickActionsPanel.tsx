@@ -23,17 +23,14 @@ const ICONS = {
 
 function ActionCell({
   action,
-  loadingAction,
   isLoading,
   onActionClick,
 }: {
   action: QuickActionItem;
-  loadingAction: string | null;
   isLoading: boolean;
   onActionClick: (actionId: string) => void;
 }) {
   const Icon = ICONS[action.icon];
-  const isLoading = loadingAction === action.id;
 
   const displayLabel = isLoading
     ? action.id === "qr"
@@ -51,15 +48,11 @@ function ActionCell({
     <button
       type="button"
       onClick={() => onActionClick(action.id)}
-      disabled={Boolean(loadingAction)}
       disabled={isLoading}
       className={
         "quick-action-btn group relative flex w-full items-center gap-2.5 sm:gap-3.5 rounded-2xl " +
         "sa-student-action-btn border border-slate-200/80 bg-white/80 p-2.5 sm:p-3.5 text-left backdrop-blur-md " +
         "shadow-xs transition-all duration-300 ease-out " +
-        (loadingAction
-          ? "cursor-default " +
-            (isLoading ? "border-primary/40 bg-white shadow-md shadow-primary/5 " : "opacity-60 ")
         (isLoading
           ? "cursor-default border-primary/40 bg-white shadow-sm "
           : "hover:-translate-y-1 hover:border-primary/40 hover:bg-white hover:shadow-lg hover:shadow-primary/10 active:scale-[0.98] cursor-pointer ") +
@@ -67,7 +60,6 @@ function ActionCell({
       }
     >
       {/* Subtle hover gradient background */}
-      <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       <div
         className={
           "pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 " +
@@ -75,8 +67,6 @@ function ActionCell({
         }
       />
 
-      {/* Icon Wrapper */}
-      <span className="relative flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-white group-hover:shadow-md group-hover:shadow-primary/30">
       {/* Icon Wrapper - When loading: locked to light lavender bg with purple spinner, NO group-hover overrides */}
       <span
         className={
@@ -108,7 +98,6 @@ function ActionCell({
 export function QuickActionsPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [isOpeningReport, setIsOpeningReport] = useState(false);
@@ -171,12 +160,7 @@ export function QuickActionsPanel() {
   };
 
   const handleActionClick = async (actionId: string) => {
-    if (loadingAction) return;
-
     if (actionId === "qr") {
-      setLoadingAction("qr");
-      router.push("/dashboard/warden/attendance");
-      setTimeout(() => setLoadingAction(null), 5000);
       if (isGeneratingQR) return;
       setIsGeneratingQR(true);
       try {
@@ -188,9 +172,6 @@ export function QuickActionsPanel() {
     }
 
     if (actionId === "report") {
-      setLoadingAction("report");
-      router.push("/dashboard/reports/attendance");
-      setTimeout(() => setLoadingAction(null), 5000);
       if (isOpeningReport) return;
       setIsOpeningReport(true);
       try {
@@ -201,30 +182,15 @@ export function QuickActionsPanel() {
       return;
     }
 
-    if (actionId === "pdf" || actionId === "excel") {
     if (actionId === "pdf") {
       if (isExportingPDF) return;
       setIsExportingPDF(true);
       try {
-        setLoadingAction(actionId);
         const res = await fetch("/api/attendance/report", { credentials: "include" });
         if (!res.ok) throw new Error("Failed to fetch records for export");
         const data = await res.json();
         const records = data.records || [];
 
-        if (actionId === "pdf") {
-          exportAttendanceToPdf(data.allRecordsForExport || records, {
-            selectedDate: data.date,
-            formattedDate: data.formattedDate,
-            summary: data.summary,
-            blockSummary: data.blockSummary,
-          });
-        } else {
-          exportAttendanceToExcel(
-            data.allRecordsForExport || records,
-            `OASYS-Attendance-Report-${data.date || new Date().toISOString().slice(0, 10)}.xlsx`
-          );
-        }
         await exportAttendanceToPdf(data.allRecordsForExport || records, {
           selectedDate: data.date,
           formattedDate: data.formattedDate,
@@ -234,7 +200,6 @@ export function QuickActionsPanel() {
       } catch (err) {
         alert(err instanceof Error ? err.message : "Export failed.");
       } finally {
-        setLoadingAction(null);
         setIsExportingPDF(false);
       }
       return;
@@ -273,7 +238,6 @@ export function QuickActionsPanel() {
           <ActionCell
             key={action.id}
             action={action}
-            loadingAction={loadingAction}
             isLoading={getIsLoading(action.id)}
             onActionClick={handleActionClick}
           />
