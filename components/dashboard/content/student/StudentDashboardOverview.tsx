@@ -21,7 +21,16 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 export function StudentDashboardOverview() {
   const { user, loading } = useCurrentUser();
   const safeStudentName = user?.fullName?.trim() || "Student";
-  const details = `Register No: ${STUDENT_PROFILE.registerNo} | Department: ${STUDENT_PROFILE.department} | Year: ${STUDENT_PROFILE.year} | ${STUDENT_PROFILE.block} | Room ${STUDENT_PROFILE.room}`;
+  const regNo = user?.registerNumber || STUDENT_PROFILE.registerNo;
+  const dept = user?.department || STUDENT_PROFILE.department;
+  const year = user?.year || STUDENT_PROFILE.year;
+  const block = user?.hostelBlock || STUDENT_PROFILE.block;
+  const room = user?.roomNumber
+    ? user.roomNumber.startsWith("Room")
+      ? user.roomNumber
+      : `Room ${user.roomNumber}`
+    : `Room ${STUDENT_PROFILE.room}`;
+  const details = `Register No: ${regNo} | Department: ${dept} | Year: ${year} | ${block} | ${room}`;
 
   return (
     <div className="flex w-full flex-col gap-4 pt-4 xl:gap-5 xl:pt-5">

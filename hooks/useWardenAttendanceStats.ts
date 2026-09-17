@@ -38,12 +38,12 @@ export interface AttendanceStatsData {
 
 export function useWardenAttendanceStats() {
   const [stats, setStats] = useState<AttendanceStatsData>({
-    totalStudents: 628,
-    totalRooms: 83,
-    presentToday: TODAY_ATTENDANCE.present,
-    absentToday: TODAY_ATTENDANCE.absent,
+    totalStudents: 0,
+    totalRooms: 0,
+    presentToday: 0,
+    absentToday: 0,
     activeComplaints: 0,
-    roomOccupancy: "80%",
+    roomOccupancy: "0%",
     todayAttendance: TODAY_ATTENDANCE,
     weeklyAttendance: WEEKLY_ATTENDANCE,
     recentCheckins: RECENT_CHECKINS,

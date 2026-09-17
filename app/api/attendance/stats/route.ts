@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
+import { Room } from "@/models/Room";
 import { AttendanceRecord } from "@/models/AttendanceRecord";
 import { AttendanceSession } from "@/models/AttendanceSession";
 import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt";
@@ -60,10 +61,24 @@ export async function GET(request: NextRequest) {
     const now = new Date();
 
     // 1. Total registered active students
-    const dbStudentCount = await User.countDocuments({ role: "student" });
-    // Use DB student count, or standard campus capacity baseline if few test users
-    const totalStudents = Math.max(dbStudentCount, 628);
-    const totalRooms = 83;
+    const totalStudents = await User.countDocuments({ role: "student" });
+
+    // 2. Total rooms and capacity from Room collection
+    const rooms = await Room.find({}).lean();
+    const totalRooms = rooms.length;
+    const totalRoomCapacity = rooms.reduce((acc, r) => acc + (r.capacity || 4), 0);
+
+    // Occupied students in rooms
+    const occupiedStudents = await User.countDocuments({
+      role: "student",
+      roomNumber: { $exists: true, $ne: "" },
+    });
+
+    const roomOccupancyPct =
+      totalRoomCapacity > 0
+        ? Math.round((occupiedStudents / totalRoomCapacity) * 100)
+        : 0;
+    const roomOccupancy = `${roomOccupancyPct}%`;
 
     // 2. Today's attendance counts from MongoDB
     const presentCount = await AttendanceRecord.countDocuments({
@@ -207,7 +222,7 @@ export async function GET(request: NextRequest) {
       presentToday: totalPresentToday,
       absentToday,
       activeComplaints: 0,
-      roomOccupancy: "80%",
+      roomOccupancy,
       todayAttendance: {
         present: presentCount,
         late: lateCount,

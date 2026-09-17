@@ -19,12 +19,14 @@ import {
   STUDENT_ATTENDANCE,
   TODAYS_FOOD,
 } from "@/lib/student-dashboard-mock";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 /* -------------------------------------------------------------------------- */
 /* My Room                                                                    */
 /* -------------------------------------------------------------------------- */
 
 function MyRoomCard() {
+  const { user } = useCurrentUser();
   const cardRef = useRef<HTMLElement>(null);
   const bedOccupiedRef = useRef<HTMLSpanElement>(null);
   const bedTotalRef = useRef<HTMLSpanElement>(null);
@@ -127,7 +129,7 @@ function MyRoomCard() {
             Block
           </dt>
           <dd className="text-[17px] font-bold text-heading">
-            {MY_ROOM.block}
+            {user?.hostelBlock || MY_ROOM.block}
           </dd>
         </div>
 
@@ -136,7 +138,7 @@ function MyRoomCard() {
             Room
           </dt>
           <dd className="text-[17px] font-bold text-heading">
-            {MY_ROOM.room}
+            {user?.roomNumber || MY_ROOM.room}
           </dd>
         </div>
 

@@ -71,8 +71,8 @@ export function StudentAccountDetails() {
   const roomNumber = user?.roomNumber?.trim() || MY_ROOM.room;
 
   // Mock placeholders
-  const registerNo = STUDENT_PROFILE.registerNo || NOT_AVAILABLE;
-  const hostelBlock = STUDENT_PROFILE.block || MY_ROOM.block || NOT_AVAILABLE;
+  const registerNo = user?.registerNumber?.trim() || STUDENT_PROFILE.registerNo || NOT_AVAILABLE;
+  const hostelBlock = user?.hostelBlock?.trim() || STUDENT_PROFILE.block || MY_ROOM.block || NOT_AVAILABLE;
   const semester = NOT_AVAILABLE;
   const roomType = NOT_AVAILABLE;
 
