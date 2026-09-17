@@ -32,19 +32,50 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
 
     const today = getTodayString();
+    const now = new Date();
 
-    // Find active session for today
-    const activeSession = await AttendanceSession.findOne({
-      date: today,
+    // 1. Look for currently active session first (newest first)
+    let session = await AttendanceSession.findOne({
       active: true,
-    }).populate("generatedBy", "fullName");
+    })
+      .sort({ createdAt: -1 })
+      .populate("generatedBy", "fullName");
 
-    if (!activeSession) {
+    // 2. If no active session, look for the most recent session for today (which may have expired)
+    if (!session) {
+      session = await AttendanceSession.findOne({
+        date: today,
+      })
+        .sort({ createdAt: -1 })
+        .populate("generatedBy", "fullName");
+    }
+
+    // If no session exists at all
+    if (!session) {
+      let studentRecord = null;
+      if (payload.role === "student") {
+        const record = await AttendanceRecord.findOne({
+          student: payload.userId,
+          date: today,
+        });
+        if (record) {
+          studentRecord = {
+            studentName: record.studentName,
+            registerNumber: record.registerNumber,
+            roomNumber: record.roomNumber,
+            date: record.date,
+            markedAt: record.markedAt,
+            status: record.status,
+            distanceMeters: record.location?.distanceMeters,
+          };
+        }
+      }
+
       return NextResponse.json(
         {
           hasActiveSession: false,
           session: null,
-          studentRecord: null,
+          studentRecord,
           geofence: {
             radiusMeters: HOSTEL_GEOFENCE.radiusMeters,
           },
@@ -53,14 +84,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const isExpired = new Date() > activeSession.expiresAt;
+    // 3. Server timestamp source of truth for expiry
+    const isExpired = !session.active || now.getTime() >= new Date(session.expiresAt).getTime();
 
-    // If the requester is a student, also check if they've already marked
+    // If expired but still marked active in DB, deactivate proactively
+    if (session.active && isExpired) {
+      await AttendanceSession.updateOne(
+        { _id: session._id },
+        { $set: { active: false } }
+      );
+      session.active = false;
+    }
+
+    // 4. If requester is a student, check if they've already marked attendance
     let studentRecord = null;
     if (payload.role === "student") {
+      const attendanceDate = session.date || today;
       const record = await AttendanceRecord.findOne({
         student: payload.userId,
-        date: today,
+        date: attendanceDate,
       });
       if (record) {
         studentRecord = {
@@ -76,19 +118,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Get warden name from populated field
-    const wardenUser = activeSession.generatedBy as unknown as { fullName?: string };
+    const wardenUser = session.generatedBy as unknown as { fullName?: string };
     const wardenName = wardenUser?.fullName || "Warden";
+
+    const isSessionActive = session.active && !isExpired;
 
     return NextResponse.json(
       {
-        hasActiveSession: true,
+        hasActiveSession: isSessionActive,
         session: {
-          id: activeSession._id.toString(),
-          token: activeSession.token,
-          date: activeSession.date,
-          createdAt: activeSession.createdAt,
-          expiresAt: activeSession.expiresAt,
-          active: activeSession.active && !isExpired,
+          id: session._id.toString(),
+          token: session.token,
+          date: session.date,
+          createdAt: session.createdAt,
+          generatedAt: session.generatedAt || session.createdAt,
+          expiresAt: session.expiresAt,
+          active: isSessionActive,
           expired: isExpired,
           generatedBy: wardenName,
         },

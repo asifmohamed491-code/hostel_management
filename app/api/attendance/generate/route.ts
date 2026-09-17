@@ -44,23 +44,27 @@ export async function POST(request: NextRequest) {
 
     const today = getTodayString();
 
-    // Deactivate any existing sessions for today
+    // 1. Invalidate/close ALL previous active sessions immediately
     await AttendanceSession.updateMany(
-      { date: today, active: true },
+      { active: true },
       { $set: { active: false } }
     );
 
-    // Generate a secure random token
+    // 2. Generate secure random token
     const sessionToken = `OASYS-${crypto.randomBytes(16).toString("hex").toUpperCase()}-${Date.now()}`;
 
-    // Session expires at 11:59 PM today
-    const expiresAt = new Date();
-    expiresAt.setHours(23, 59, 59, 999);
+    // 3. Server timestamp source of truth: valid for EXACTLY 3 hours from generation time
+    const generatedAt = new Date();
+    const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+    const expiresAt = new Date(generatedAt.getTime() + THREE_HOURS_MS);
 
+    // 4. Create new secure attendance session
     const session = await AttendanceSession.create({
       token: sessionToken,
       generatedBy: warden._id,
       date: today,
+      createdAt: generatedAt,
+      generatedAt,
       expiresAt,
       active: true,
     });
@@ -86,8 +90,10 @@ export async function POST(request: NextRequest) {
           token: session.token,
           date: session.date,
           createdAt: session.createdAt,
+          generatedAt: session.generatedAt || session.createdAt,
           expiresAt: session.expiresAt,
           active: session.active,
+          expired: false,
           generatedBy: warden.fullName,
         },
       },

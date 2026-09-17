@@ -14,6 +14,7 @@ export interface IAttendanceSession extends Document {
   generatedBy: Schema.Types.ObjectId;
   date: string; // "YYYY-MM-DD"
   createdAt: Date;
+  generatedAt?: Date;
   expiresAt: Date;
   active: boolean;
 }
@@ -38,6 +39,10 @@ const attendanceSessionSchema = new Schema<IAttendanceSession>(
       type: Date,
       default: Date.now,
     },
+    generatedAt: {
+      type: Date,
+      default: Date.now,
+    },
     expiresAt: {
       type: Date,
       required: true,
@@ -50,8 +55,9 @@ const attendanceSessionSchema = new Schema<IAttendanceSession>(
   { timestamps: true }
 );
 
-// Compound index: one active session per date
+// Indexes
 attendanceSessionSchema.index({ date: 1, active: 1 });
+attendanceSessionSchema.index({ active: 1, expiresAt: 1 });
 
 export const AttendanceSession: Model<IAttendanceSession> =
   (models.AttendanceSession as Model<IAttendanceSession>) ||

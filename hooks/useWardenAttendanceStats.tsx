@@ -78,6 +78,7 @@ export interface AttendanceSessionData {
   token: string;
   date: string;
   createdAt: string;
+  generatedAt?: string;
   expiresAt: string;
   active: boolean;
   expired?: boolean;
@@ -146,7 +147,7 @@ export function WardenAttendanceStatsProvider({
       let sessionData: AttendanceSessionData | null = null;
       if (sessionRes.ok) {
         const sessionJson = await sessionRes.json();
-        if (sessionJson.hasActiveSession && sessionJson.session) {
+        if (sessionJson.session) {
           sessionData = sessionJson.session;
         }
       }

@@ -55,11 +55,92 @@ export async function POST(request: NextRequest) {
     }
 
     const today = getTodayString();
+    const now = new Date();
 
-    // ── 3. Check duplicate ──
+    // ── 3. Parse JSON body early ──
+    const body = await request.json().catch(() => null);
+
+    // ── 4. Extract and validate QR token ──
+    let scannedToken = (typeof body?.qrToken === "string" ? body.qrToken : "").trim();
+    if (scannedToken.startsWith("{") && scannedToken.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(scannedToken);
+        if (parsed && typeof parsed.token === "string") {
+          scannedToken = parsed.token.trim();
+        }
+      } catch {
+        // preserve scannedToken
+      }
+    }
+
+    if (!scannedToken) {
+      return NextResponse.json(
+        {
+          code: "INVALID_QR",
+          message: "QR code is required to mark attendance.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // ── 5. Look up session in MongoDB by token ──
+    const session = await AttendanceSession.findOne({ token: scannedToken });
+
+    if (!session) {
+      return NextResponse.json(
+        {
+          code: "INVALID_QR",
+          message: "QR is no longer valid. Please scan the current attendance QR.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // ── 6. Check if session was deactivated/regenerated ──
+    if (!session.active) {
+      return NextResponse.json(
+        {
+          code: "INVALID_QR",
+          message: "QR is no longer valid. Please scan the current attendance QR.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // ── 7. Server timestamp source of truth: verify session has not expired ──
+    if (now.getTime() >= new Date(session.expiresAt).getTime()) {
+      await AttendanceSession.updateOne(
+        { _id: session._id },
+        { $set: { active: false } }
+      );
+
+      return NextResponse.json(
+        {
+          code: "SESSION_EXPIRED",
+          message: "Attendance QR has expired.",
+        },
+        { status: 410 }
+      );
+    }
+
+    // ── 8. Ensure this session is the current active session in the database ──
+    const currentActiveSession = await AttendanceSession.findOne({ active: true }).sort({ createdAt: -1 });
+    if (!currentActiveSession || currentActiveSession._id.toString() !== session._id.toString()) {
+      return NextResponse.json(
+        {
+          code: "INVALID_QR",
+          message: "QR is no longer valid. Please scan the current attendance QR.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const attendanceDate = session.date || today;
+
+    // ── 9. Check duplicate attendance for the session date ──
     const existingRecord = await AttendanceRecord.findOne({
       student: student._id,
-      date: today,
+      date: attendanceDate,
     });
 
     if (existingRecord) {
@@ -85,41 +166,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 4. Find active session ──
-    const activeSession = await AttendanceSession.findOne({
-      date: today,
-      active: true,
-      expiresAt: { $gt: new Date() },
-    });
-
-    if (!activeSession) {
-      // Check if there's an expired one
-      const expiredSession = await AttendanceSession.findOne({
-        date: today,
-        active: true,
-      });
-
-      if (expiredSession) {
-        return NextResponse.json(
-          {
-            message: "Attendance session expired.",
-            code: "SESSION_EXPIRED",
-          },
-          { status: 410 }
-        );
-      }
-
-      return NextResponse.json(
-        {
-          message: "No active attendance session available.",
-          code: "NO_SESSION",
-        },
-        { status: 404 }
-      );
-    }
-
-    // ── 5. Parse & validate GPS payload ──
-    const body = await request.json().catch(() => null);
+    // ── 10. Parse & validate GPS payload ──
     const latitude = typeof body?.latitude === "number" ? body.latitude : NaN;
     const longitude = typeof body?.longitude === "number" ? body.longitude : NaN;
     const accuracy = typeof body?.accuracy === "number" ? body.accuracy : NaN;
@@ -143,7 +190,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 6. Check GPS accuracy threshold ──
+    // ── 11. Check GPS accuracy threshold ──
     if (accuracy > HOSTEL_GEOFENCE.maxAccuracyMeters) {
       return NextResponse.json(
         {
@@ -156,7 +203,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 7. Server-side Haversine distance calculation ──
+    // ── 12. Server-side Haversine distance calculation ──
     const distanceMeters = calculateDistanceMeters(
       latitude,
       longitude,
@@ -165,7 +212,7 @@ export async function POST(request: NextRequest) {
     );
     const roundedDistance = Math.round(distanceMeters);
 
-    // ── 8. Geofence radius check ──
+    // ── 13. Geofence radius check ──
     if (distanceMeters > HOSTEL_GEOFENCE.radiusMeters) {
       return NextResponse.json(
         {
@@ -178,7 +225,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 9. Create attendance record with full profile & GPS details ──
+    // ── 14. Create attendance record with full profile & GPS details ──
     const markedAt = new Date();
     const timeStr = formatTime(markedAt);
 
@@ -192,10 +239,10 @@ export async function POST(request: NextRequest) {
       year: student.year?.trim() || "—",
       hostelBlock: student.hostelBlock?.trim() || "—",
       roomNumber: student.roomNumber?.trim() || "—",
-      date: today,
+      date: attendanceDate,
       markedAt,
       status: "present",
-      attendanceSession: activeSession._id,
+      attendanceSession: session._id,
       markingMethod: "QR_GPS",
       distanceFromHostel: roundedDistance,
       location: {

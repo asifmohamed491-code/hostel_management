@@ -653,8 +653,8 @@ function UnavailableStage({
       icon: AlertTriangle,
       iconColor: "text-amber-500",
       iconBg: "bg-amber-500/10",
-      title: "Attendance Session Expired",
-      desc: "Today's attendance session has ended.",
+      title: "Attendance QR Expired",
+      desc: "Attendance QR has expired.",
     },
     "out-of-bounds": {
       icon: Navigation,
@@ -675,7 +675,7 @@ function UnavailableStage({
       iconColor: "text-red-500",
       iconBg: "bg-red-500/10",
       title: "Invalid Attendance QR",
-      desc: "This QR code is invalid, inactive, or no longer valid. Please scan the active QR displayed by your warden.",
+      desc: "QR is no longer valid. Please scan the current attendance QR.",
     },
     "permission-denied": {
       icon: MapPin,

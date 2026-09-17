@@ -7,8 +7,9 @@
 // the dedicated Attendance management page.
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
+  AlertTriangle,
   CheckCircle2,
   Clock,
   Loader2,
@@ -31,6 +32,21 @@ export function WardenAttendanceCard() {
 
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
+
+  // 1-second interval ticker for live client expiry reflection
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const isExpired = Boolean(
+    session?.expired ||
+    !session?.active ||
+    (session?.expiresAt && now.getTime() >= new Date(session.expiresAt).getTime())
+  );
 
   /* ── Generate new session ───────────────────────────────────────── */
   const handleGenerate = async () => {
@@ -56,20 +72,34 @@ export function WardenAttendanceCard() {
 
   /* ── Date/time formatting ───────────────────────────────────────── */
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-IN", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    try {
+      const d = typeof dateStr === "string" && dateStr.length === 10
+        ? new Date(`${dateStr}T12:00:00`)
+        : new Date(dateStr);
+      return d.toLocaleDateString("en-IN", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return String(dateStr);
+    }
   };
 
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+  const formatTime = (dateStr?: string | Date) => {
+    if (!dateStr) return "—";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "—";
+      return d.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return "—";
+    }
   };
 
   const wardenName = user?.fullName?.trim() || "Warden";
@@ -154,9 +184,19 @@ export function WardenAttendanceCard() {
               <h2 className="text-[20px] font-bold text-heading sm:text-[22px]">
                 Today&apos;s Attendance QR
               </h2>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-emerald-600">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                {session.expired ? "Expired" : "Active"}
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
+                  isExpired
+                    ? "bg-amber-500/10 text-amber-600"
+                    : "bg-emerald-500/10 text-emerald-600"
+                }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    isExpired ? "bg-amber-500" : "animate-pulse bg-emerald-500"
+                  }`}
+                />
+                {isExpired ? "Expired" : "Active"}
               </span>
             </div>
           </div>
@@ -166,12 +206,12 @@ export function WardenAttendanceCard() {
             <DetailRow
               icon={CalendarDays}
               label="Date"
-              value={formatDate(session.date + "T00:00:00")}
+              value={formatDate(session.date)}
             />
             <DetailRow
               icon={Clock}
               label="Generated At"
-              value={formatTime(session.createdAt)}
+              value={formatTime(session.createdAt || session.generatedAt)}
             />
             <DetailRow
               icon={Timer}
@@ -187,9 +227,9 @@ export function WardenAttendanceCard() {
 
           {/* Status checks */}
           <div className="flex flex-wrap gap-2.5 pt-1">
-            <StatusBadge text="Token Active" active={!session.expired} />
-            <StatusBadge text="Valid for Today" active={!session.expired} />
-            <StatusBadge text="Ready for Student Verification" active={!session.expired} />
+            <StatusBadge text="Token Active" active={!isExpired} />
+            <StatusBadge text="Valid for Today" active={!isExpired} />
+            <StatusBadge text="Ready for Student Verification" active={!isExpired} />
           </div>
 
           {/* Regenerate action */}
@@ -216,21 +256,43 @@ export function WardenAttendanceCard() {
         {/* Right: Large QR Visual (2/5 width) */}
         <div className="flex flex-col items-center justify-center gap-4 border-t border-white/20 px-4 py-6 sm:px-10 lg:col-span-2 lg:border-l lg:border-t-0">
           {/* Real QR Code Container */}
-          <div className="relative flex items-center justify-center rounded-3xl border-2 border-primary/20 bg-white p-3.5 shadow-glass sm:p-4.5">
+          <div
+            className={`relative flex items-center justify-center rounded-3xl border-2 p-3.5 shadow-glass sm:p-4.5 ${
+              isExpired ? "border-amber-500/30 bg-amber-50/20" : "border-primary/20 bg-white"
+            }`}
+          >
             <QRCodeSVG
               value={session.token}
               size={184}
               level="M"
               fgColor="#150B2D"
               bgColor="#FFFFFF"
-              className="h-44 w-44 rounded-lg sm:h-48 sm:w-48"
+              className={`h-44 w-44 rounded-lg sm:h-48 sm:w-48 transition-opacity ${
+                isExpired ? "opacity-40" : "opacity-100"
+              }`}
               title="Today's Attendance QR Code"
             />
             {/* Corner framing markers */}
-            <span className="pointer-events-none absolute -left-1.5 -top-1.5 h-6 w-6 rounded-tl-xl border-l-[3px] border-t-[3px] border-primary/40" />
-            <span className="pointer-events-none absolute -right-1.5 -top-1.5 h-6 w-6 rounded-tr-xl border-r-[3px] border-t-[3px] border-primary/40" />
-            <span className="pointer-events-none absolute -bottom-1.5 -left-1.5 h-6 w-6 rounded-bl-xl border-b-[3px] border-l-[3px] border-primary/40" />
-            <span className="pointer-events-none absolute -bottom-1.5 -right-1.5 h-6 w-6 rounded-br-xl border-b-[3px] border-r-[3px] border-primary/40" />
+            <span
+              className={`pointer-events-none absolute -left-1.5 -top-1.5 h-6 w-6 rounded-tl-xl border-l-[3px] border-t-[3px] ${
+                isExpired ? "border-amber-500/40" : "border-primary/40"
+              }`}
+            />
+            <span
+              className={`pointer-events-none absolute -right-1.5 -top-1.5 h-6 w-6 rounded-tr-xl border-r-[3px] border-t-[3px] ${
+                isExpired ? "border-amber-500/40" : "border-primary/40"
+              }`}
+            />
+            <span
+              className={`pointer-events-none absolute -bottom-1.5 -left-1.5 h-6 w-6 rounded-bl-xl border-b-[3px] border-l-[3px] ${
+                isExpired ? "border-amber-500/40" : "border-primary/40"
+              }`}
+            />
+            <span
+              className={`pointer-events-none absolute -bottom-1.5 -right-1.5 h-6 w-6 rounded-br-xl border-b-[3px] border-r-[3px] ${
+                isExpired ? "border-amber-500/40" : "border-primary/40"
+              }`}
+            />
           </div>
 
           {/* Session Token display */}
@@ -243,10 +305,17 @@ export function WardenAttendanceCard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 text-[12px] font-medium text-emerald-600/70">
-            <Shield className="h-3.5 w-3.5" />
-            Active for today&apos;s student attendance
-          </div>
+          {isExpired ? (
+            <div className="flex items-center gap-1.5 text-[12px] font-medium text-amber-600">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              QR session expired · Regenerate to open attendance
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[12px] font-medium text-emerald-600/70">
+              <Shield className="h-3.5 w-3.5" />
+              Active for today&apos;s student attendance
+            </div>
+          )}
         </div>
       </div>
     </section>

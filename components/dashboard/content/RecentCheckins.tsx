@@ -81,14 +81,14 @@ export function RecentCheckins() {
       className="sa-dashboard-card sa-dashboard-card--mist flex h-full flex-col overflow-hidden"
       bodyClassName="flex flex-1 flex-col px-4 pb-4 pt-3 sm:px-5 overflow-hidden"
     >
-      <div ref={containerRef} className="flex flex-1 flex-col justify-between">
+      <div ref={containerRef} className="flex flex-1 flex-col">
         {/* Table Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
           <span>Student Name</span>
           <span>Check-in</span>
         </div>
 
-        {/* Check-ins List - Exactly <= 3 items visible, no scrollbar */}
+        {/* Check-ins List - Starts immediately from TOP, exactly <= 3 items visible, no scrollbar */}
         {checkins.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center py-6 text-center text-slate-400">
             <Clock className="h-7 w-7 stroke-1 text-slate-300 mb-1" />
@@ -96,7 +96,7 @@ export function RecentCheckins() {
             <p className="text-[11px] text-slate-400">Check-ins will appear here as students mark attendance</p>
           </div>
         ) : (
-          <div className="flex flex-1 flex-col justify-center gap-2 py-1">
+          <div className="flex flex-col justify-start gap-2 pt-2.5 pb-1">
             {checkins.map((item) => (
               <div
                 key={item.id}

@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
 
     // 3. Last updated time
     const latestRecord = await AttendanceRecord.findOne({ date: today }).sort({ markedAt: -1 }).lean();
-    const activeSession = await AttendanceSession.findOne({ date: today, active: true }).lean();
+    const activeSession = await AttendanceSession.findOne({ active: true }).sort({ createdAt: -1 }).lean();
     const lastUpdatedTime = latestRecord?.markedAt
       ? formatTime(new Date(latestRecord.markedAt))
       : activeSession?.createdAt

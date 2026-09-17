@@ -241,7 +241,7 @@ export function DashboardSkeleton() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
               <span className="text-[14px] font-bold text-heading">Recent Check-ins</span>
             </div>
-            <div className="flex flex-1 flex-col justify-center gap-3 py-2">
+            <div className="flex flex-col justify-start gap-2.5 pt-2.5 pb-1">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center gap-3 rounded-xl p-2 animate-pulse">
                   <div className="h-9 w-9 rounded-full bg-slate-200/80 shrink-0" />
@@ -303,3 +303,4 @@ export function DashboardSkeleton() {
     </div>
   );
 }
+
