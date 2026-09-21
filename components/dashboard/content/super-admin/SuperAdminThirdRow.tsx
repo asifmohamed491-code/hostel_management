@@ -1,11 +1,9 @@
 // SuperAdminThirdRow.tsx
 //
 // Matches the reference screenshot's third row: Attendance Analytics
-// (3-series line chart, same smooth-path technique as
-// AttendanceTrendChart.tsx), Recent System Activity (timeline list),
+// (3-series line chart), Recent System Activity (timeline list),
 // Quick Actions (2-col grid of real links to existing Super Admin
-// routes — same pattern as QuickActionsPanel.tsx), System Status
-// (service indicator list).
+// routes — untouched), System Status (service indicator list).
 "use client";
 
 import { useRef } from "react";
@@ -24,13 +22,10 @@ import {
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { cn } from "@/lib/cn";
+import { useSuperAdminDashboard } from "@/hooks/useSuperAdminDashboard";
 import {
-  ATTENDANCE_ANALYTICS,
   ATTENDANCE_LEGEND,
-  RECENT_SYSTEM_ACTIVITY,
   SUPER_ADMIN_QUICK_ACTIONS,
-  SYSTEM_STATUS,
-  SYSTEM_STATUS_SUMMARY,
   type SystemActivityIcon,
   type QuickActionIcon,
 } from "@/lib/super-admin-dashboard-mock";
@@ -59,15 +54,17 @@ function buildSmoothPath(points: Point[]): string {
 
 function AttendanceAnalyticsChart() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { stats } = useSuperAdminDashboard();
+  const analyticsData = stats?.attendanceAnalytics ?? [];
 
   const usableWidth = WIDTH - PADDING_X * 2;
   const usableHeight = HEIGHT - PADDING_Y * 2;
-  const step = ATTENDANCE_ANALYTICS.length > 1 ? usableWidth / (ATTENDANCE_ANALYTICS.length - 1) : 0;
+  const step = analyticsData.length > 1 ? usableWidth / (analyticsData.length - 1) : 0;
 
   const seriesPaths = ATTENDANCE_LEGEND.map((series) => {
-    const points = ATTENDANCE_ANALYTICS.map((point, i) => ({
+    const points = analyticsData.map((point, i) => ({
       x: PADDING_X + i * step,
-      y: PADDING_Y + (1 - point[series.key] / 100) * usableHeight,
+      y: PADDING_Y + (1 - (point[series.key] || 0) / 100) * usableHeight,
     }));
     return { ...series, path: buildSmoothPath(points) };
   });
@@ -104,7 +101,7 @@ function AttendanceAnalyticsChart() {
         },
       });
     },
-    { scope: containerRef, dependencies: [ATTENDANCE_ANALYTICS] }
+    { scope: containerRef, dependencies: [analyticsData] }
   );
 
   return (
@@ -168,7 +165,7 @@ function AttendanceAnalyticsChart() {
       </div>
 
       <div className="mt-3 flex pl-7 text-[10.5px] font-semibold text-heading/35 sm:pl-9 sm:text-[11.5px]">
-        {ATTENDANCE_ANALYTICS.map((p) => (
+        {analyticsData.map((p) => (
           <span key={p.label} className="flex-1 text-center">
             {p.label}
           </span>
@@ -188,6 +185,8 @@ const ACTIVITY_ICONS: Record<SystemActivityIcon, ComponentType<SVGProps<SVGSVGEl
 
 function RecentSystemActivity() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { stats } = useSuperAdminDashboard();
+  const activities = stats?.recentActivity ?? [];
 
   useGSAP(
     () => {
@@ -218,30 +217,40 @@ function RecentSystemActivity() {
         }
       );
     },
-    { scope: containerRef }
+    { scope: containerRef, dependencies: [activities] }
   );
 
   return (
-    <DashboardCard title="Recent System Activity" className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col" bodyClassName="flex flex-1 flex-col px-4 pb-4 pt-3">
+    <DashboardCard
+      title="Recent System Activity"
+      className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col"
+      bodyClassName="flex flex-1 flex-col px-4 pb-4 pt-3"
+    >
       <div ref={containerRef} className="flex flex-1 flex-col">
-        {RECENT_SYSTEM_ACTIVITY.map((item, i) => {
-          const Icon = ACTIVITY_ICONS[item.icon];
-          const isLast = i === RECENT_SYSTEM_ACTIVITY.length - 1;
-          return (
-            <div key={item.id} className="activity-row relative flex gap-3 pb-4 last:pb-0">
-              <div className="flex flex-col items-center">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon className="h-4 w-4" />
-                </span>
-                {!isLast && <span className="mt-1 w-px flex-1 bg-heading/[0.08]" />}
+        {activities.length === 0 ? (
+          <p className="py-8 text-center text-[12.5px] font-medium text-heading/45">
+            No recent activity recorded
+          </p>
+        ) : (
+          activities.map((item, i) => {
+            const Icon = ACTIVITY_ICONS[item.icon] || FileBarChart;
+            const isLast = i === activities.length - 1;
+            return (
+              <div key={item.id} className="activity-row relative flex gap-3 pb-4 last:pb-0">
+                <div className="flex flex-col items-center">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  {!isLast && <span className="mt-1 w-px flex-1 bg-heading/[0.08]" />}
+                </div>
+                <div className="min-w-0 pt-1">
+                  <p className="text-[13px] font-semibold text-heading">{item.text}</p>
+                  <p className="mt-0.5 text-[11.5px] font-medium text-heading/45">{item.time}</p>
+                </div>
               </div>
-              <div className="min-w-0 pt-1">
-                <p className="text-[13px] font-semibold text-heading">{item.text}</p>
-                <p className="mt-0.5 text-[11.5px] font-medium text-heading/45">{item.time}</p>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </DashboardCard>
   );
@@ -334,6 +343,9 @@ const STATUS_DOT_COLOR: Record<string, string> = {
 
 function SystemStatusCard() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { stats } = useSuperAdminDashboard();
+  const systemStatus = stats?.systemStatus ?? [];
+  const summary = stats?.systemStatusSummary ?? "All Systems Operational";
 
   useGSAP(
     () => {
@@ -364,16 +376,16 @@ function SystemStatusCard() {
         }
       );
     },
-    { scope: containerRef }
+    { scope: containerRef, dependencies: [systemStatus] }
   );
 
   return (
     <DashboardCard title="System Status" className="sa-dashboard-card sa-dashboard-card--mist flex h-full flex-col" bodyClassName="flex flex-1 flex-col justify-between px-4 pb-4 pt-3">
       <div ref={containerRef} className="flex flex-col gap-3">
-        {SYSTEM_STATUS.map((item) => (
+        {systemStatus.map((item) => (
           <div key={item.id} className="status-row flex items-center justify-between gap-2 text-[12.5px]">
             <span className="flex items-center gap-2 font-semibold text-heading/70">
-              <span className={cn("h-2 w-2 shrink-0 rounded-full", STATUS_DOT_COLOR[item.dot])} />
+              <span className={cn("h-2 w-2 shrink-0 rounded-full", STATUS_DOT_COLOR[item.dot] || "bg-emerald-500")} />
               {item.label}
             </span>
             <span className="font-semibold text-emerald-600">{item.status}</span>
@@ -382,7 +394,7 @@ function SystemStatusCard() {
       </div>
 
       <p className="mt-4 border-t border-heading/[0.06] pt-3 text-[12px] font-medium text-heading/50">
-        System Status: <span className="font-semibold text-emerald-600">{SYSTEM_STATUS_SUMMARY}</span>
+        System Status: <span className="font-semibold text-emerald-600">{summary}</span>
       </p>
     </DashboardCard>
   );

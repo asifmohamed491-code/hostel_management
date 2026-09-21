@@ -12,7 +12,8 @@ import { useRef } from "react";
 import type { ComponentType, SVGProps } from "react";
 import { TrendingUp, ShieldCheck, MapPinned, KeyRound, Gauge, Users2 } from "lucide-react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
-import { SUPER_ADMIN_STAT_CARDS, type StatCardIcon } from "@/lib/super-admin-dashboard-mock";
+import { useSuperAdminDashboard } from "@/hooks/useSuperAdminDashboard";
+import type { StatCardIcon } from "@/lib/super-admin-dashboard-mock";
 
 const ICONS: Record<StatCardIcon, ComponentType<SVGProps<SVGSVGElement>>> = {
   students: TrendingUp,
@@ -25,10 +26,12 @@ const ICONS: Record<StatCardIcon, ComponentType<SVGProps<SVGSVGElement>>> = {
 
 export function SuperAdminStatCardsRow() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { stats } = useSuperAdminDashboard();
+  const cards = stats?.statCards ?? [];
 
   useGSAP(
     () => {
-      const cards = containerRef.current
+      const cardEls = containerRef.current
         ? gsap.utils.toArray<HTMLElement>(".sa-stat-card", containerRef.current)
         : [];
       const valueElements = containerRef.current
@@ -40,9 +43,9 @@ export function SuperAdminStatCardsRow() {
       const scrollerEl = document.getElementById("dashboard-scroll-container") || undefined;
 
       if (prefersReducedMotion()) {
-        gsap.set(cards, { opacity: 1, y: 0, scale: 1 });
+        gsap.set(cardEls, { opacity: 1, y: 0, scale: 1 });
         valueElements.forEach((el, index) => {
-          el.textContent = String(SUPER_ADMIN_STAT_CARDS[index]?.value ?? "0");
+          el.textContent = String(cards[index]?.value ?? "0");
         });
         gsap.set(bars, { scaleX: 1 });
         return;
@@ -59,13 +62,13 @@ export function SuperAdminStatCardsRow() {
       });
 
       tl.fromTo(
-        cards,
+        cardEls,
         { opacity: 0, y: 20, scale: 0.95 },
         { opacity: 1, y: 0, scale: 1, duration: 0.6, stagger: 0.07 }
       );
 
       valueElements.forEach((el, index) => {
-        const rawValue = String(SUPER_ADMIN_STAT_CARDS[index]?.value || "0");
+        const rawValue = String(cards[index]?.value || "0");
         const numericMatch = rawValue.match(/\d+/);
 
         if (numericMatch) {
@@ -86,6 +89,8 @@ export function SuperAdminStatCardsRow() {
             },
             0.1 + index * 0.07
           );
+        } else {
+          el.textContent = rawValue;
         }
       });
 
@@ -96,7 +101,7 @@ export function SuperAdminStatCardsRow() {
         0.2
       );
     },
-    { scope: containerRef }
+    { scope: containerRef, dependencies: [cards] }
   );
 
   return (
@@ -104,7 +109,7 @@ export function SuperAdminStatCardsRow() {
       ref={containerRef}
       className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 xl:grid-cols-6 xl:gap-4"
     >
-      {SUPER_ADMIN_STAT_CARDS.map((card) => {
+      {cards.map((card) => {
         const Icon = ICONS[card.icon];
         return (
           <div
