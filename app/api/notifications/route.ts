@@ -44,6 +44,35 @@ export async function GET(request: NextRequest) {
         read: Boolean(notification.readAt),
         createdAt: notification.createdAt,
       })),
+      notifications: notifications.map((notification) => {
+        let message = notification.message;
+        // Ensure attendance notifications display actual IST time converted from the stored createdAt timestamp
+        if (
+          (notification.title === "Attendance Marked" ||
+            notification.title === "Student Attendance Marked") &&
+          notification.createdAt
+        ) {
+          const istTime = new Date(notification.createdAt).toLocaleTimeString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          });
+          message = message.replace(
+            /\bat\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:[apAP][mM])?\.?/i,
+            `at ${istTime}.`
+          );
+        }
+
+        return {
+          id: notification._id.toString(),
+          title: notification.title,
+          message,
+          href: notification.href,
+          read: Boolean(notification.readAt),
+          createdAt: notification.createdAt,
+        };
+      }),
     });
   } catch (error) {
     console.error("Notifications fetch error:", error);

@@ -164,6 +164,7 @@ export function exportAttendanceToPdf(
   const dateHeading = opts.formattedDate || (
     !isNaN(parsedDate.getTime())
       ? parsedDate.toLocaleDateString("en-IN", {
+          timeZone: "Asia/Kolkata",
           day: "numeric",
           month: "long",
           year: "numeric",
@@ -172,6 +173,7 @@ export function exportAttendanceToPdf(
   );
 
   const generatedTimestamp = new Date().toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
     day: "numeric",
     month: "short",
     year: "numeric",

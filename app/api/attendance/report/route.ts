@@ -12,6 +12,7 @@ import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt";
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
@@ -20,6 +21,7 @@ function formatTime(date: Date): string {
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -32,6 +34,12 @@ function getTodayString(): string {
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 export async function GET(request: NextRequest) {
@@ -234,6 +242,7 @@ export async function GET(request: NextRequest) {
     const parsedDate = new Date(dateParam + "T00:00:00");
     const displayDate = !isNaN(parsedDate.getTime())
       ? parsedDate.toLocaleDateString("en-IN", {
+          timeZone: "Asia/Kolkata",
           day: "numeric",
           month: "long",
           year: "numeric",

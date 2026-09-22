@@ -565,6 +565,7 @@ function SuccessStage({
   const now = new Date(record.markedAt || Date.now());
 
   const dateStr = now.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -572,14 +573,24 @@ function SuccessStage({
   });
 
   const timeStr = now.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   });
 
   const hour = now.getHours();
+  const istHour = parseInt(
+    now.toLocaleTimeString("en-US", {
+      timeZone: "Asia/Kolkata",
+      hour12: false,
+      hour: "numeric",
+    }),
+    10
+  );
   const greeting =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    istHour < 12 ? "Good morning" : istHour < 17 ? "Good afternoon" : "Good evening";
 
   const details = [
     { icon: Hash, label: "Register Number", value: record.registerNumber || "—" },
@@ -659,6 +670,7 @@ function AlreadyMarkedStage({ record }: { record?: AttendanceResult }) {
   const markedAt = record?.markedAt ? new Date(record.markedAt) : new Date();
 
   const dateStr = markedAt.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -666,6 +678,7 @@ function AlreadyMarkedStage({ record }: { record?: AttendanceResult }) {
   });
 
   const timeStr = markedAt.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,

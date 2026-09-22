@@ -13,6 +13,12 @@ import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt";
 
 function getTodayString(): string {
   return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 function getInitials(name: string): string {
@@ -27,6 +33,7 @@ function getInitials(name: string): string {
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
@@ -35,6 +42,7 @@ function formatTime(date: Date): string {
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
+    timeZone: "Asia/Kolkata",
     month: "short",
     day: "numeric",
     hour: "2-digit",

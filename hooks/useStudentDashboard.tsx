@@ -82,6 +82,51 @@ function formatNotificationDate(dateInput: Date | string): string {
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return "Recently";
   return d.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+
+  if (diffMs >= 0) {
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return "Just now";
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin} min ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr} hr ago`;
+    const diffDays = Math.floor(diffHr / 24);
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+  }
+
+  return d.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    month: "short",
+    day: "2-digit",
+  });
+}
+
+function formatNotificationMessage(
+  title: string,
+  message: string,
+  createdAt?: Date | string
+): string {
+  if (!createdAt) return message;
+  const d = new Date(createdAt);
+  if (isNaN(d.getTime())) return message;
+
+  if (title === "Attendance Marked" || title === "Student Attendance Marked") {
+    const istTime = d.toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+    return message.replace(
+      /\bat\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:[apAP][mM])?\.?/i,
+      `at ${istTime}.`
+    );
+  }
+  return message;
 }
 
 function inferNotificationType(
@@ -171,6 +216,11 @@ export function StudentDashboardProvider({ children }: { children: ReactNode }) 
           date: formatNotificationDate(item.createdAt),
           title: item.title || "Notification",
           message: item.message || item.title || "",
+          message: formatNotificationMessage(
+            item.title || "",
+            item.message || item.title || "",
+            item.createdAt
+          ),
           type: inferNotificationType(item.title || "", item.message || ""),
           read: Boolean(item.read),
           createdAt: item.createdAt || new Date().toISOString(),

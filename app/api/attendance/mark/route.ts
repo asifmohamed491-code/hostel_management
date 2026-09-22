@@ -1,4 +1,4 @@
-﻿// app/api/attendance/mark/route.ts
+// app/api/attendance/mark/route.ts
 //
 // POST /api/attendance/mark
 // Student-only: marks attendance for today by validating:
@@ -21,10 +21,17 @@ import { HOSTEL_GEOFENCE, calculateDistanceMeters } from "@/lib/constants/geofen
 
 function getTodayString(): string {
   return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
@@ -159,6 +166,7 @@ export async function POST(request: NextRequest) {
             hostelBlock: existingRecord.hostelBlock,
             date: existingRecord.date,
             markedAt: existingRecord.markedAt,
+            time: formatTime(new Date(existingRecord.markedAt)),
             status: existingRecord.status,
             distanceMeters: existingRecord.location?.distanceMeters ?? existingRecord.distanceFromHostel,
             markingMethod: existingRecord.markingMethod,
@@ -297,6 +305,7 @@ export async function POST(request: NextRequest) {
           hostelBlock: record.hostelBlock,
           date: record.date,
           markedAt: record.markedAt,
+          time: timeStr,
           status: record.status,
           distanceMeters: roundedDistance,
           markingMethod: record.markingMethod,

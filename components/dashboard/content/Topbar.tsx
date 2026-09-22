@@ -6,6 +6,7 @@ import { useMobileNav } from "@/components/dashboard/MobileNavContext";
 import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
 
 const TODAY = new Date().toLocaleDateString("en-US", {
+  timeZone: "Asia/Kolkata",
   weekday: "long",
   year: "numeric",
   month: "long",

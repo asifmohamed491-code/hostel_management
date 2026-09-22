@@ -77,6 +77,7 @@ export function WardenAttendanceCard() {
         ? new Date(`${dateStr}T12:00:00`)
         : new Date(dateStr);
       return d.toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
         weekday: "long",
         year: "numeric",
         month: "long",
@@ -93,6 +94,7 @@ export function WardenAttendanceCard() {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return "—";
       return d.toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata",
         hour: "2-digit",
         minute: "2-digit",
         hour12: true,

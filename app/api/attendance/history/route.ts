@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
@@ -20,6 +21,7 @@ function formatTime(date: Date): string {
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
     weekday: "short",
     year: "numeric",
     month: "short",
@@ -61,6 +63,7 @@ export async function GET(request: NextRequest) {
       return {
         id: rec._id.toString(),
         date: rec.date,
+        markedAt: rec.markedAt,
         formattedDate: formatDate(markedDate),
         time: formatTime(markedDate),
         status: rec.status,
