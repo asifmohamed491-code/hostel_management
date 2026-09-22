@@ -55,6 +55,8 @@ export interface StudentDashboardContextValue {
   attendance: StudentAttendanceData;
   notifications: StudentNotificationItem[];
   loading: boolean;
+  isDashboardReady: boolean;
+  error: string | null;
   refetch: () => Promise<void>;
 }
 
@@ -106,9 +108,12 @@ export function StudentDashboardProvider({ children }: { children: ReactNode }) 
   });
   const [notifications, setNotifications] = useState<StudentNotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDashboardReady, setIsDashboardReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isMountedRef = useRef(true);
   const isFetchingRef = useRef(false);
+  const isDashboardReadyRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -117,9 +122,18 @@ export function StudentDashboardProvider({ children }: { children: ReactNode }) 
     };
   }, []);
 
-  const fetchStudentData = useCallback(async () => {
+  useEffect(() => {
+    isDashboardReadyRef.current = isDashboardReady;
+  }, [isDashboardReady]);
+
+  const fetchStudentData = useCallback(async (isBackground = false) => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
+
+    if (!isBackground && !isDashboardReadyRef.current) {
+      setLoading(true);
+      setError(null);
+    }
 
     try {
       // 1. Current user
@@ -181,8 +195,18 @@ export function StudentDashboardProvider({ children }: { children: ReactNode }) 
       setAttendance(attStats);
       setNotifications(notifItems);
       setRoommates(mates);
+      setIsDashboardReady(true);
+      isDashboardReadyRef.current = true;
+      setError(null);
     } catch (err) {
       console.error("Student dashboard data fetch error:", err);
+      if (isMountedRef.current && !isDashboardReadyRef.current) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "An error occurred while communicating with the server."
+        );
+      }
     } finally {
       isFetchingRef.current = false;
       if (isMountedRef.current) {
@@ -214,9 +238,11 @@ export function StudentDashboardProvider({ children }: { children: ReactNode }) 
       attendance,
       notifications,
       loading,
+      isDashboardReady,
+      error,
       refetch: fetchStudentData,
     }),
-    [user, room, attendance, notifications, loading, fetchStudentData]
+    [user, room, attendance, notifications, loading, isDashboardReady, error, fetchStudentData]
   );
 
   return (
