@@ -16,10 +16,24 @@ export async function GET(request: NextRequest) {
 
   try {
     await connectToDatabase();
-    const notifications = await Notification.find({ recipient: payload.userId })
+    let notifications = await Notification.find({
+      $or: [
+        { recipient: payload.userId },
+        { recipient: null },
+        { recipient: { $exists: false } },
+      ],
+    })
       .sort({ createdAt: -1 })
-      .limit(20)
+      .limit(50)
       .lean();
+
+    // Fallback to recent system announcements if no user-specific notifications exist
+    if (notifications.length === 0) {
+      notifications = await Notification.find({})
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
+    }
 
     return NextResponse.json({
       notifications: notifications.map((notification) => ({

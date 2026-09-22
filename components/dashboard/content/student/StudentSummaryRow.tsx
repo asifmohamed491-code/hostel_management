@@ -2,7 +2,7 @@
 
 // StudentSummaryRow.tsx
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { CheckCircle2, Circle, Clock } from "lucide-react";
 import {
   gsap,
@@ -15,106 +15,17 @@ import { RadialProgress } from "@/components/dashboard/content/RadialProgress";
 
 import {
   MAINTENANCE_REQUESTS,
-  MY_ROOM,
-  STUDENT_ATTENDANCE,
   TODAYS_FOOD,
 } from "@/lib/student-dashboard-mock";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useStudentDashboard } from "@/hooks/useStudentDashboard";
 
 /* -------------------------------------------------------------------------- */
 /* My Room                                                                    */
 /* -------------------------------------------------------------------------- */
 
 function MyRoomCard() {
-  const { user } = useCurrentUser();
+  const { room } = useStudentDashboard();
   const cardRef = useRef<HTMLElement>(null);
-  const bedOccupiedRef = useRef<HTMLSpanElement>(null);
-  const bedTotalRef = useRef<HTMLSpanElement>(null);
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  useGSAP(
-    () => {
-      if (!hasMounted) {
-        return;
-      }
-
-      const card = cardRef.current;
-      const occupied = bedOccupiedRef.current;
-      const total = bedTotalRef.current;
-
-      if (!card || !occupied || !total) {
-        return;
-      }
-
-      // If reduced motion is preferred, leave the server-rendered
-      // values alone. They are already the final values.
-      if (prefersReducedMotion()) {
-        return;
-      }
-
-      const occupiedCounter = {
-        value: MY_ROOM.bedOccupied,
-      };
-
-      const totalCounter = {
-        value: MY_ROOM.bedTotal,
-      };
-
-      const scrollerEl =
-        document.getElementById("dashboard-scroll-container") || undefined;
-
-      gsap.fromTo(
-        occupiedCounter,
-        { value: 0 },
-        {
-          value: MY_ROOM.bedOccupied,
-          duration: 0.8,
-          ease: "power2.out",
-          onUpdate: () => {
-            occupied.textContent = String(
-              Math.round(occupiedCounter.value)
-            );
-          },
-          scrollTrigger: {
-            trigger: card,
-            scroller: scrollerEl,
-            start: "top 90%",
-            once: true,
-          },
-        }
-      );
-
-      gsap.fromTo(
-        totalCounter,
-        { value: 0 },
-        {
-          value: MY_ROOM.bedTotal,
-          duration: 0.8,
-          delay: 0.1,
-          ease: "power2.out",
-          onUpdate: () => {
-            total.textContent = String(
-              Math.round(totalCounter.value)
-            );
-          },
-          scrollTrigger: {
-            trigger: card,
-            scroller: scrollerEl,
-            start: "top 90%",
-            once: true,
-          },
-        }
-      );
-    },
-    {
-      scope: cardRef,
-      dependencies: [hasMounted],
-    }
-  );
 
   return (
     <DashboardCard
@@ -123,13 +34,13 @@ function MyRoomCard() {
       className="sa-dashboard-card sa-dashboard-card--violet flex h-full flex-col"
       bodyClassName="flex flex-1 items-center justify-between gap-3 px-[19px] pb-5 pt-3"
     >
-      <dl className="flex flex-col gap-2.5">
+      <dl className="flex flex-col gap-3.5 sm:gap-4">
         <div>
           <dt className="text-[12px] font-medium text-heading/50">
             Block
           </dt>
           <dd className="text-[17px] font-bold text-heading">
-            {user?.hostelBlock || MY_ROOM.block}
+            {room.block}
           </dd>
         </div>
 
@@ -138,22 +49,7 @@ function MyRoomCard() {
             Room
           </dt>
           <dd className="text-[17px] font-bold text-heading">
-            {user?.roomNumber || MY_ROOM.room}
-          </dd>
-        </div>
-
-        <div>
-          <dt className="text-[12px] font-medium text-heading/50">
-            Bed
-          </dt>
-          <dd className="text-[17px] font-bold text-heading">
-            <span ref={bedOccupiedRef}>
-              {MY_ROOM.bedOccupied}
-            </span>
-            {" / "}
-            <span ref={bedTotalRef}>
-              {MY_ROOM.bedTotal}
-            </span>
+            {room.roomNumber}
           </dd>
         </div>
       </dl>
@@ -243,12 +139,13 @@ function MyRoomCard() {
   );
 }
 
-
 /* -------------------------------------------------------------------------- */
 /* Attendance                                                                 */
 /* -------------------------------------------------------------------------- */
 
 function AttendanceCard() {
+  const { attendance } = useStudentDashboard();
+
   return (
     <DashboardCard
       title="Attendance"
@@ -256,25 +153,18 @@ function AttendanceCard() {
       bodyClassName="sa-chart-body flex flex-1 flex-col items-center justify-center gap-3 px-[19px] pb-5 pt-2"
     >
       <RadialProgress
-        value={STUDENT_ATTENDANCE.percentage}
+        value={attendance.percentage}
         size={110}
         strokeWidth={10}
         valueClassName="text-[22px] font-bold text-heading"
       />
 
       <p className="text-center text-[12.5px] font-semibold text-heading/70">
-        {STUDENT_ATTENDANCE.stats.map((stat, index) => (
-          <span key={stat.label}>
-            {index > 0 ? " | " : null}
-            <span>
-              {stat.label}
-            </span>
-            <span>{": "}</span>
-            <span className="text-heading">
-              {stat.value}
-            </span>
-          </span>
-        ))}
+        <span>Present: </span>
+        <span className="text-heading">{attendance.present}</span>
+        <span>{" | "}</span>
+        <span>Absent: </span>
+        <span className="text-heading">{attendance.absent}</span>
       </p>
     </DashboardCard>
   );

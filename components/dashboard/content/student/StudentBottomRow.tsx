@@ -4,7 +4,7 @@
 //
 // The bottom 4-card row on the Student dashboard: Attendance
 // Overview, My Room Details, Recent Notifications, Quick Actions.
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -20,18 +20,22 @@ import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap-plugins";
 import { DashboardCard } from "@/components/dashboard/content/DashboardCard";
 import { RadialProgress } from "@/components/dashboard/content/RadialProgress";
 import { InitialsAvatar } from "@/components/dashboard/content/InitialsAvatar";
+import { cn } from "@/lib/cn";
+import { useStudentDashboard } from "@/hooks/useStudentDashboard";
 import {
-  ATTENDANCE_OVERVIEW_BREAKDOWN,
-  MY_ROOM_DETAILS,
-  RECENT_NOTIFICATIONS,
-  STUDENT_ATTENDANCE,
   STUDENT_QUICK_ACTIONS,
   type StudentQuickAction,
 } from "@/lib/student-dashboard-mock";
 
 function AttendanceOverviewCard() {
   const cardRef = useRef<HTMLElement>(null);
-  const maxValue = Math.max(...ATTENDANCE_OVERVIEW_BREAKDOWN.map((b) => b.value));
+  const { attendance } = useStudentDashboard();
+
+  const breakdown = [
+    { label: "Present", value: attendance.present, color: "#22C55E" },
+    { label: "Absent", value: attendance.absent, color: "#EF4444" },
+  ];
+  const maxValue = Math.max(attendance.present, attendance.absent, 1);
 
   useGSAP(
     () => {
@@ -42,7 +46,7 @@ function AttendanceOverviewCard() {
 
       if (prefersReducedMotion()) {
         bars.forEach((bar, index) => {
-          const item = ATTENDANCE_OVERVIEW_BREAKDOWN[index];
+          const item = breakdown[index];
           bar.style.height = `${Math.max(((item?.value ?? 0) / maxValue) * 100, 8)}%`;
         });
         return;
@@ -56,7 +60,7 @@ function AttendanceOverviewCard() {
         { height: "0%" },
         {
           height: (index) => {
-            const item = ATTENDANCE_OVERVIEW_BREAKDOWN[index];
+            const item = breakdown[index];
             return `${Math.max(((item?.value ?? 0) / maxValue) * 100, 8)}%`;
           },
           duration: 1.2,
@@ -71,7 +75,7 @@ function AttendanceOverviewCard() {
         }
       );
     },
-    { scope: cardRef }
+    { scope: cardRef, dependencies: [attendance.present, attendance.absent] }
   );
 
   return (
@@ -83,14 +87,14 @@ function AttendanceOverviewCard() {
     >
       <div className="flex w-full items-center justify-center gap-5">
         <RadialProgress
-          value={STUDENT_ATTENDANCE.percentage}
+          value={attendance.percentage}
           size={104}
           strokeWidth={10}
           valueClassName="text-[20px] font-bold text-heading"
         />
 
-        <div className="flex h-[90px] items-end gap-2">
-          {ATTENDANCE_OVERVIEW_BREAKDOWN.map((item) => (
+        <div className="flex h-[90px] items-end gap-2.5">
+          {breakdown.map((item) => (
             <div key={item.label} className="flex h-full w-4 items-end rounded-full bg-heading/5 p-0.5">
               <div
                 className="mini-bar-fill w-full rounded-full"
@@ -101,8 +105,8 @@ function AttendanceOverviewCard() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-        {ATTENDANCE_OVERVIEW_BREAKDOWN.map((item) => (
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+        {breakdown.map((item) => (
           <span
             key={item.label}
             className="flex items-center gap-1.5 text-[11.5px] font-semibold text-heading/60"
@@ -112,7 +116,6 @@ function AttendanceOverviewCard() {
               style={{ backgroundColor: item.color }}
             />
             {item.label}
-            {item.label === "Late" ? `: ${item.value}` : ""}
           </span>
         ))}
       </div>
@@ -122,6 +125,7 @@ function AttendanceOverviewCard() {
 
 function MyRoomDetailsCard() {
   const cardRef = useRef<HTMLElement>(null);
+  const { room } = useStudentDashboard();
 
   useGSAP(
     () => {
@@ -158,7 +162,7 @@ function MyRoomDetailsCard() {
         }
       );
     },
-    { scope: cardRef }
+    { scope: cardRef, dependencies: [room.roommates] }
   );
 
   return (
@@ -172,26 +176,32 @@ function MyRoomDetailsCard() {
         <p className="text-[11px] font-semibold uppercase tracking-wide text-heading/40">
           Floor
         </p>
-        <p className="text-[14px] font-bold text-heading">{MY_ROOM_DETAILS.floor}</p>
+        <p className="text-[14px] font-bold text-heading">{room.floor}</p>
       </div>
 
       <div className="min-h-0 flex-1">
         <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-heading/40">
           Roommates
         </p>
-        <div className="flex flex-col gap-1.5 overflow-y-auto">
-          {MY_ROOM_DETAILS.roommates.map((mate) => (
-            <div key={mate.id} className="roommate-item flex items-center gap-2.5 rounded-xl p-1.5">
-              <InitialsAvatar initials={mate.initials} size={30} />
-              <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-heading">
-                {mate.name}
-              </span>
-              <span className="shrink-0 rounded-full border border-heading/10 bg-heading/5 px-2 py-0.5 text-[10.5px] font-semibold text-heading/60">
-                {mate.bed}
-              </span>
-            </div>
-          ))}
-        </div>
+        {room.roommates.length === 0 ? (
+          <p className="py-4 text-center text-[12.5px] font-medium text-heading/40">
+            No roommates assigned
+          </p>
+        ) : (
+          <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[140px] pr-1">
+            {room.roommates.map((mate) => (
+              <div key={mate.id} className="roommate-item flex items-center gap-2.5 rounded-xl p-1.5">
+                <InitialsAvatar initials={mate.initials} size={30} />
+                <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-heading">
+                  {mate.name}
+                </span>
+                <span className="shrink-0 rounded-full border border-heading/10 bg-heading/5 px-2 py-0.5 text-[10.5px] font-semibold text-heading/60">
+                  {mate.bed}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </DashboardCard>
   );
@@ -205,17 +215,30 @@ const NOTIFICATION_ICON = {
 
 function RecentNotificationsCard() {
   const cardRef = useRef<HTMLElement>(null);
+  const { notifications } = useStudentDashboard();
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleScroll = () => {
+    setIsScrolling(true);
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsScrolling(false);
+    }, 1000);
+  };
 
   useGSAP(
     () => {
-      const notifications = cardRef.current
+      const notificationItems = cardRef.current
         ? gsap.utils.toArray<HTMLElement>(".notification-item", cardRef.current)
         : [];
 
-      if (!notifications.length) return;
+      if (!notificationItems.length) return;
 
       if (prefersReducedMotion()) {
-        gsap.set(notifications, { opacity: 1, x: 0, scale: 1 });
+        gsap.set(notificationItems, { opacity: 1, x: 0, scale: 1 });
         return;
       }
 
@@ -223,14 +246,14 @@ function RecentNotificationsCard() {
         document.getElementById("dashboard-scroll-container") || undefined;
 
       gsap.fromTo(
-        notifications,
+        notificationItems,
         { opacity: 0, x: -25, scale: 0.95 },
         {
           opacity: 1,
           x: 0,
           scale: 1,
           duration: 0.5,
-          stagger: 0.1,
+          stagger: 0.08,
           ease: "power2.out",
           scrollTrigger: {
             trigger: cardRef.current,
@@ -241,38 +264,52 @@ function RecentNotificationsCard() {
         }
       );
     },
-    { scope: cardRef }
+    { scope: cardRef, dependencies: [notifications] }
   );
 
   return (
     <DashboardCard
       ref={cardRef}
       title="Recent Notifications"
-      className="sa-dashboard-card sa-dashboard-card--mist flex h-full flex-col"
-      bodyClassName="flex flex-1 flex-col gap-1 overflow-y-auto px-[19px] pb-3 pt-2"
+      className="sa-dashboard-card sa-dashboard-card--mist flex h-full flex-col overflow-hidden"
+      bodyClassName="flex flex-1 flex-col overflow-hidden px-[19px] pb-3 pt-2"
     >
-      {RECENT_NOTIFICATIONS.map((note, index) => {
-        const Icon = NOTIFICATION_ICON[note.type];
-        return (
-          <div
-            key={note.id}
-            className={
-              "notification-item flex items-start gap-2.5 py-2.5" +
-              (index !== RECENT_NOTIFICATIONS.length - 1 ? " border-b border-heading/5" : "")
-            }
-          >
-            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Icon className="h-3.5 w-3.5" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-heading/40">{note.date}</p>
-              <p className="text-[12.5px] font-medium leading-snug text-heading/80">
-                {note.message}
-              </p>
-            </div>
-          </div>
-        );
-      })}
+      {notifications.length === 0 ? (
+        <p className="py-8 text-center text-[12.5px] font-medium text-heading/40">
+          No notifications yet
+        </p>
+      ) : (
+        <div
+          onScroll={handleScroll}
+          className={cn(
+            "flex flex-1 flex-col gap-1 overflow-y-auto max-h-[220px] pr-1.5 oasys-scrollbar-autohide",
+            isScrolling && "is-scrolling"
+          )}
+        >
+          {notifications.map((note, index) => {
+            const Icon = NOTIFICATION_ICON[note.type] || Bell;
+            return (
+              <div
+                key={note.id}
+                className={
+                  "notification-item flex items-start gap-2.5 py-2.5" +
+                  (index !== notifications.length - 1 ? " border-b border-heading/5" : "")
+                }
+              >
+                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold text-heading/40">{note.date}</p>
+                  <p className="text-[12.5px] font-medium leading-snug text-heading/80">
+                    {note.message}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </DashboardCard>
   );
 }

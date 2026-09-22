@@ -65,8 +65,8 @@ export function SuperAdminDashboardSkeleton() {
       </div>
 
       {/* ── ROW 3: Second Row (4 cards) Skeleton ── */}
-      <div className="xl:min-h-[300px]">
-        <div className="grid h-full min-h-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-5">
+      <div className="w-full">
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-5 items-stretch">
           {/* Student Overview Skeleton */}
           <div className="sa-dashboard-card sa-dashboard-card--violet flex h-full flex-col min-h-[300px] rounded-[22px] border border-white/60 bg-white/70 p-5 backdrop-blur-[20px]">
             <div className="border-b border-heading/5 pb-3">
@@ -133,8 +133,8 @@ export function SuperAdminDashboardSkeleton() {
       </div>
 
       {/* ── ROW 4: Third Row (4 cards) Skeleton ── */}
-      <div className="xl:min-h-[280px]">
-        <div className="grid h-full min-h-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr_0.9fr] xl:gap-5">
+      <div className="w-full">
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr_0.9fr] xl:gap-5 items-stretch">
           {/* Attendance Analytics Skeleton */}
           <div className="sa-dashboard-card sa-dashboard-card--violet flex h-full flex-col min-h-[260px] rounded-[22px] border border-white/60 bg-white/70 p-5 backdrop-blur-[20px]">
             <div className="border-b border-heading/5 pb-3">

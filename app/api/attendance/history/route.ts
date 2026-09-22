@@ -5,7 +5,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { AttendanceRecord } from "@/models/AttendanceRecord";
+import { AttendanceSession } from "@/models/AttendanceSession";
 import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt";
+
+export const dynamic = "force-dynamic";
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString("en-IN", {
@@ -67,9 +70,26 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    const totalMarked = records.length;
-    const presentCount = records.filter((r) => r.status === "present").length;
-    const lateCount = records.filter((r) => r.status === "late").length;
+    // All-time records for accurate dynamic statistics
+    const allStudentRecords = await AttendanceRecord.find({ student: targetStudentId }).lean();
+    const presentCount = allStudentRecords.filter((r) => r.status === "present" || r.status === "late").length;
+    const explicitAbsent = allStudentRecords.filter((r) => r.status === "absent").length;
+
+    // Check sessions to count unattended sessions as absent
+    const sessionDates = await AttendanceSession.distinct("date");
+    const attendedDates = new Set(
+      allStudentRecords
+        .filter((r) => r.status === "present" || r.status === "late")
+        .map((r) => r.date)
+    );
+    const missedSessions = sessionDates.filter((d) => !attendedDates.has(d)).length;
+    const absentCount = Math.max(explicitAbsent, missedSessions);
+
+    const totalMarked = allStudentRecords.length;
+    const totalAttendance = presentCount + absentCount;
+    const attendancePercentage = totalAttendance > 0
+      ? Math.round((presentCount / totalAttendance) * 100)
+      : 0;
 
     return NextResponse.json(
       {
@@ -77,8 +97,12 @@ export async function GET(request: NextRequest) {
         stats: {
           totalMarked,
           presentCount,
-          lateCount,
-          attendancePct: totalMarked > 0 ? Math.round((presentCount / totalMarked) * 100) : 100,
+          present: presentCount,
+          absentCount,
+          absent: absentCount,
+          lateCount: 0,
+          attendancePct: attendancePercentage,
+          percentage: attendancePercentage,
         },
       },
       {

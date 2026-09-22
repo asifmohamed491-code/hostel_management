@@ -15,21 +15,23 @@
 import { WelcomeCard } from "@/components/dashboard/content/WelcomeAttendanceRow";
 import { StudentSummaryRow } from "@/components/dashboard/content/student/StudentSummaryRow";
 import { StudentBottomRow } from "@/components/dashboard/content/student/StudentBottomRow";
-import { STUDENT_PROFILE } from "@/lib/student-dashboard-mock";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import {
+  StudentDashboardProvider,
+  useStudentDashboard,
+} from "@/hooks/useStudentDashboard";
 
-export function StudentDashboardOverview() {
-  const { user, loading } = useCurrentUser();
+function StudentDashboardContent() {
+  const { user, loading } = useStudentDashboard();
   const safeStudentName = user?.fullName?.trim() || "Student";
-  const regNo = user?.registerNumber || STUDENT_PROFILE.registerNo;
-  const dept = user?.department || STUDENT_PROFILE.department;
-  const year = user?.year || STUDENT_PROFILE.year;
-  const block = user?.hostelBlock || STUDENT_PROFILE.block;
+  const regNo = user?.registerNumber || "—";
+  const dept = user?.department || "—";
+  const year = user?.year ? `${user.year} Year` : "—";
+  const block = user?.hostelBlock || "Block Not Assigned";
   const room = user?.roomNumber
     ? user.roomNumber.startsWith("Room")
       ? user.roomNumber
       : `Room ${user.roomNumber}`
-    : `Room ${STUDENT_PROFILE.room}`;
+    : "Room Not Assigned";
   const details = `Register No: ${regNo} | Department: ${dept} | Year: ${year} | ${block} | ${room}`;
 
   return (
@@ -44,5 +46,13 @@ export function StudentDashboardOverview() {
       <StudentSummaryRow />
       <StudentBottomRow />
     </div>
+  );
+}
+
+export function StudentDashboardOverview() {
+  return (
+    <StudentDashboardProvider>
+      <StudentDashboardContent />
+    </StudentDashboardProvider>
   );
 }

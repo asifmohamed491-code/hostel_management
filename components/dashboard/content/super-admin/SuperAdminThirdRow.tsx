@@ -248,7 +248,7 @@ function RecentSystemActivity() {
       className="sa-dashboard-card sa-dashboard-card--pearl flex h-full flex-col overflow-hidden"
       bodyClassName="flex flex-1 flex-col overflow-hidden px-4 pb-4 pt-3"
     >
-      <div ref={containerRef} className="flex flex-1 flex-col overflow-y-auto oasys-scrollbar pr-1">
+      <div ref={containerRef} className="flex flex-1 flex-col overflow-y-auto oasys-scrollbar pr-1 max-h-[250px]">
         {activities.length === 0 ? (
           <p className="py-8 text-center text-[12.5px] font-medium text-heading/45">
             No recent activity recorded
@@ -435,7 +435,7 @@ function SystemStatusCard() {
 
 export function SuperAdminThirdRow() {
   return (
-    <div className="grid min-h-0 h-full grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr_0.9fr] xl:gap-5">
+    <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr_0.9fr] xl:gap-5 items-stretch">
       <AttendanceAnalyticsChart />
       <RecentSystemActivity />
       <SuperAdminQuickActions />

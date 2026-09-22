@@ -278,7 +278,7 @@ function WardenOverviewCard() {
 
 export function SuperAdminSecondRow() {
   return (
-    <div className="grid h-full min-h-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-5">
+    <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-5 items-stretch">
       <StudentOverviewCard />
       <HostelOccupancyCard />
       <HostelBlockOverviewCard />
