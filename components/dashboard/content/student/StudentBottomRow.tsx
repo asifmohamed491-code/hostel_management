@@ -195,9 +195,6 @@ function MyRoomDetailsCard() {
                 <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-heading">
                   {mate.name}
                 </span>
-                <span className="shrink-0 rounded-full border border-heading/10 bg-heading/5 px-2 py-0.5 text-[10.5px] font-semibold text-heading/60">
-                  {mate.bed}
-                </span>
               </div>
             ))}
           </div>

@@ -32,9 +32,9 @@ function MyRoomCard() {
       ref={cardRef}
       title="My Room"
       className="sa-dashboard-card sa-dashboard-card--violet flex h-full flex-col"
-      bodyClassName="flex flex-1 items-center justify-between gap-3 px-[19px] pb-5 pt-3"
+      bodyClassName="flex flex-1 items-center justify-between gap-4 px-[19px] pb-5 pt-3"
     >
-      <dl className="flex flex-col gap-3.5 sm:gap-4">
+      <dl className="flex flex-col justify-center gap-4 py-0.5">
         <div>
           <dt className="text-[12px] font-medium text-heading/50">
             Block
