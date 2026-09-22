@@ -71,10 +71,10 @@ function SuperAdminDashboardContent() {
       />
 
       <SuperAdminStatCardsRow />
-      <div className="xl:min-h-[300px]">
+      <div className="xl:h-[300px]">
         <SuperAdminSecondRow />
       </div>
-      <div className="xl:min-h-[280px]">
+      <div className="xl:h-[320px]">
         <SuperAdminThirdRow />
       </div>
     </div>

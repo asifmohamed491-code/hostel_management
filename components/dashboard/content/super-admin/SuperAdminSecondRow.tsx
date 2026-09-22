@@ -40,10 +40,6 @@ function StudentOverviewCard() {
           <LegendDot color="#6E42F5" />
           Allocated: {overview.allocated}
         </span>
-        <span className="flex items-center gap-1.5">
-          <LegendDot color="#E3D8FB" />
-          Unassigned: {overview.unallocated}
-        </span>
       </div>
     </DashboardCard>
   );
@@ -250,9 +246,8 @@ function WardenOverviewCard() {
       </p>
 
       <div ref={containerRef} className="mt-3 flex flex-1 flex-col">
-        <div className="grid grid-cols-[1.4fr_1fr_0.9fr] gap-2 border-b border-heading/[0.06] pb-2 text-[11px] font-semibold uppercase tracking-wide text-heading/35">
-          <span>Recent</span>
-          <span>Block</span>
+        <div className="grid grid-cols-[1fr_auto] gap-2 border-b border-heading/[0.06] pb-2 text-[11px] font-semibold uppercase tracking-wide text-heading/35">
+          <span>Warden</span>
           <span>Status</span>
         </div>
         <div className="flex flex-col divide-y divide-heading/[0.05]">
@@ -262,9 +257,8 @@ function WardenOverviewCard() {
             </p>
           ) : (
             wardenOverview.recent.map((row) => (
-              <div key={row.id} className="warden-row-item grid grid-cols-[1.4fr_1fr_0.9fr] items-center gap-2 py-2.5">
+              <div key={row.id} className="warden-row-item grid grid-cols-[1fr_auto] items-center gap-2 py-2.5">
                 <span className="truncate text-[13px] font-semibold text-heading">{row.name}</span>
-                <span className="truncate text-[12.5px] font-medium text-heading/55">{row.block}</span>
                 <span
                   className={cn(
                     "w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold",
