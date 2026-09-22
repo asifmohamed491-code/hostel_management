@@ -1,10 +1,12 @@
-// app/api/auth/forgot-password/verify-otp/route.ts
+﻿// app/api/auth/forgot-password/verify-otp/route.ts
 // Validates the OTP server-side (never trusted from the frontend
-// alone). On success, the OTP is cleared immediately — it is single-use
-// and cannot be replayed — and a short-lived reset-session token is
+// alone). On success, the OTP is cleared immediately â€” it is single-use
+// and cannot be replayed â€” and a short-lived reset-session token is
 // issued so the client can proceed to /reset-password without the OTP
 // itself granting password-change access indefinitely.
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { connectToDatabase } from "@/lib/mongodb";
 import { PasswordResetOtp } from "@/models/PasswordResetOtp";
 import { otpVerifySchema } from "@/lib/validation";

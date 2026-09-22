@@ -1,5 +1,7 @@
-// app/api/students/route.ts
+﻿// app/api/students/route.ts
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { getAuthPayload, toSafeUser } from "@/lib/auth";
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const studentData = parsed.data as AddStudentSchema;
 
-    // Never trust a role from the client — confirmPassword is intentionally
+    // Never trust a role from the client â€” confirmPassword is intentionally
     // dropped since only the hashed `password` is persisted.
     const { fullName, email: rawEmail, phoneNumber, department, year, roomNumber, password, registerNumber, hostelBlock } = studentData;
 

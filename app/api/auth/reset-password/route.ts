@@ -5,6 +5,8 @@
 // and calling save() — the exact mechanism signup/login already rely
 // on) rather than re-implementing password hashing here.
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { PasswordResetOtp } from "@/models/PasswordResetOtp";

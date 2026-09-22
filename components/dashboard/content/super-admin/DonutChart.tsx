@@ -55,10 +55,21 @@ export function DonutChart({
     : "";
   const targetNum = numericMatch ? parseInt(numericMatch[0], 10) : 0;
 
+  const hasAnimatedRef = useRef(false);
+
   useGSAP(
     () => {
       if (prefersReducedMotion()) {
         if (countRef.current) countRef.current.textContent = centerValue;
+        hasAnimatedRef.current = true;
+        return;
+      }
+
+      // After initial animation, just silently update the center value
+      if (hasAnimatedRef.current) {
+        if (countRef.current) {
+          countRef.current.textContent = centerValue;
+        }
         return;
       }
 
@@ -71,6 +82,9 @@ export function DonutChart({
           scroller: scrollerEl,
           start: "top 88%",
           once: true,
+        },
+        onComplete: () => {
+          hasAnimatedRef.current = true;
         },
       });
 

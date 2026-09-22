@@ -92,6 +92,7 @@ function HostelOccupancyCard() {
 
 function HostelBlockOverviewCard() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
   const { stats } = useSuperAdminDashboard();
   const blocks = stats?.hostelBlocks ?? [];
 
@@ -108,6 +109,14 @@ function HostelBlockOverviewCard() {
       if (prefersReducedMotion()) {
         gsap.set(rows, { opacity: 1, y: 0 });
         gsap.set(bars, { scaleX: 1 });
+        hasAnimatedRef.current = true;
+        return;
+      }
+
+      // After initial animation, skip entrance animations on background poll updates
+      if (hasAnimatedRef.current) {
+        gsap.set(rows, { opacity: 1, y: 0 });
+        gsap.set(bars, { scaleX: 1 });
         return;
       }
 
@@ -118,6 +127,9 @@ function HostelBlockOverviewCard() {
           scroller: scrollerEl,
           start: "top 85%",
           once: true,
+        },
+        onComplete: () => {
+          hasAnimatedRef.current = true;
         },
       });
 
@@ -175,6 +187,7 @@ const WARDEN_STATUS_STYLES: Record<string, string> = {
 
 function WardenOverviewCard() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
   const { stats } = useSuperAdminDashboard();
   const wardenOverview = stats?.wardenOverview ?? {
     total: 0,
@@ -192,6 +205,13 @@ function WardenOverviewCard() {
 
       if (prefersReducedMotion()) {
         gsap.set(rows, { opacity: 1, y: 0 });
+        hasAnimatedRef.current = true;
+        return;
+      }
+
+      // After initial animation, skip entrance animations on background poll updates
+      if (hasAnimatedRef.current) {
+        gsap.set(rows, { opacity: 1, y: 0 });
         return;
       }
 
@@ -208,6 +228,9 @@ function WardenOverviewCard() {
             scroller: scrollerEl,
             start: "top 85%",
             once: true,
+          },
+          onComplete: () => {
+            hasAnimatedRef.current = true;
           },
         }
       );

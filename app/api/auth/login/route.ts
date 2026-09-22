@@ -1,5 +1,7 @@
-// app/api/auth/login/route.ts
+﻿// app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { generateToken, AUTH_COOKIE_NAME } from "@/lib/jwt";

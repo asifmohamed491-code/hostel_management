@@ -6,11 +6,12 @@
 // - Second row cards (Student Overview, Hostel Occupancy, Hostel Block Overview, Warden Overview)
 // - Third row cards (Attendance Analytics, Recent System Activity, System Status)
 //
-// Follows the same pattern as hooks/useWardenAttendanceStats.tsx:
-// 1. Unified loading state
-// 2. Synchronized 15-second background polling
-// 3. Window focus synchronization
-// 4. Zero fake data flash
+// Guarantees:
+// 1. Initial dashboard load occurs exactly ONCE on mount
+// 2. No recursive re-fetching or re-render loops
+// 3. Stable 15-second background polling without resetting loading states
+// 4. Stable window focus synchronization
+// 5. In-flight request deduplication
 "use client";
 
 import React, {
@@ -85,7 +86,12 @@ export function SuperAdminDashboardProvider({
   const [isDashboardReady, setIsDashboardReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // References to keep callbacks completely stable without re-creation
   const isMountedRef = useRef(true);
+  const isFetchingRef = useRef(false);
+  const isDashboardReadyRef = useRef(false);
+  const statsRef = useRef<SuperAdminDashboardStats | null>(null);
+
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -93,58 +99,76 @@ export function SuperAdminDashboardProvider({
     };
   }, []);
 
-  const fetchDashboardData = useCallback(
-    async (isBackground = false) => {
-      if (!isBackground && !isDashboardReady) {
-        setLoading(true);
-        setError(null);
-      }
-
-      try {
-        const res = await fetch("/api/super-admin/stats", {
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        if (!res.ok) {
-          const errBody = await res.json().catch(() => null);
-          throw new Error(
-            errBody?.message || "Failed to load Super Admin dashboard statistics"
-          );
-        }
-
-        const data: SuperAdminDashboardStats = await res.json();
-
-        if (!isMountedRef.current) return;
-
-        setStats(data);
-        setIsDashboardReady(true);
-        setError(null);
-      } catch (err) {
-        if (!isMountedRef.current) return;
-        if (!stats) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Unable to load Super Admin dashboard"
-          );
-        }
-      } finally {
-        if (isMountedRef.current) {
-          setLoading(false);
-        }
-      }
-    },
-    [isDashboardReady, stats]
-  );
+  useEffect(() => {
+    isDashboardReadyRef.current = isDashboardReady;
+  }, [isDashboardReady]);
 
   useEffect(() => {
+    statsRef.current = stats;
+  }, [stats]);
+
+  // Completely stable fetch callback — empty dependencies, uses refs
+  const fetchDashboardData = useCallback(async (isBackground = false) => {
+    // Prevent overlapping requests
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
+    // Only set visible loading state on initial fetch before data is ready
+    if (!isBackground && !isDashboardReadyRef.current) {
+      setLoading(true);
+      setError(null);
+    }
+
+    try {
+      const res = await fetch("/api/super-admin/stats", {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        throw new Error(
+          errBody?.message || "Failed to load Super Admin dashboard statistics"
+        );
+      }
+
+      const data: SuperAdminDashboardStats = await res.json();
+
+      if (!isMountedRef.current) return;
+
+      isDashboardReadyRef.current = true;
+      statsRef.current = data;
+      setStats(data);
+      setIsDashboardReady(true);
+      setError(null);
+    } catch (err) {
+      if (!isMountedRef.current) return;
+      // Only set error if no previous data has been loaded
+      if (!statsRef.current) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load Super Admin dashboard"
+        );
+      }
+    } finally {
+      isFetchingRef.current = false;
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Initial fetch once on mount
     fetchDashboardData(false);
 
+    // 15-second background polling
     const interval = setInterval(() => {
       fetchDashboardData(true);
     }, 15000);
 
+    // Refetch on window focus
     const handleFocus = () => {
       fetchDashboardData(true);
     };
@@ -187,4 +211,3 @@ export function useSuperAdminDashboard() {
   }
   return context;
 }
-

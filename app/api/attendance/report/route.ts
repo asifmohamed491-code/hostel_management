@@ -3,6 +3,8 @@
 // GET /api/attendance/report
 // Warden/Super-admin API to retrieve full attendance records for reports & exports.
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { connectToDatabase } from "@/lib/mongodb";
 import { AttendanceRecord } from "@/models/AttendanceRecord";
 import { User } from "@/models/User";

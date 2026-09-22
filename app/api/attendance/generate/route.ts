@@ -1,4 +1,4 @@
-// app/api/attendance/generate/route.ts
+﻿// app/api/attendance/generate/route.ts
 //
 // POST /api/attendance/generate
 // Warden-only: creates a new attendance session for today.
@@ -6,6 +6,8 @@
 // a fresh one with a cryptographically random token.
 // Sends "Attendance Open" notification to all students.
 import crypto from "crypto";
+
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
@@ -18,7 +20,7 @@ function getTodayString(): string {
 }
 
 export async function POST(request: NextRequest) {
-  // ── Auth ──
+  // â”€â”€ Auth â”€â”€
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
   if (!token) {
     return NextResponse.json({ message: "Not authenticated." }, { status: 401 });
@@ -29,7 +31,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Session expired." }, { status: 401 });
   }
 
-  // ── Role check ──
+  // â”€â”€ Role check â”€â”€
   if (payload.role !== "warden") {
     return NextResponse.json({ message: "Forbidden." }, { status: 403 });
   }

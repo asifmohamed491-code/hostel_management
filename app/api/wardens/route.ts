@@ -1,5 +1,7 @@
-// app/api/wardens/route.ts
+﻿// app/api/wardens/route.ts
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { getAuthPayload, toSafeUser } from "@/lib/auth";
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Role is never taken from the client — always forced to "warden".
+    // Role is never taken from the client â€” always forced to "warden".
     const { fullName, phone, password } = parsed.data;
 
     const warden = await User.create({

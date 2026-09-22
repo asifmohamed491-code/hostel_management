@@ -4,6 +4,8 @@
 // both times, and every call invalidates whatever OTP/reset-token
 // existed before it.
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { PasswordResetOtp } from "@/models/PasswordResetOtp";

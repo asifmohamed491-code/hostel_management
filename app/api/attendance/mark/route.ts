@@ -1,4 +1,4 @@
-// app/api/attendance/mark/route.ts
+﻿// app/api/attendance/mark/route.ts
 //
 // POST /api/attendance/mark
 // Student-only: marks attendance for today by validating:
@@ -9,6 +9,8 @@
 // 5. Server-side Haversine geofence calculation (<= 320m)
 // 6. Creates notifications for the student & wardens
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { AttendanceSession } from "@/models/AttendanceSession";
@@ -30,7 +32,7 @@ function formatTime(date: Date): string {
 }
 
 export async function POST(request: NextRequest) {
-  // ── 1. Auth ──
+  // â”€â”€ 1. Auth â”€â”€
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
   if (!token) {
     return NextResponse.json({ code: "UNAUTHORIZED", message: "Not authenticated." }, { status: 401 });
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ code: "SESSION_EXPIRED", message: "Session expired." }, { status: 401 });
   }
 
-  // ── 2. Role check ──
+  // â”€â”€ 2. Role check â”€â”€
   if (payload.role !== "student") {
     return NextResponse.json({ code: "FORBIDDEN", message: "Forbidden." }, { status: 403 });
   }
@@ -57,10 +59,10 @@ export async function POST(request: NextRequest) {
     const today = getTodayString();
     const now = new Date();
 
-    // ── 3. Parse JSON body early ──
+    // â”€â”€ 3. Parse JSON body early â”€â”€
     const body = await request.json().catch(() => null);
 
-    // ── 4. Extract and validate QR token ──
+    // â”€â”€ 4. Extract and validate QR token â”€â”€
     let scannedToken = (typeof body?.qrToken === "string" ? body.qrToken : "").trim();
     if (scannedToken.startsWith("{") && scannedToken.endsWith("}")) {
       try {
@@ -83,7 +85,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 5. Look up session in MongoDB by token ──
+    // â”€â”€ 5. Look up session in MongoDB by token â”€â”€
     const session = await AttendanceSession.findOne({ token: scannedToken });
 
     if (!session) {
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 6. Check if session was deactivated/regenerated ──
+    // â”€â”€ 6. Check if session was deactivated/regenerated â”€â”€
     if (!session.active) {
       return NextResponse.json(
         {
@@ -107,7 +109,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 7. Server timestamp source of truth: verify session has not expired ──
+    // â”€â”€ 7. Server timestamp source of truth: verify session has not expired â”€â”€
     if (now.getTime() >= new Date(session.expiresAt).getTime()) {
       await AttendanceSession.updateOne(
         { _id: session._id },
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 8. Ensure this session is the current active session in the database ──
+    // â”€â”€ 8. Ensure this session is the current active session in the database â”€â”€
     const currentActiveSession = await AttendanceSession.findOne({ active: true }).sort({ createdAt: -1 });
     if (!currentActiveSession || currentActiveSession._id.toString() !== session._id.toString()) {
       return NextResponse.json(
@@ -137,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     const attendanceDate = session.date || today;
 
-    // ── 9. Check duplicate attendance for the session date ──
+    // â”€â”€ 9. Check duplicate attendance for the session date â”€â”€
     const existingRecord = await AttendanceRecord.findOne({
       student: student._id,
       date: attendanceDate,
@@ -166,7 +168,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 10. Parse & validate GPS payload ──
+    // â”€â”€ 10. Parse & validate GPS payload â”€â”€
     const latitude = typeof body?.latitude === "number" ? body.latitude : NaN;
     const longitude = typeof body?.longitude === "number" ? body.longitude : NaN;
     const accuracy = typeof body?.accuracy === "number" ? body.accuracy : NaN;
@@ -190,7 +192,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 11. Check GPS accuracy threshold ──
+    // â”€â”€ 11. Check GPS accuracy threshold â”€â”€
     if (accuracy > HOSTEL_GEOFENCE.maxAccuracyMeters) {
       return NextResponse.json(
         {
@@ -203,7 +205,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 12. Server-side Haversine distance calculation ──
+    // â”€â”€ 12. Server-side Haversine distance calculation â”€â”€
     const distanceMeters = calculateDistanceMeters(
       latitude,
       longitude,
@@ -212,7 +214,7 @@ export async function POST(request: NextRequest) {
     );
     const roundedDistance = Math.round(distanceMeters);
 
-    // ── 13. Geofence radius check ──
+    // â”€â”€ 13. Geofence radius check â”€â”€
     if (distanceMeters > HOSTEL_GEOFENCE.radiusMeters) {
       return NextResponse.json(
         {
@@ -225,20 +227,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 14. Create attendance record with full profile & GPS details ──
+    // â”€â”€ 14. Create attendance record with full profile & GPS details â”€â”€
     const markedAt = new Date();
     const timeStr = formatTime(markedAt);
 
-    const regNumber = student.registerNumber?.trim() || "—";
+    const regNumber = student.registerNumber?.trim() || "â€”";
 
     const record = await AttendanceRecord.create({
       student: student._id,
       studentName: student.fullName,
       registerNumber: regNumber,
-      department: student.department?.trim() || "—",
-      year: student.year?.trim() || "—",
-      hostelBlock: student.hostelBlock?.trim() || "—",
-      roomNumber: student.roomNumber?.trim() || "—",
+      department: student.department?.trim() || "â€”",
+      year: student.year?.trim() || "â€”",
+      hostelBlock: student.hostelBlock?.trim() || "â€”",
+      roomNumber: student.roomNumber?.trim() || "â€”",
       date: attendanceDate,
       markedAt,
       status: "present",
@@ -253,7 +255,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // ── 10. Notifications: Student confirmation + Warden notification ──
+    // â”€â”€ 10. Notifications: Student confirmation + Warden notification â”€â”€
     try {
       // Notification for the student
       await Notification.create({

@@ -2,10 +2,8 @@
 //
 // The Super Admin dashboard's 6-card top row (Total Students / Total
 // Wardens / Total Hostel Blocks / Total Rooms / Room Occupancy /
-// Active Users), matching the reference screenshot. Same glass stat-
-// card shell + count-up GSAP pattern as the Warden dashboard's
-// StatCardsRow.tsx, extended with a leading icon and an optional
-// progress bar (Room Occupancy) instead of a caption line.
+// Active Users). Live MongoDB stats with count-up animation on initial load,
+// and silent updates on background polling.
 "use client";
 
 import { useRef } from "react";
@@ -26,6 +24,7 @@ const ICONS: Record<StatCardIcon, ComponentType<SVGProps<SVGSVGElement>>> = {
 
 export function SuperAdminStatCardsRow() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
   const { stats } = useSuperAdminDashboard();
   const cards = stats?.statCards ?? [];
 
@@ -48,6 +47,18 @@ export function SuperAdminStatCardsRow() {
           el.textContent = String(cards[index]?.value ?? "0");
         });
         gsap.set(bars, { scaleX: 1 });
+        hasAnimatedRef.current = true;
+        return;
+      }
+
+      // If already animated once on initial mount, update values directly without replaying entrance
+      if (hasAnimatedRef.current) {
+        valueElements.forEach((el, index) => {
+          const rawValue = String(cards[index]?.value ?? "0");
+          if (el.textContent !== rawValue) {
+            el.textContent = rawValue;
+          }
+        });
         return;
       }
 
@@ -58,6 +69,9 @@ export function SuperAdminStatCardsRow() {
           scroller: scrollerEl,
           start: "top 85%",
           once: true,
+        },
+        onComplete: () => {
+          hasAnimatedRef.current = true;
         },
       });
 

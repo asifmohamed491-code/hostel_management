@@ -54,6 +54,7 @@ function buildSmoothPath(points: Point[]): string {
 
 function AttendanceAnalyticsChart() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
   const { stats } = useSuperAdminDashboard();
   const analyticsData = stats?.attendanceAnalytics ?? [];
 
@@ -80,6 +81,13 @@ function AttendanceAnalyticsChart() {
 
       if (prefersReducedMotion()) {
         gsap.set(paths, { strokeDasharray: "none", strokeDashoffset: 0 });
+        hasAnimatedRef.current = true;
+        return;
+      }
+
+      // After initial animation, skip entrance animations on background poll updates
+      if (hasAnimatedRef.current) {
+        gsap.set(paths, { strokeDasharray: "none", strokeDashoffset: 0 });
         return;
       }
 
@@ -98,6 +106,9 @@ function AttendanceAnalyticsChart() {
           scroller: scrollerEl,
           start: "top 85%",
           once: true,
+        },
+        onComplete: () => {
+          hasAnimatedRef.current = true;
         },
       });
     },
@@ -185,6 +196,7 @@ const ACTIVITY_ICONS: Record<SystemActivityIcon, ComponentType<SVGProps<SVGSVGEl
 
 function RecentSystemActivity() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
   const { stats } = useSuperAdminDashboard();
   const activities = stats?.recentActivity ?? [];
 
@@ -196,6 +208,13 @@ function RecentSystemActivity() {
       const scrollerEl = document.getElementById("dashboard-scroll-container") || undefined;
 
       if (prefersReducedMotion()) {
+        gsap.set(rows, { opacity: 1, x: 0 });
+        hasAnimatedRef.current = true;
+        return;
+      }
+
+      // After initial animation, skip entrance animations on background poll updates
+      if (hasAnimatedRef.current) {
         gsap.set(rows, { opacity: 1, x: 0 });
         return;
       }
@@ -213,6 +232,9 @@ function RecentSystemActivity() {
             scroller: scrollerEl,
             start: "top 85%",
             once: true,
+          },
+          onComplete: () => {
+            hasAnimatedRef.current = true;
           },
         }
       );
@@ -343,6 +365,7 @@ const STATUS_DOT_COLOR: Record<string, string> = {
 
 function SystemStatusCard() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
   const { stats } = useSuperAdminDashboard();
   const systemStatus = stats?.systemStatus ?? [];
   const summary = stats?.systemStatusSummary ?? "All Systems Operational";
@@ -355,6 +378,13 @@ function SystemStatusCard() {
       const scrollerEl = document.getElementById("dashboard-scroll-container") || undefined;
 
       if (prefersReducedMotion()) {
+        gsap.set(rows, { opacity: 1, y: 0 });
+        hasAnimatedRef.current = true;
+        return;
+      }
+
+      // After initial animation, skip entrance animations on background poll updates
+      if (hasAnimatedRef.current) {
         gsap.set(rows, { opacity: 1, y: 0 });
         return;
       }
@@ -372,6 +402,9 @@ function SystemStatusCard() {
             scroller: scrollerEl,
             start: "top 85%",
             once: true,
+          },
+          onComplete: () => {
+            hasAnimatedRef.current = true;
           },
         }
       );

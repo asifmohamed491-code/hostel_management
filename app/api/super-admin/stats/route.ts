@@ -4,7 +4,7 @@
 // Aggregates live MongoDB database metrics for the Super Admin Dashboard:
 // - Total Students, Wardens, Hostel Blocks, Rooms, Occupancy, Active Users
 // - Student Overview (Allocated vs Unassigned)
-// - Hostel Occupancy & Hostel Block breakdown
+// - Hostel Occupancy & Hostel Block breakdown (consistent with Warden Dashboard)
 // - Warden Overview & status
 // - Attendance Analytics (Mon-Sun weekly data)
 // - Recent System Activity (real timestamped events)
@@ -88,11 +88,28 @@ export async function GET(request: NextRequest) {
     const blocksCaption =
       totalHostelBlocks > 0 ? "All blocks active" : "No blocks created";
 
-    // 4. Rooms and Occupancy
+    // 4. Rooms and Room Occupancy
+    // Uses the EXACT same source of truth and calculation logic as Warden Dashboard:
+    // app/api/attendance/stats/route.ts lines 66-81:
+    // roomOccupancyPct = (occupiedStudents / totalRoomCapacity) * 100
     const allRooms = await Room.find({}).lean();
     const totalRooms = allRooms.length;
+    const totalRoomCapacity = allRooms.reduce(
+      (acc, r) => acc + (r.capacity || 4),
+      0
+    );
 
-    // Determine occupied rooms: rooms that have at least 1 student assigned
+    const occupiedStudents = await User.countDocuments({
+      role: "student",
+      roomNumber: { $exists: true, $ne: "" },
+    });
+
+    const roomOccupancyPct =
+      totalRoomCapacity > 0
+        ? Math.round((occupiedStudents / totalRoomCapacity) * 100)
+        : 0;
+
+    // Room-level distribution
     const occupiedRoomAgg = await User.aggregate([
       {
         $match: {
@@ -108,26 +125,31 @@ export async function GET(request: NextRequest) {
       },
     ]);
 
-    const occupiedRoomNumberSet = new Set(
-      occupiedRoomAgg.map((r) => String(r._id).trim())
-    );
+    const roomStudentCountMap = new Map<string, number>();
+    for (const item of occupiedRoomAgg) {
+      roomStudentCountMap.set(String(item._id).trim(), item.count);
+    }
 
-    const occupiedRooms = allRooms.filter((r) =>
-      occupiedRoomNumberSet.has(r.roomNumber.trim())
-    ).length;
+    // Fully occupied vs rooms with vacancies
+    let occupiedRooms = 0;
+    let availableRooms = 0;
 
-    const availableRooms = Math.max(0, totalRooms - occupiedRooms);
-    const roomOccupancyPct =
-      totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+    for (const room of allRooms) {
+      const studentCount =
+        roomStudentCountMap.get(room.roomNumber.trim()) || 0;
+      const capacity = room.capacity || 4;
+      if (studentCount >= capacity) {
+        occupiedRooms++;
+      } else {
+        availableRooms++;
+      }
+    }
 
     // 5. Active Users (all registered accounts in system)
     const totalUsers = await User.countDocuments({});
 
     // 6. Student Overview (Allocated vs Unassigned)
-    const allocatedStudents = await User.countDocuments({
-      role: "student",
-      roomNumber: { $exists: true, $ne: "" },
-    });
+    const allocatedStudents = occupiedStudents;
     const unallocatedStudents = Math.max(0, totalStudents - allocatedStudents);
 
     // 7. Hostel Block Overview
@@ -136,19 +158,35 @@ export async function GET(request: NextRequest) {
         (r) => r.hostelBlock.trim() === blockName
       );
       const blockTotalRooms = blockRooms.length;
-      const blockOccupied = blockRooms.filter((r) =>
-        occupiedRoomNumberSet.has(r.roomNumber.trim())
-      ).length;
-      const blockAvailable = Math.max(0, blockTotalRooms - blockOccupied);
+      const blockCapacity = blockRooms.reduce(
+        (acc, r) => acc + (r.capacity || 4),
+        0
+      );
+
+      let blockStudents = 0;
+      let blockFullRooms = 0;
+      let blockVacantRooms = 0;
+
+      for (const r of blockRooms) {
+        const count = roomStudentCountMap.get(r.roomNumber.trim()) || 0;
+        blockStudents += count;
+        if (count >= (r.capacity || 4)) {
+          blockFullRooms++;
+        } else {
+          blockVacantRooms++;
+        }
+      }
+
+      // Block-level capacity occupancy
       const blockPct =
-        blockTotalRooms > 0
-          ? Math.round((blockOccupied / blockTotalRooms) * 100)
+        blockCapacity > 0
+          ? Math.round((blockStudents / blockCapacity) * 100)
           : 0;
 
       const secondaryLabel: "Available" | "Occupied" =
-        blockAvailable > 0 ? "Available" : "Occupied";
+        blockVacantRooms > 0 ? "Available" : "Occupied";
       const secondaryValue =
-        blockAvailable > 0 ? blockAvailable : blockOccupied;
+        blockVacantRooms > 0 ? blockVacantRooms : blockFullRooms;
 
       return {
         id: blockName.toLowerCase().replace(/\s+/g, "-"),
@@ -441,4 +479,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
