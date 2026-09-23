@@ -215,7 +215,6 @@ export function StudentDashboardProvider({ children }: { children: ReactNode }) 
           id: item.id || String(Math.random()),
           date: formatNotificationDate(item.createdAt),
           title: item.title || "Notification",
-          message: item.message || item.title || "",
           message: formatNotificationMessage(
             item.title || "",
             item.message || item.title || "",

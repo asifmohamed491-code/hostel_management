@@ -36,14 +36,6 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      notifications: notifications.map((notification) => ({
-        id: notification._id.toString(),
-        title: notification.title,
-        message: notification.message,
-        href: notification.href,
-        read: Boolean(notification.readAt),
-        createdAt: notification.createdAt,
-      })),
       notifications: notifications.map((notification) => {
         let message = notification.message;
         // Ensure attendance notifications display actual IST time converted from the stored createdAt timestamp
