@@ -13,7 +13,12 @@ import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt";
 import { HOSTEL_GEOFENCE } from "@/lib/constants/geofence";
 
 function getTodayString(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 export async function GET(request: NextRequest) {
@@ -77,7 +82,10 @@ export async function GET(request: NextRequest) {
           session: null,
           studentRecord,
           geofence: {
+            latitude: HOSTEL_GEOFENCE.latitude,
+            longitude: HOSTEL_GEOFENCE.longitude,
             radiusMeters: HOSTEL_GEOFENCE.radiusMeters,
+            maxAccuracyMeters: HOSTEL_GEOFENCE.maxAccuracyMeters,
           },
         },
         { status: 200 }
@@ -139,7 +147,10 @@ export async function GET(request: NextRequest) {
         },
         studentRecord,
         geofence: {
+          latitude: HOSTEL_GEOFENCE.latitude,
+          longitude: HOSTEL_GEOFENCE.longitude,
           radiusMeters: HOSTEL_GEOFENCE.radiusMeters,
+          maxAccuracyMeters: HOSTEL_GEOFENCE.maxAccuracyMeters,
         },
       },
       { status: 200 }

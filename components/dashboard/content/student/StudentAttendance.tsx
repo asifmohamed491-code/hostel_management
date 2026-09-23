@@ -38,10 +38,8 @@ import {
   QrCode,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { HOSTEL_GEOFENCE, calculateDistanceMeters } from "@/lib/constants/geofence";
+import { calculateDistanceMeters, type GeofenceConfig } from "@/lib/constants/geofence";
 import { Html5Qrcode } from "html5-qrcode";
-
-/* ── Flow stages ──────────────────────────────────────────────────── */
 type Stage =
   | "checking-session"
   | "checking-location"
@@ -114,9 +112,11 @@ const GPS_MAX_USABLE_ACCURACY_M = 200;    // readings worse than this are discar
 const GPS_WATCH_TIMEOUT_MS = 10000;       // per-position watchPosition timeout
 
 function CheckingLocationStage({
+  geofence,
   onVerified,
   onError,
 }: {
+  geofence: GeofenceConfig | null;
   onVerified: (coords: Coords, distanceMeters: number) => void;
   onError: (stage: Stage, extra?: GeoExtra) => void;
 }) {
@@ -156,11 +156,13 @@ function CheckingLocationStage({
         longitude: best.lng,
         accuracy: best.acc,
       };
+      const targetLat = geofence?.latitude ?? 0;
+      const targetLng = geofence?.longitude ?? 0;
       const distance = calculateDistanceMeters(
         coords.latitude,
         coords.longitude,
-        HOSTEL_GEOFENCE.latitude,
-        HOSTEL_GEOFENCE.longitude
+        targetLat,
+        targetLng
       );
       const roundedDistance = Math.round(distance);
 
@@ -170,10 +172,11 @@ function CheckingLocationStage({
         // the authoritative Haversine + accuracy check server-side.
         // We only pre-reject if accuracy is still above our server-side threshold,
         // because the backend would reject it anyway.
-        if (coords.accuracy > GPS_MAX_USABLE_ACCURACY_M) {
+        const maxAcc = geofence?.maxAccuracyMeters ?? GPS_MAX_USABLE_ACCURACY_M;
+        if (coords.accuracy > maxAcc) {
           onError("poor-accuracy", {
             accuracy: Math.round(coords.accuracy),
-            maxAccuracy: HOSTEL_GEOFENCE.maxAccuracyMeters,
+            maxAccuracy: maxAcc,
           });
           return true;
         }
@@ -579,7 +582,6 @@ function SuccessStage({
     hour12: true,
   });
 
-  const hour = now.getHours();
   const istHour = parseInt(
     now.toLocaleTimeString("en-US", {
       timeZone: "Asia/Kolkata",
@@ -589,7 +591,6 @@ function SuccessStage({
     10
   );
   const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
     istHour < 12 ? "Good morning" : istHour < 17 ? "Good afternoon" : "Good evening";
 
   const details = [
@@ -736,6 +737,8 @@ function AlreadyMarkedStage({ record }: { record?: AttendanceResult }) {
 function UnavailableStage({
   type,
   extra,
+  allowedRadius,
+  maxAccuracy,
   onRetry,
 }: {
   type:
@@ -749,6 +752,8 @@ function UnavailableStage({
     | "location-timeout"
     | "error";
   extra?: GeoExtra;
+  allowedRadius?: number;
+  maxAccuracy?: number;
   onRetry: () => void;
 }) {
   const router = useRouter();
@@ -862,7 +867,7 @@ function UnavailableStage({
               </span>
               <span className="inline-flex items-center gap-2 rounded-xl border border-heading/10 bg-heading/[0.02] px-4 py-2 text-[13px] font-semibold text-heading/70">
                 <CircleDot className="h-4 w-4 text-primary" />
-                Allowed Radius: {extra.allowedRadius ?? HOSTEL_GEOFENCE.radiusMeters} m
+                Allowed Radius: {extra.allowedRadius ?? allowedRadius ?? 0} m
               </span>
             </div>
           )}
@@ -876,7 +881,7 @@ function UnavailableStage({
               </span>
               <span className="inline-flex items-center gap-2 rounded-xl border border-heading/10 bg-heading/[0.02] px-4 py-2 text-[13px] font-semibold text-heading/70">
                 <CircleDot className="h-4 w-4 text-primary" />
-                Required Accuracy: ≤ {extra.maxAccuracy ?? HOSTEL_GEOFENCE.maxAccuracyMeters} m
+                Required Accuracy: ≤ {extra.maxAccuracy ?? maxAccuracy ?? 200} m
               </span>
             </div>
           )}
@@ -945,6 +950,7 @@ export function StudentAttendance() {
   const [distanceMeters, setDistanceMeters] = useState<number>(0);
   const [geoExtra, setGeoExtra] = useState<GeoExtra | undefined>(undefined);
   const [record, setRecord] = useState<AttendanceResult>({});
+  const [geofence, setGeofence] = useState<GeofenceConfig | null>(null);
 
   const studentName = user?.fullName?.trim() || "Student";
 
@@ -957,6 +963,9 @@ export function StudentAttendance() {
         if (!res.ok) return;
         const data = await res.json();
         if (cancelled) return;
+        if (data.geofence) {
+          setGeofence(data.geofence);
+        }
         if (data.studentRecord) {
           setRecord(data.studentRecord);
           setStage("already-marked");
@@ -1045,6 +1054,7 @@ export function StudentAttendance() {
 
         {stage === "checking-location" && (
           <CheckingLocationStage
+            geofence={geofence}
             onVerified={handleLocationVerified}
             onError={handleLocationError}
           />
@@ -1053,7 +1063,7 @@ export function StudentAttendance() {
         {stage === "location-verified" && (
           <LocationVerifiedStage
             distanceMeters={distanceMeters}
-            allowedRadius={HOSTEL_GEOFENCE.radiusMeters}
+            allowedRadius={geofence?.radiusMeters ?? 0}
             onContinue={handleContinueToVerify}
           />
         )}
@@ -1087,6 +1097,8 @@ export function StudentAttendance() {
           <UnavailableStage
             type={stage}
             extra={geoExtra}
+            allowedRadius={geofence?.radiusMeters}
+            maxAccuracy={geofence?.maxAccuracyMeters}
             onRetry={handleRetry}
           />
         )}
