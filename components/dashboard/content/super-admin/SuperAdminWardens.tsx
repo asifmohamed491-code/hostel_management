@@ -6,9 +6,10 @@
 // existing DashboardCard / sa-dashboard-card Liquid Glass tokens, and the
 // existing Create Warden page for account creation.
 //
-// Edit / Delete are intentionally not offered here: no update/delete
-// warden API exists, and wardens are referenced by attendance sessions,
-// so removing one safely needs its own reviewed workflow.
+// Each warden has an Edit action (desktop table + mobile cards) that opens
+// the Edit Warden page. Delete is intentionally not offered here:
+// wardens are referenced by attendance sessions, so removing one safely
+// needs its own reviewed workflow.
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,6 +18,7 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  Pencil,
   Search,
   ShieldCheck,
   UserPlus,
@@ -29,6 +31,8 @@ import { getInitials } from "@/lib/user-display";
 import { cn } from "@/lib/cn";
 
 const CREATE_WARDEN_HREF = "/dashboard/super-admin/wardens/create";
+const editWardenHref = (id: string) =>
+  `/dashboard/super-admin/wardens/${encodeURIComponent(id)}/edit`;
 const PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -138,6 +142,19 @@ const GLASS_BUTTON =
   "text-[12.5px] font-semibold text-heading/70 backdrop-blur-md transition-all duration-200 " +
   "hover:border-primary/40 hover:bg-white hover:text-heading disabled:cursor-not-allowed disabled:opacity-50 " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50";
+
+function EditLink({ warden }: { warden: WardenRow }) {
+  return (
+    <Link
+      href={editWardenHref(warden.id)}
+      aria-label={`Edit ${warden.fullName}`}
+      className={GLASS_BUTTON}
+    >
+      <Pencil className="h-3.5 w-3.5" />
+      Edit
+    </Link>
+  );
+}
 
 export function SuperAdminWardens() {
   const [searchInput, setSearchInput] = useState("");
@@ -345,13 +362,14 @@ export function SuperAdminWardens() {
 
             {/* Desktop / tablet table */}
             <div className="oasys-scrollbar hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[720px] border-separate border-spacing-y-2 text-left">
+              <table className="w-full min-w-[800px] border-separate border-spacing-y-2 text-left">
                 <thead>
                   <tr className="text-[11px] font-semibold uppercase tracking-wide text-heading/45">
                     <th className="px-4 pb-1 font-semibold">Warden</th>
                     <th className="px-4 pb-1 font-semibold">Phone</th>
                     <th className="px-4 pb-1 font-semibold">Hostel Block</th>
                     <th className="px-4 pb-1 font-semibold">Created</th>
+                    <th className="px-4 pb-1 text-right font-semibold">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -376,8 +394,11 @@ export function SuperAdminWardens() {
                       <td className="sa-student-action-btn border-y border-slate-200/80 bg-white/80 px-4 py-3 transition-colors group-hover:bg-white">
                         <BlockBadge block={w.hostelBlock} />
                       </td>
-                      <td className="sa-student-action-btn rounded-r-2xl border-y border-r border-slate-200/80 bg-white/80 px-4 py-3 text-[13px] font-medium text-heading/70 transition-colors group-hover:bg-white">
+                      <td className="sa-student-action-btn border-y border-slate-200/80 bg-white/80 px-4 py-3 text-[13px] font-medium text-heading/70 transition-colors group-hover:bg-white">
                         {formatDate(w.createdAt)}
+                      </td>
+                      <td className="sa-student-action-btn rounded-r-2xl border-y border-r border-slate-200/80 bg-white/80 px-4 py-3 text-right transition-colors group-hover:bg-white">
+                        <EditLink warden={w} />
                       </td>
                     </tr>
                   ))}
@@ -418,6 +439,9 @@ export function SuperAdminWardens() {
                       </dd>
                     </div>
                   </dl>
+                  <div className="mt-3 flex justify-end border-t border-heading/[0.06] pt-3">
+                    <EditLink warden={w} />
+                  </div>
                 </li>
               ))}
             </ul>

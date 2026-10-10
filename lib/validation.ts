@@ -121,6 +121,30 @@ export const wardenSchema = z.object({
   password: passwordSchema,
 });
 
+// Super Admin "Edit Warden" — used by the edit form (client) and by
+// PATCH /api/wardens/[id] (server, via `.partial()`). Deliberately has NO
+// role, password, id or other security-sensitive keys, and is `.strict()`
+// so a request that tries to send one (e.g. `role: "super_admin"`) is
+// rejected outright instead of silently ignored. `hostelBlock` may be an
+// empty string, which means "Unassigned".
+export const wardenUpdateSchema = z
+  .object({
+    fullName: z
+      .string()
+      .trim()
+      .min(2, "Full name must be at least 2 characters")
+      .max(60, "Full name is too long"),
+    email: z.string().trim().pipe(collegeEmailSchema),
+    phone: z
+      .string()
+      .trim()
+      .min(10, "Enter a valid phone number")
+      .max(15, "Enter a valid phone number")
+      .regex(/^[0-9+\s-]+$/, "Enter a valid phone number"),
+    hostelBlock: z.string().trim().max(40, "Hostel block name is too long"),
+  })
+  .strict();
+
 // Client-only variant of wardenSchema for the "Create Warden" dashboard
 // form (components/dashboard/forms usage). Adds a confirmPassword field
 // purely for UI confirmation — it's stripped before the request body is
@@ -171,6 +195,7 @@ export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
 export type SignupSchema = z.infer<typeof signupSchema>;
 export type AddStudentSchema = z.infer<typeof addStudentBaseSchema>;
 export type WardenSchema = z.infer<typeof wardenSchema>;
+export type WardenUpdateSchema = z.infer<typeof wardenUpdateSchema>;
 export type WardenCreateFormSchema = z.infer<typeof wardenCreateFormSchema>;
 export type OtpVerifySchema = z.infer<typeof otpVerifySchema>;
 export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
