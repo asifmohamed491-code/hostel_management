@@ -1,31 +1,39 @@
 "use client";
 
 // EditWardenForm.tsx
-// Super Admin's "Edit Warden" form. Same visual piece as the Create
-// Warden form (AuthCard glassmorphism, InputField, gradient submit
+// Super Admin's "Edit Warden Account" form. Same visual piece as the
+// Create Warden form (AuthCard glassmorphism, InputField, gradient submit
 // button, 2-column grid) — but it loads the selected warden first via
-// GET /api/wardens/:id, pre-fills the fields, and saves with
-// PATCH /api/wardens/:id. There is no password field: a profile edit
-// never reads, shows, or changes a password.
+// GET /api/wardens/:id, pre-fills the fields (including the currently
+// assigned hostel block), and saves with PATCH /api/wardens/:id.
+//
+// Password: the stored hash is never fetched or shown. The two password
+// fields are optional — leave them blank to keep the current password;
+// type a new one (validated like Create Warden) to replace it. The API
+// hashes it; nothing is ever stored in plain text.
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Building2 } from "lucide-react";
 import gsap from "gsap";
 
 import { AuthCard } from "@/components/AuthCard";
 import { InputField } from "@/components/InputField";
+import { HostelBlockSelect } from "@/components/dashboard/forms/HostelBlockSelect";
 import {
-  wardenUpdateSchema,
-  type WardenUpdateSchema,
+  wardenUpdateFormSchema,
+  type WardenUpdateFormSchema,
 } from "@/lib/validation";
 
 const LIST_HREF = "/dashboard/super-admin/wardens";
 const REDIRECT_DELAY_MS = 900;
 
-interface LoadedWarden extends WardenUpdateSchema {
+interface LoadedWarden {
   id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  hostelBlock: string;
   createdAt: string | null;
 }
 
@@ -49,7 +57,7 @@ function LoadingState() {
   return (
     <div aria-busy="true" aria-label="Loading warden" className="flex flex-col gap-3">
       <div className="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex flex-col gap-1.5">
             <div className="h-3 w-20 animate-pulse rounded bg-slate-200/70" />
             <div className="h-[42px] animate-pulse rounded-xl border border-white/60 bg-white/50" />
@@ -71,6 +79,11 @@ function EditForm({
   const router = useRouter();
   const { warden, availableBlocks } = data;
 
+  // Only a block that still exists can be pre-selected. If the warden's
+  // saved block is missing from the database (legacy/unassigned), the
+  // dropdown starts on its placeholder and a valid one must be chosen.
+  const currentBlockIsValid = availableBlocks.includes(warden.hostelBlock);
+
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
@@ -79,22 +92,17 @@ function EditForm({
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<WardenUpdateSchema>({
-    resolver: zodResolver(wardenUpdateSchema),
+  } = useForm<WardenUpdateFormSchema>({
+    resolver: zodResolver(wardenUpdateFormSchema),
     defaultValues: {
       fullName: warden.fullName,
       email: warden.email,
       phone: warden.phone,
-      hostelBlock: warden.hostelBlock,
+      hostelBlock: currentBlockIsValid ? warden.hostelBlock : "",
+      password: "",
+      confirmPassword: "",
     },
   });
-
-  // Keep the warden's current block selectable even if no room uses it
-  // any more, so an unrelated edit never silently clears it.
-  const blockOptions =
-    warden.hostelBlock && !availableBlocks.includes(warden.hostelBlock)
-      ? [warden.hostelBlock, ...availableBlocks]
-      : availableBlocks;
 
   const submitButtonRef = useRef<HTMLButtonElement | null>(null);
   const redirectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -106,7 +114,7 @@ function EditForm({
     []
   );
 
-  async function onSubmit(values: WardenUpdateSchema) {
+  async function onSubmit(values: WardenUpdateFormSchema) {
     setFormError(null);
     setFormSuccess(null);
 
@@ -120,6 +128,8 @@ function EditForm({
           email: values.email,
           phone: values.phone,
           hostelBlock: values.hostelBlock,
+          // Blank = keep the current password, so it is not sent at all.
+          ...(values.password ? { password: values.password } : {}),
         }),
       });
 
@@ -129,6 +139,8 @@ function EditForm({
         const message = body?.message ?? "Something went wrong. Please try again.";
         if (response.status === 409) {
           setError("email", { message });
+        } else if (/hostel block/i.test(message)) {
+          setError("hostelBlock", { message });
         } else {
           setFormError(message);
         }
@@ -194,44 +206,41 @@ function EditForm({
           error={errors.phone?.message}
           {...register("phone")}
         />
-
-        {/* Hostel Block — same glass field styling as InputField, as a
-            select limited to blocks that already exist in the system. */}
-        <div className="flex flex-col gap-1 text-left">
-          <label htmlFor="hostelBlock" className="text-[12px] font-semibold text-heading/90">
-            Hostel Block
-          </label>
-          <div
-            className={
-              "group relative flex items-center rounded-xl border border-white/60 bg-white/50 px-3 py-2.5 transition-all duration-300 " +
-              "focus-within:border-primary/60 focus-within:bg-white/70 focus-within:shadow-glass" +
-              (errors.hostelBlock ? " border-red-300 focus-within:border-red-400" : "")
-            }
-          >
-            <Building2 size={16} className="mr-2 shrink-0 text-primary opacity-80" aria-hidden />
-            <select
-              id="hostelBlock"
-              className="w-full bg-transparent text-[12.5px] font-medium text-heading focus:outline-none"
-              {...register("hostelBlock")}
-            >
-              <option value="">Unassigned</option>
-              {blockOptions.map((block) => (
-                <option key={block} value={block}>
-                  {block}
-                </option>
-              ))}
-            </select>
-          </div>
-          {errors.hostelBlock && (
-            <p className="text-[11px] font-medium text-red-500">
-              {errors.hostelBlock.message}
-            </p>
-          )}
-        </div>
+        <HostelBlockSelect
+          options={availableBlocks}
+          error={errors.hostelBlock?.message}
+          hint={
+            !currentBlockIsValid
+              ? warden.hostelBlock
+                ? `Saved block "${warden.hostelBlock}" no longer exists — please choose a new one.`
+                : "No block is assigned yet — please choose one."
+              : undefined
+          }
+          {...register("hostelBlock")}
+        />
+        <InputField
+          label="New Password (optional)"
+          iconSrc="/assets/icons/lock.svg"
+          placeholder="Leave blank to keep current"
+          autoComplete="new-password"
+          isPassword
+          error={errors.password?.message}
+          {...register("password")}
+        />
+        <InputField
+          label="Confirm New Password"
+          iconSrc="/assets/icons/lock.svg"
+          placeholder="Confirm new password"
+          autoComplete="new-password"
+          isPassword
+          error={errors.confirmPassword?.message}
+          {...register("confirmPassword")}
+        />
       </div>
 
       <p className="text-[11.5px] font-medium text-heading/50">
-        Account created {formatDate(warden.createdAt)}. Password is not changed here.
+        Leave the password fields blank to keep the current password. Account
+        created {formatDate(warden.createdAt)}.
       </p>
 
       {formError && (
@@ -314,7 +323,11 @@ export function EditWardenForm({ wardenId }: { wardenId: string }) {
   const goBack = () => router.push(LIST_HREF);
 
   return (
-    <AuthCard heading="Edit Warden" subtitle="Update this warden's account details" footer={null}>
+    <AuthCard
+      heading="Edit Warden Account"
+      subtitle="Update this hostel warden's account details"
+      footer={null}
+    >
       {error ? (
         <div className="flex flex-col gap-3">
           <p role="alert" className="text-xs font-medium text-red-500">

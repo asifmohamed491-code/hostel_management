@@ -23,6 +23,7 @@ import type { ZodType } from "zod";
 import gsap from "gsap";
 import { AuthCard } from "@/components/AuthCard";
 import { InputField } from "@/components/InputField";
+import { HostelBlockSelect } from "@/components/dashboard/forms/HostelBlockSelect";
 
 export interface CreateUserFieldConfig<TFieldValues extends FieldValues> {
   name: Path<TFieldValues>;
@@ -31,6 +32,16 @@ export interface CreateUserFieldConfig<TFieldValues extends FieldValues> {
   placeholder?: string;
   autoComplete?: string;
   isPassword?: boolean;
+  /**
+   * When set, this field renders as the Hostel Block dropdown instead of a
+   * text input (options are loaded by the caller, e.g. useHostelBlocks).
+   */
+  select?: {
+    options: string[];
+    loading: boolean;
+    loadError: string | null;
+    onRetry: () => void;
+  };
 }
 
 export interface CreateUserFormProps<TFieldValues extends FieldValues> {
@@ -134,15 +145,27 @@ export function CreateUserForm<TFieldValues extends FieldValues>({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5">
           {fields.map((field) => (
             <div data-entrance="input" key={String(field.name)}>
-              <InputField
-                label={field.label}
-                iconSrc={field.iconSrc}
-                placeholder={field.placeholder}
-                autoComplete={field.autoComplete}
-                isPassword={field.isPassword}
-                error={fieldErrors[field.name as string]?.message}
-                {...register(field.name)}
-              />
+              {field.select ? (
+                <HostelBlockSelect
+                  label={field.label}
+                  options={field.select.options}
+                  loading={field.select.loading}
+                  loadError={field.select.loadError}
+                  onRetry={field.select.onRetry}
+                  error={fieldErrors[field.name as string]?.message}
+                  {...register(field.name)}
+                />
+              ) : (
+                <InputField
+                  label={field.label}
+                  iconSrc={field.iconSrc}
+                  placeholder={field.placeholder}
+                  autoComplete={field.autoComplete}
+                  isPassword={field.isPassword}
+                  error={fieldErrors[field.name as string]?.message}
+                  {...register(field.name)}
+                />
+              )}
             </div>
           ))}
         </div>

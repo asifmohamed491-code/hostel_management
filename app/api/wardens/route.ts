@@ -7,6 +7,7 @@ import { User } from "@/models/User";
 import { getAuthPayload, toSafeUser } from "@/lib/auth";
 import { wardenSchema } from "@/lib/validation";
 import { z } from "zod";
+import { listHostelBlocks } from "@/lib/hostel-blocks";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +37,15 @@ export async function POST(request: NextRequest) {
 
     await connectToDatabase();
 
+    // The chosen block must be one that really exists in MongoDB.
+    const blocks = await listHostelBlocks();
+    if (!blocks.includes(parsed.data.hostelBlock)) {
+      return NextResponse.json(
+        { message: "Select a valid hostel block." },
+        { status: 400 }
+      );
+    }
+
     const email = parsed.data.email.trim().toLowerCase();
     const existing = await User.findOne({ email });
 
@@ -47,12 +57,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Role is never taken from the client â€” always forced to "warden".
-    const { fullName, phone, password } = parsed.data;
+    const { fullName, phone, hostelBlock, password } = parsed.data;
 
     const warden = await User.create({
       fullName,
       email,
       phone,
+      hostelBlock,
       password,
       role: "warden",
     });

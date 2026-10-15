@@ -11,10 +11,15 @@
 // request is sent, so the API's own schema and route logic are
 // untouched. All shared UI/behavior lives in CreateUserForm; only the
 // field configuration and body transform are Warden-specific.
+//
+// The Hostel Block dropdown is populated from MongoDB (GET
+// /api/hostel-blocks via useHostelBlocks); the API re-validates the chosen
+// block before saving.
 import {
   CreateUserForm,
   type CreateUserFieldConfig,
 } from "@/components/dashboard/forms/CreateUserForm";
+import { useHostelBlocks } from "@/hooks/useHostelBlocks";
 import {
   wardenCreateFormSchema,
   type WardenCreateFormSchema,
@@ -43,6 +48,11 @@ const WARDEN_FIELDS: CreateUserFieldConfig<WardenCreateFormSchema>[] = [
     autoComplete: "tel",
   },
   {
+    name: "hostelBlock",
+    label: "Hostel Block",
+    iconSrc: "/assets/icons/room.svg", // unused: rendered as a dropdown
+  },
+  {
     name: "password",
     label: "Password",
     iconSrc: "/assets/icons/lock.svg",
@@ -64,16 +74,28 @@ const WARDEN_DEFAULT_VALUES: WardenCreateFormSchema = {
   fullName: "",
   email: "",
   phone: "",
+  hostelBlock: "",
   password: "",
   confirmPassword: "",
 };
 
 export function CreateWardenForm() {
+  const { blocks, loading, error, reload } = useHostelBlocks();
+
+  const fields = WARDEN_FIELDS.map((field) =>
+    field.name === "hostelBlock"
+      ? {
+          ...field,
+          select: { options: blocks, loading, loadError: error, onRetry: reload },
+        }
+      : field
+  );
+
   return (
     <CreateUserForm<WardenCreateFormSchema>
       heading="Create Warden Account"
       subtitle="Create a hostel warden account"
-      fields={WARDEN_FIELDS}
+      fields={fields}
       schema={wardenCreateFormSchema}
       defaultValues={WARDEN_DEFAULT_VALUES}
       endpoint="/api/wardens"

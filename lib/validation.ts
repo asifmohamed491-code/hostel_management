@@ -118,15 +118,33 @@ export const wardenSchema = z.object({
     .min(10, "Enter a valid phone number")
     .max(15, "Enter a valid phone number")
     .regex(/^[0-9+\s-]+$/, "Enter a valid phone number"),
+  // Must be one of the blocks that exist in MongoDB — the API checks
+  // that (lib/hostel-blocks.ts); this only enforces "a block was chosen".
+  hostelBlock: z
+    .string({ required_error: "Please select a hostel block" })
+    .trim()
+    .min(1, "Please select a hostel block")
+    .max(40, "Hostel block name is too long"),
   password: passwordSchema,
 });
 
 // Super Admin "Edit Warden" — used by the edit form (client) and by
 // PATCH /api/wardens/[id] (server, via `.partial()`). Deliberately has NO
-// role, password, id or other security-sensitive keys, and is `.strict()`
-// so a request that tries to send one (e.g. `role: "super_admin"`) is
-// rejected outright instead of silently ignored. `hostelBlock` may be an
-// empty string, which means "Unassigned".
+// role, id or other security-sensitive keys, and is `.strict()` so a
+// request that tries to send one (e.g. `role: "super_admin"`) is rejected
+// outright instead of silently ignored. `password` is OPTIONAL: an empty
+// string (or omitting it) keeps the current password hash; a non-empty
+// value must satisfy the same rules as when creating a warden.
+const optionalPasswordSchema = z.string().superRefine((value, ctx) => {
+  if (value === "") return;
+  const result = passwordSchema.safeParse(value);
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: issue.message });
+    }
+  }
+});
+
 export const wardenUpdateSchema = z
   .object({
     fullName: z
@@ -141,9 +159,26 @@ export const wardenUpdateSchema = z
       .min(10, "Enter a valid phone number")
       .max(15, "Enter a valid phone number")
       .regex(/^[0-9+\s-]+$/, "Enter a valid phone number"),
-    hostelBlock: z.string().trim().max(40, "Hostel block name is too long"),
+    hostelBlock: z
+      .string()
+      .trim()
+      .min(1, "Please select a hostel block")
+      .max(40, "Hostel block name is too long"),
+    password: optionalPasswordSchema,
   })
   .strict();
+
+// Client-only variant for the Edit Warden form: adds a confirm field that
+// only has to match when a new password was typed. Stripped before the
+// request is sent, same pattern as wardenCreateFormSchema below.
+export const wardenUpdateFormSchema = wardenUpdateSchema
+  .extend({
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 // Client-only variant of wardenSchema for the "Create Warden" dashboard
 // form (components/dashboard/forms usage). Adds a confirmPassword field
@@ -196,6 +231,7 @@ export type SignupSchema = z.infer<typeof signupSchema>;
 export type AddStudentSchema = z.infer<typeof addStudentBaseSchema>;
 export type WardenSchema = z.infer<typeof wardenSchema>;
 export type WardenUpdateSchema = z.infer<typeof wardenUpdateSchema>;
+export type WardenUpdateFormSchema = z.infer<typeof wardenUpdateFormSchema>;
 export type WardenCreateFormSchema = z.infer<typeof wardenCreateFormSchema>;
 export type OtpVerifySchema = z.infer<typeof otpVerifySchema>;
 export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
