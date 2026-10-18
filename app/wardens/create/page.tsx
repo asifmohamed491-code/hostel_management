@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { AuthLayout } from "@/components/AuthLayout";
-import { CreateWardenForm } from "@/components/dashboard/forms/CreateWardenForm";
+import { WardenForm } from "@/components/dashboard/forms/WardenForm";
 
 export const metadata: Metadata = {
   title: "Create Warden | OASYS Hostel Management",
@@ -12,10 +12,12 @@ export const metadata: Metadata = {
 // It lives at the top level, outside app/dashboard/, specifically so it
 // does NOT inherit app/dashboard/layout.tsx (no Sidebar/Topbar) and
 // instead renders the same full-screen split AuthLayout as /signup.
+// <WardenForm /> with no wardenId is CREATE mode (unchanged behaviour);
+// the Edit Warden route renders the same component in EDIT mode.
 export default function CreateWardenPage() {
   return (
     <AuthLayout cardSide="left">
-      <CreateWardenForm />
+      <WardenForm />
     </AuthLayout>
   );
 }

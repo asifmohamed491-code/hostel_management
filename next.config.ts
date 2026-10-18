@@ -25,10 +25,6 @@ const nextConfig: NextConfig = {
         source: "/dashboard/super-admin/wardens/create",
         destination: "/wardens/create",
       },
-      {
-        source: "/dashboard/super-admin/wardens/:id/edit",
-        destination: "/wardens/:id/edit",
-      },
     ];
   },
 };

@@ -4,18 +4,14 @@
 //   GET   /api/wardens/:id — load one warden (+ the hostel blocks that
 //                            can be assigned) to pre-fill the edit form
 //   PATCH /api/wardens/:id — update an existing warden's fullName, email,
-//                            phone, hostelBlock and (optionally) password
+//                            phone and hostelBlock ("" = Unassigned)
 //
 // Both handlers require an authenticated Super Admin (existing JWT
 // cookie helpers). The target must exist AND have role "warden" — the
-// role is part of every lookup, so this endpoint can never read or modify
-// a student or another super admin. The role itself is never writable
-// here (the body schema is strict). Password hashes are never returned.
-//
-// PATCH loads the warden as a Mongoose document and calls `.save()`, so
-// the User model's existing pre-save hook hashes a new password exactly
-// as it does at creation; if no new password is sent the stored hash is
-// left untouched.
+// role is part of every query filter, so this endpoint can never read or
+// modify a student or another super admin. The role and the password are
+// NOT writable here (the body schema is strict and has neither); the
+// password / hash is never selected or returned.
 import { NextRequest, NextResponse } from "next/server";
 import { isValidObjectId } from "mongoose";
 
@@ -23,14 +19,14 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { getAuthPayload } from "@/lib/auth";
 import { listHostelBlocks } from "@/lib/hostel-blocks";
-import { wardenUpdateSchema } from "@/lib/validation";
+import { wardenEditSchema } from "@/lib/warden-edit-validation";
 
 export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-// Same partial-update rules as the edit form, but every key optional.
-const patchBodySchema = wardenUpdateSchema
+// Same rules as the edit form, but every key optional (partial update).
+const patchBodySchema = wardenEditSchema
   .partial()
   .refine((data) => Object.keys(data).length > 0, {
     message: "No changes were provided.",
@@ -139,21 +135,19 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     await connectToDatabase();
 
-    // The role is part of the lookup: only an existing warden matches.
-    // (+password is loaded only so `.save()` leaves the stored hash intact
-    // and can replace it; it is never copied into a response.)
-    const warden = await User.findOne({ _id: auth.id, role: "warden" }).select(
-      "+password"
-    );
+    // The role is part of the filter: only an existing warden matches.
+    const current = await User.findOne({ _id: auth.id, role: "warden" })
+      .select("hostelBlock")
+      .lean();
 
-    if (!warden) {
+    if (!current) {
       return NextResponse.json({ message: "Warden not found." }, { status: 404 });
     }
 
-    const { fullName, phone, hostelBlock, password } = parsed.data;
+    const { fullName, phone, hostelBlock } = parsed.data;
     const email = parsed.data.email?.toLowerCase();
 
-    if (email !== undefined && email !== warden.email) {
+    if (email) {
       const duplicate = await User.findOne({ email, _id: { $ne: auth.id } })
         .select("_id")
         .lean();
@@ -166,8 +160,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }
     }
 
-    // The chosen block must be one that really exists in MongoDB.
-    if (hostelBlock !== undefined) {
+    // A newly chosen block must be one that really exists in MongoDB.
+    // Re-sending the warden's current value is always allowed, so editing
+    // only a name never fails because of an old block. "" = Unassigned.
+    if (hostelBlock && hostelBlock !== (current.hostelBlock ?? "").trim()) {
       const blocks = await listHostelBlocks();
       if (!blocks.includes(hostelBlock)) {
         return NextResponse.json(
@@ -177,24 +173,47 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }
     }
 
-    // Explicit whitelist — fields are assigned one by one from validated
-    // values, never by spreading the request body. `role` is never set.
-    if (fullName !== undefined) warden.fullName = fullName;
-    if (email !== undefined) warden.email = email;
-    if (phone !== undefined) warden.phone = phone;
-    if (hostelBlock !== undefined) warden.hostelBlock = hostelBlock;
-    // "" / omitted = keep the current hash. A non-empty value was already
-    // validated and is hashed by the model's pre-save hook.
-    const passwordChanged = Boolean(password);
-    if (password) warden.password = password;
+    // Explicit whitelist — the update document is built field by field,
+    // never from the request body object itself.
+    const $set: Record<string, string> = {};
+    const $unset: Record<string, ""> = {};
+    if (fullName !== undefined) $set.fullName = fullName;
+    if (email !== undefined) $set.email = email;
+    if (phone !== undefined) $set.phone = phone;
+    if (hostelBlock !== undefined) {
+      if (hostelBlock) $set.hostelBlock = hostelBlock;
+      else $unset.hostelBlock = "";
+    }
 
-    await warden.save();
+    const update: Record<string, unknown> = {};
+    if (Object.keys($set).length > 0) update.$set = $set;
+    if (Object.keys($unset).length > 0) update.$unset = $unset;
+
+    // `role: "warden"` stays in the filter, so the role guard is part of the
+    // write itself. Plain updateOne + re-read (no findAndModify) keeps this
+    // portable across MongoDB-compatible servers.
+    const result = await User.updateOne(
+      { _id: auth.id, role: "warden" },
+      update,
+      { runValidators: true }
+    );
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ message: "Warden not found." }, { status: 404 });
+    }
+
+    const updated = await User.findOne({ _id: auth.id, role: "warden" })
+      .select("fullName email phone hostelBlock createdAt")
+      .lean();
+
+    if (!updated) {
+      return NextResponse.json({ message: "Warden not found." }, { status: 404 });
+    }
 
     return NextResponse.json(
       {
         message: "Warden updated successfully.",
-        passwordChanged,
-        warden: toWardenResponse(warden as unknown as WardenDoc),
+        warden: toWardenResponse(updated as WardenDoc),
       },
       { status: 200 }
     );
