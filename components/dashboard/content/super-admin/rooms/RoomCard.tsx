@@ -13,7 +13,7 @@ import {
   getRoomStatus,
   type RoomRow,
   type RoomStatus,
-} from "@/lib/super-admin-rooms-mock";
+} from "@/lib/hostel-rooms";
 
 const STATUS_STYLES: Record<RoomStatus, { badge: string; bar: string }> = {
   available: { badge: "bg-emerald-50 text-emerald-700 ring-emerald-200/70", bar: "bg-emerald-400" },

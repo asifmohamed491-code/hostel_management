@@ -14,6 +14,7 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getAuthPayload } from "@/lib/auth";
 import { User } from "@/models/User";
+import { HostelBlock } from "@/models/HostelBlock";
 import { Room } from "@/models/Room";
 import { AttendanceRecord } from "@/models/AttendanceRecord";
 import { AttendanceSession } from "@/models/AttendanceSession";
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
       totalWardens > 0 ? `${totalWardens} active` : "Active wardens";
 
     // 3. Hostel Blocks
+    const registeredBlocks = await HostelBlock.distinct("name");
     const roomBlocks = await Room.distinct("hostelBlock");
     const studentBlocks = await User.distinct("hostelBlock", {
       role: "student",
@@ -79,7 +81,7 @@ export async function GET(request: NextRequest) {
     });
     const blockNames = Array.from(
       new Set(
-        [...roomBlocks, ...studentBlocks]
+        [...registeredBlocks, ...roomBlocks, ...studentBlocks]
           .map((b) => (typeof b === "string" ? b.trim() : ""))
           .filter(Boolean)
       )

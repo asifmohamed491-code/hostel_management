@@ -1,14 +1,15 @@
 "use client";
 
 // RoomFormModal.tsx
-// ONE reusable modal for both "Add Room" and "Edit Room" (mode prop).
-// Fields follow the real Room model: Room Number, Hostel Block (read-only —
-// it is the block being viewed) and Total Bed Capacity. There is no Floor
-// field because the Room model has none.
+// ONE reusable modal for both "Add Room" and "Edit Room" (mode prop). Fields
+// follow the real Room model: Room Number, Hostel Block (read-only — it is
+// the block being viewed) and Total Bed Capacity. There is no Floor field
+// because the Room model has none.
 //
-// TEMPORARY (UI phase): onSubmit only updates local React state in
-// SuperAdminRooms. No API call is made and nothing is written to MongoDB.
-import { useMemo } from "react";
+// The parent performs the API call (POST / PATCH /api/super-admin/rooms) and
+// returns a server error to show (duplicate number, capacity below the
+// students already assigned, ...) or null on success.
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,11 +17,16 @@ import { BedDouble, Building2, DoorOpen, Lock, Pencil } from "lucide-react";
 
 import { InputField } from "@/components/InputField";
 import { RoomModal } from "@/components/dashboard/content/super-admin/rooms/RoomModal";
-import { ROOM_CAPACITY_LIMITS, type RoomRow } from "@/lib/super-admin-rooms-mock";
+import { ROOM_CAPACITY_LIMITS, type RoomRow } from "@/lib/hostel-rooms";
 
 export interface RoomFormValues {
   roomNumber: string;
   capacity: number;
+}
+
+export interface RoomSubmitError {
+  message: string;
+  field?: "roomNumber" | "capacity";
 }
 
 interface FormFields {
@@ -33,10 +39,10 @@ interface RoomFormModalProps {
   blockName: string;
   /** Required in edit mode: the room being edited (pre-fills the form). */
   room?: RoomRow;
-  /** Room numbers already in use, EXCLUDING the room being edited. */
+  /** Room numbers already in use, EXCLUDING the room being edited (instant client-side check; the server re-checks). */
   takenRoomNumbers: string[];
   onClose: () => void;
-  onSubmit: (values: RoomFormValues) => void;
+  onSubmit: (values: RoomFormValues) => Promise<RoomSubmitError | null>;
 }
 
 function buildSchema(takenRoomNumbers: string[], minCapacity: number) {
@@ -74,12 +80,12 @@ function buildSchema(takenRoomNumbers: string[], minCapacity: number) {
 const PRIMARY_BUTTON =
   "inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[13px] font-semibold text-white " +
   "shadow-md shadow-primary/30 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/40 " +
-  "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50";
+  "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-70";
 
 const GLASS_BUTTON =
   "sa-student-action-btn inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-4 py-2.5 " +
   "text-[13px] font-semibold text-heading/70 backdrop-blur-md transition-all duration-200 hover:border-primary/40 hover:bg-white hover:text-heading " +
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-60";
 
 export function RoomFormModal({
   mode,
@@ -91,14 +97,14 @@ export function RoomFormModal({
 }: RoomFormModalProps) {
   const isEdit = mode === "edit";
   const minCapacity = isEdit && room ? Math.max(1, room.occupied) : 1;
-  const schema = useMemo(
-    () => buildSchema(takenRoomNumbers, minCapacity),
-    [takenRoomNumbers, minCapacity]
-  );
+  const schema = useMemo(() => buildSchema(takenRoomNumbers, minCapacity), [takenRoomNumbers, minCapacity]);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<FormFields>({
     resolver: zodResolver(schema),
@@ -108,18 +114,27 @@ export function RoomFormModal({
     },
   });
 
-  function submit(values: FormFields) {
-    onSubmit({ roomNumber: values.roomNumber.trim(), capacity: Number(values.capacity) });
+  async function submit(values: FormFields) {
+    setFormError(null);
+    setSubmitting(true);
+    try {
+      const failure = await onSubmit({
+        roomNumber: values.roomNumber.trim(),
+        capacity: Number(values.capacity),
+      });
+      if (failure) {
+        if (failure.field) setError(failure.field, { message: failure.message });
+        else setFormError(failure.message);
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <RoomModal
       title={isEdit ? "Edit Room" : "Add Room"}
-      description={
-        isEdit
-          ? `Update room details in ${blockName}`
-          : `Create a new room in ${blockName}`
-      }
+      description={isEdit ? `Update room details in ${blockName}` : `Create a new room in ${blockName}`}
       icon={isEdit ? <Pencil className="h-[18px] w-[18px]" /> : <DoorOpen className="h-[18px] w-[18px]" />}
       onClose={onClose}
     >
@@ -170,17 +185,24 @@ export function RoomFormModal({
           {isEdit && room && room.occupied > 0 && !errors.capacity && (
             <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-heading/45">
               <BedDouble className="h-3 w-3" aria-hidden />
-              {room.occupied} {room.occupied === 1 ? "bed is" : "beds are"} currently occupied.
+              {room.occupied} {room.occupied === 1 ? "student is" : "students are"} assigned — the room number
+              can&apos;t be changed while it has students.
             </p>
           )}
         </div>
 
+        {formError && (
+          <p role="alert" className="text-xs font-medium text-red-500">
+            {formError}
+          </p>
+        )}
+
         <div className="mt-2 flex flex-col-reverse gap-2.5 sm:flex-row">
-          <button type="button" onClick={onClose} className={GLASS_BUTTON}>
+          <button type="button" onClick={onClose} disabled={submitting} className={GLASS_BUTTON}>
             Cancel
           </button>
-          <button type="submit" className={PRIMARY_BUTTON}>
-            {isEdit ? "Save Changes" : "Create Room"}
+          <button type="submit" disabled={submitting} className={PRIMARY_BUTTON}>
+            {submitting ? "Saving..." : isEdit ? "Save Changes" : "Create Room"}
           </button>
         </div>
       </form>

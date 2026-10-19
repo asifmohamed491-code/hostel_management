@@ -7,15 +7,13 @@ export const metadata: Metadata = {
 
 // Route: /dashboard/super-admin/hostel-blocks/<block name>/rooms
 //   e.g. /dashboard/super-admin/hostel-blocks/Block%20A/rooms
-// A hostel block has no separate model/id in this project — it is just the
-// block name string stored on Room.hostelBlock / User.hostelBlock — so the
-// route segment is the (URL-encoded) block name.
+// Opened by "View Rooms" on a block card. A block is identified by its NAME
+// everywhere in this project (Room.hostelBlock / User.hostelBlock), so the
+// route segment is the URL-encoded block name; the API validates that the
+// block really exists and answers 404 otherwise.
 //
-// This page lives under app/dashboard/, so DashboardLayout (Sidebar, Topbar,
-// background) and middleware.ts (Super Admin only) apply automatically.
-//
-// UI PHASE: renders sample data only (see lib/super-admin-rooms-mock.ts).
-// `?preview=empty` shows the "no rooms yet" state for design review.
+// Under app/dashboard/, so DashboardLayout and middleware.ts (Super Admin
+// only) apply automatically. Works on refresh and when opened directly.
 function readBlockName(segment: string): string {
   let decoded = segment;
   try {
@@ -23,20 +21,14 @@ function readBlockName(segment: string): string {
   } catch {
     // keep the raw segment if it is not valid percent-encoding
   }
-  return decoded.trim().slice(0, 60) || "Hostel Block";
+  return decoded.trim().slice(0, 60);
 }
 
 export default async function ViewRoomsPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ block: string }>;
-  searchParams: Promise<{ preview?: string | string[] }>;
 }) {
   const { block } = await params;
-  const { preview } = await searchParams;
-
-  return (
-    <SuperAdminRooms blockName={readBlockName(block)} previewEmpty={preview === "empty"} />
-  );
+  return <SuperAdminRooms blockName={readBlockName(block)} />;
 }

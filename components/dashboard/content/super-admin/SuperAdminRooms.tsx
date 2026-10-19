@@ -1,26 +1,17 @@
 // SuperAdminRooms.tsx
 //
-// "View Rooms" page content (Super Admin -> Manage Hostel Blocks -> View
-// Rooms for one block): header + breadcrumb, 4 summary cards, search +
-// status filter, responsive room cards, and Add / Edit / View Students
-// modals.
-//
-// ╔══════════════════════════════════════════════════════════════════════╗
-// ║ UI PHASE ONLY — every room and student shown here is TEMPORARY MOCK  ║
-// ║ DATA from lib/super-admin-rooms-mock.ts, held in local React state.  ║
-// ║ Add Room / Edit Room only change that local state: there is NO API   ║
-// ║ call and NOTHING is saved to MongoDB (a refresh restores the sample  ║
-// ║ data). A visible "preview data" notice on the page says so.          ║
-// ╚══════════════════════════════════════════════════════════════════════╝
-//
-// Next phase: replace `getMockRoomsForBlock` / `getMockStudentsForRoom`
-// and the three local handlers (handleAddRoom, handleEditRoom, the students
-// lookup) with API calls — mapping is documented in the mock file.
+// "View Rooms" page (Manage Hostel Blocks -> View Rooms for ONE block).
+// Live data: GET /api/super-admin/rooms?block=<name> returns only that
+// block's rooms with occupancy derived from the real students; Add Room /
+// Edit Room call POST / PATCH /api/super-admin/rooms and the list is
+// re-fetched afterwards; View Students loads the room's real students.
+// The status filter and search run on the fetched rooms.
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowLeft,
   BedDouble,
   BedSingle,
@@ -29,7 +20,6 @@ import {
   ChevronDown,
   ChevronRight,
   DoorOpen,
-  Info,
   KeyRound,
   Plus,
   Search,
@@ -42,18 +32,17 @@ import { RoomCard } from "@/components/dashboard/content/super-admin/rooms/RoomC
 import {
   RoomFormModal,
   type RoomFormValues,
+  type RoomSubmitError,
 } from "@/components/dashboard/content/super-admin/rooms/RoomFormModal";
 import { RoomStudentsModal } from "@/components/dashboard/content/super-admin/rooms/RoomStudentsModal";
 import {
   ROOM_FILTER_OPTIONS,
   compareRoomNumbers,
-  getMockRoomsForBlock,
-  getMockStudentsForRoom,
   getRoomStatus,
   summarizeRooms,
   type RoomRow,
   type RoomStatusFilter,
-} from "@/lib/super-admin-rooms-mock";
+} from "@/lib/hostel-rooms";
 
 const HOSTEL_BLOCKS_HREF = "/dashboard/super-admin/hostel-blocks";
 const NOTICE_MS = 5000;
@@ -77,76 +66,132 @@ const GLASS_BUTTON =
 interface SuperAdminRoomsProps {
   /** Selected hostel block, taken from the route (/hostel-blocks/[block]/rooms). */
   blockName: string;
-  /**
-   * UI-phase preview switch (`?preview=empty`): starts with no rooms so the
-   * "empty room list" state can be seen. Remove once real data exists.
-   */
-  previewEmpty?: boolean;
 }
 
-export function SuperAdminRooms({ blockName, previewEmpty = false }: SuperAdminRoomsProps) {
-  // TEMPORARY MOCK STATE — see the banner at the top of this file.
-  const [rooms, setRooms] = useState<RoomRow[]>(() =>
-    previewEmpty ? [] : getMockRoomsForBlock(blockName)
-  );
+interface LoadFailure {
+  message: string;
+  notFound: boolean;
+}
+
+export function SuperAdminRooms({ blockName }: SuperAdminRoomsProps) {
+  const [rooms, setRooms] = useState<RoomRow[] | null>(null);
+  const [failure, setFailure] = useState<LoadFailure | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<RoomStatusFilter>("all");
   const [modal, setModal] = useState<ModalState>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const localIdRef = useRef(0);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => setNotice(null), NOTICE_MS);
-    return () => clearTimeout(timer);
-  }, [notice]);
+    const controller = new AbortController();
 
-  const summary = useMemo(() => summarizeRooms(rooms), [rooms]);
+    async function load() {
+      setFailure(null);
+      try {
+        const res = await fetch(`/api/super-admin/rooms?block=${encodeURIComponent(blockName)}`, {
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const body = await res.json().catch(() => null);
+        if (!res.ok) {
+          setFailure({
+            message:
+              (body && typeof body.message === "string" && body.message) ||
+              "Unable to load rooms. Please try again.",
+            notFound: res.status === 404,
+          });
+          return;
+        }
+        setRooms(Array.isArray(body?.rooms) ? (body.rooms as RoomRow[]) : []);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setFailure({ message: "Unable to load rooms. Please try again.", notFound: false });
+      }
+    }
+
+    void load();
+    return () => controller.abort();
+  }, [blockName, reloadKey]);
+
+  useEffect(
+    () => () => {
+      if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    },
+    []
+  );
+
+  const showNotice = useCallback((text: string) => {
+    setNotice(text);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(null), NOTICE_MS);
+  }, []);
+
+  const roomList = useMemo(() => rooms ?? [], [rooms]);
+  const summary = useMemo(() => summarizeRooms(roomList), [roomList]);
 
   const visibleRooms = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return rooms
+    return roomList
       .filter((room) => (needle ? room.roomNumber.toLowerCase().includes(needle) : true))
       .filter((room) => (statusFilter === "all" ? true : getRoomStatus(room) === statusFilter))
       .sort(compareRoomNumbers);
-  }, [rooms, query, statusFilter]);
+  }, [roomList, query, statusFilter]);
 
   const filtersActive = query.trim() !== "" || statusFilter !== "all";
-  const editingRoom = modal?.type === "edit" ? rooms.find((r) => r.id === modal.roomId) : undefined;
-  const studentsRoom = modal?.type === "students" ? rooms.find((r) => r.id === modal.roomId) : undefined;
+  const editingRoom = modal?.type === "edit" ? roomList.find((r) => r.id === modal.roomId) : undefined;
+  const studentsRoom = modal?.type === "students" ? roomList.find((r) => r.id === modal.roomId) : undefined;
 
   function clearFilters() {
     setQuery("");
     setStatusFilter("all");
   }
 
-  // TEMPORARY: local-state only — replace with POST /api/rooms in the backend phase.
-  function handleAddRoom(values: RoomFormValues) {
-    localIdRef.current += 1;
-    const newRoom: RoomRow = {
-      id: `local-${localIdRef.current}`,
-      roomNumber: values.roomNumber,
-      hostelBlock: blockName,
-      capacity: values.capacity,
-      occupied: 0,
-    };
-    setRooms((current) => [...current, newRoom]);
-    clearFilters(); // make sure the new room is visible
-    setModal(null);
-    setNotice(`Room ${values.roomNumber} added — preview only, not saved to the database.`);
-  }
+  async function submitRoom(
+    target: { mode: "add" } | { mode: "edit"; id: string },
+    values: RoomFormValues
+  ): Promise<RoomSubmitError | null> {
+    try {
+      const res = await fetch(
+        target.mode === "add" ? "/api/super-admin/rooms" : `/api/super-admin/rooms/${target.id}`,
+        {
+          method: target.mode === "add" ? "POST" : "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(
+            target.mode === "add"
+              ? { hostelBlock: blockName, roomNumber: values.roomNumber, capacity: values.capacity }
+              : { roomNumber: values.roomNumber, capacity: values.capacity }
+          ),
+        }
+      );
+      const body = await res.json().catch(() => null);
 
-  // TEMPORARY: local-state only — replace with PATCH /api/rooms/:id in the backend phase.
-  function handleEditRoom(roomId: string, values: RoomFormValues) {
-    setRooms((current) =>
-      current.map((room) =>
-        room.id === roomId
-          ? { ...room, roomNumber: values.roomNumber, capacity: values.capacity }
-          : room
-      )
-    );
-    setModal(null);
-    setNotice(`Room ${values.roomNumber} updated — preview only, not saved to the database.`);
+      if (!res.ok) {
+        const message: string =
+          (body && typeof body.message === "string" && body.message) ||
+          "Something went wrong. Please try again.";
+        const field = /capacity/i.test(message)
+          ? "capacity"
+          : /number/i.test(message)
+            ? "roomNumber"
+            : undefined;
+        return { message, field };
+      }
+
+      if (target.mode === "add") clearFilters(); // make sure the new room is visible
+      setModal(null);
+      showNotice(
+        target.mode === "add"
+          ? `Room ${values.roomNumber} created successfully.`
+          : `Room ${values.roomNumber} updated successfully.`
+      );
+      setReloadKey((k) => k + 1); // re-fetch so the list shows the saved data
+      return null;
+    } catch {
+      return { message: "Something went wrong. Please try again." };
+    }
   }
 
   const summaryCards = [
@@ -233,21 +278,17 @@ export function SuperAdminRooms({ blockName, previewEmpty = false }: SuperAdminR
             <ArrowLeft className="h-4 w-4" />
             Back to Hostel Blocks
           </Link>
-          <button type="button" onClick={() => setModal({ type: "add" })} className={PRIMARY_BUTTON}>
+          <button
+            type="button"
+            onClick={() => setModal({ type: "add" })}
+            disabled={rooms === null}
+            className={`${PRIMARY_BUTTON} disabled:opacity-60`}
+          >
             <Plus className="h-4 w-4" />
             Add Room
           </button>
         </div>
       </div>
-
-      {/* UI-phase notice: this is NOT database data */}
-      <p className="flex items-start gap-2 rounded-2xl border border-primary/15 bg-primary/[0.06] px-3.5 py-2.5 text-[12.5px] font-medium text-heading/65">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-        <span>
-          UI preview: the rooms and students on this page are sample data. Changes you make
-          here are not saved to the database.
-        </span>
-      </p>
 
       {notice && (
         <p
@@ -293,18 +334,52 @@ export function SuperAdminRooms({ blockName, previewEmpty = false }: SuperAdminR
       <DashboardCard
         title={`Rooms in ${blockName}`}
         subtitle={
-          rooms.length === 0
-            ? "No rooms yet"
-            : `Showing ${visibleRooms.length} of ${rooms.length} ${rooms.length === 1 ? "room" : "rooms"}`
+          rooms === null
+            ? "Loading rooms"
+            : rooms.length === 0
+              ? "No rooms yet"
+              : `Showing ${visibleRooms.length} of ${rooms.length} ${rooms.length === 1 ? "room" : "rooms"}`
         }
         icon={<Building2 className="h-[18px] w-[18px]" />}
-        action={rooms.length > 0 ? toolbar : undefined}
+        action={rooms && rooms.length > 0 ? toolbar : undefined}
         className="sa-dashboard-card sa-dashboard-card--pearl"
         headerClassName="flex-col items-stretch lg:flex-row lg:items-center"
         bodyClassName="px-[15px] pb-4 pt-4 sm:px-[19px] sm:pb-5"
       >
         <div aria-live="polite">
-          {rooms.length === 0 ? (
+          {rooms === null && !failure ? (
+            <div
+              aria-busy="true"
+              aria-label="Loading rooms"
+              className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+            >
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-[230px] animate-pulse rounded-[20px] bg-slate-200/50" />
+              ))}
+            </div>
+          ) : failure && rooms === null ? (
+            <div className="flex flex-col items-center justify-center gap-3 px-4 py-12 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <AlertTriangle className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-[15px] font-semibold text-heading">
+                  {failure.notFound ? "Hostel block not found" : "Couldn't load rooms"}
+                </p>
+                <p className="mt-1 max-w-sm text-[12.5px] font-medium text-heading/50">{failure.message}</p>
+              </div>
+              {failure.notFound ? (
+                <Link href={HOSTEL_BLOCKS_HREF} className={GLASS_BUTTON}>
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Hostel Blocks
+                </Link>
+              ) : (
+                <button type="button" onClick={() => setReloadKey((k) => k + 1)} className={GLASS_BUTTON}>
+                  Try again
+                </button>
+              )}
+            </div>
+          ) : roomList.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-12 text-center">
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <DoorOpen className="h-5 w-5" />
@@ -360,9 +435,9 @@ export function SuperAdminRooms({ blockName, previewEmpty = false }: SuperAdminR
         <RoomFormModal
           mode="add"
           blockName={blockName}
-          takenRoomNumbers={rooms.map((r) => r.roomNumber)}
+          takenRoomNumbers={roomList.map((r) => r.roomNumber)}
           onClose={() => setModal(null)}
-          onSubmit={handleAddRoom}
+          onSubmit={(values) => submitRoom({ mode: "add" }, values)}
         />
       )}
       {modal?.type === "edit" && editingRoom && (
@@ -371,17 +446,13 @@ export function SuperAdminRooms({ blockName, previewEmpty = false }: SuperAdminR
           mode="edit"
           blockName={blockName}
           room={editingRoom}
-          takenRoomNumbers={rooms.filter((r) => r.id !== editingRoom.id).map((r) => r.roomNumber)}
+          takenRoomNumbers={roomList.filter((r) => r.id !== editingRoom.id).map((r) => r.roomNumber)}
           onClose={() => setModal(null)}
-          onSubmit={(values) => handleEditRoom(editingRoom.id, values)}
+          onSubmit={(values) => submitRoom({ mode: "edit", id: editingRoom.id }, values)}
         />
       )}
       {modal?.type === "students" && studentsRoom && (
-        <RoomStudentsModal
-          room={studentsRoom}
-          students={getMockStudentsForRoom(studentsRoom)}
-          onClose={() => setModal(null)}
-        />
+        <RoomStudentsModal key={studentsRoom.id} room={studentsRoom} onClose={() => setModal(null)} />
       )}
     </div>
   );

@@ -5,14 +5,16 @@
 // string stored on Room.hostelBlock and (for students/wardens) on
 // User.hostelBlock. This uses the SAME definition as the Super Admin
 // dashboard's "Total Hostel Blocks" stat (app/api/super-admin/stats):
-// every distinct, non-empty block name found on rooms or student
-// accounts, trimmed and sorted — so the dropdown and that stat always
+// every registered HostelBlock plus every distinct, non-empty block name found
+// on rooms or student accounts, trimmed and sorted — so the dropdown and that stat always
 // agree. Callers must have connected to the database first.
+import { HostelBlock } from "@/models/HostelBlock";
 import { Room } from "@/models/Room";
 import { User } from "@/models/User";
 
 export async function listHostelBlocks(): Promise<string[]> {
-  const [roomBlocks, studentBlocks] = await Promise.all([
+  const [registeredBlocks, roomBlocks, studentBlocks] = await Promise.all([
+    HostelBlock.distinct("name"),
     Room.distinct("hostelBlock"),
     User.distinct("hostelBlock", {
       role: "student",
@@ -22,7 +24,7 @@ export async function listHostelBlocks(): Promise<string[]> {
 
   return Array.from(
     new Set(
-      [...roomBlocks, ...studentBlocks]
+      [...registeredBlocks, ...roomBlocks, ...studentBlocks]
         .map((b) => (typeof b === "string" ? b.trim() : ""))
         .filter(Boolean)
     )
