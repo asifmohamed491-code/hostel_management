@@ -10,7 +10,7 @@ import {
   type AllocationFilter,
   type StatusFilter,
   type StudentFilters as Filters,
-} from "@/lib/super-admin-students-mock";
+} from "@/lib/super-admin-students";
 
 interface StudentFiltersProps {
   filters: Filters;

@@ -11,7 +11,9 @@ import {
   StudentStatusBadge,
   UnallocatedBadge,
 } from "@/components/dashboard/content/super-admin/students/StudentBadges";
-import { getAttendancePercent, isAllocated, type StudentRow } from "@/lib/super-admin-students-mock";
+import { getAttendancePercent, isAllocated, type StudentRow } from "@/lib/super-admin-students";
+
+const DASH = <span className="text-heading/35">—</span>;
 
 const VIEW_BUTTON =
   "sa-student-action-btn inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 " +
@@ -61,9 +63,9 @@ export function StudentList({ students, onView }: { students: StudentRow[]; onVi
                     </div>
                   </div>
                 </td>
-                <td className={CELL}>{s.registerNumber}</td>
-                <td className={CELL}>{s.department}</td>
-                <td className={`${CELL} whitespace-nowrap`}>{s.year}</td>
+                <td className={CELL}>{s.registerNumber ?? DASH}</td>
+                <td className={CELL}>{s.department ?? DASH}</td>
+                <td className={`${CELL} whitespace-nowrap`}>{s.year ?? DASH}</td>
                 <td className={`${CELL} whitespace-nowrap`}>{s.hostelBlock ?? <span className="text-heading/35">—</span>}</td>
                 <td className={`${CELL} whitespace-nowrap`}>
                   {isAllocated(s) ? s.roomNumber : <UnallocatedBadge />}
@@ -102,15 +104,15 @@ export function StudentList({ students, onView }: { students: StudentRow[]; onVi
             <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-heading/[0.06] pt-3 text-[12px]">
               <div className="min-w-0">
                 <dt className="font-medium text-heading/45">Register No.</dt>
-                <dd className="mt-0.5 truncate font-semibold text-heading/80">{s.registerNumber}</dd>
+                <dd className="mt-0.5 truncate font-semibold text-heading/80">{s.registerNumber ?? DASH}</dd>
               </div>
               <div className="min-w-0">
                 <dt className="font-medium text-heading/45">Year</dt>
-                <dd className="mt-0.5 font-semibold text-heading/80">{s.year}</dd>
+                <dd className="mt-0.5 font-semibold text-heading/80">{s.year ?? DASH}</dd>
               </div>
               <div className="col-span-2 min-w-0">
                 <dt className="font-medium text-heading/45">Department</dt>
-                <dd className="mt-0.5 truncate font-semibold text-heading/80">{s.department}</dd>
+                <dd className="mt-0.5 truncate font-semibold text-heading/80">{s.department ?? DASH}</dd>
               </div>
               <div className="min-w-0">
                 <dt className="font-medium text-heading/45">Room</dt>

@@ -5,7 +5,7 @@
 // Reuses the shared accessible modal shell (focus trap, Esc / backdrop / X
 // close, bottom sheet on mobile). Never shows passwords or auth data.
 //
-// Data here is MOCK in the UI phase (lib/super-admin-students-mock.ts).
+// Data comes from GET /api/super-admin/students (real MongoDB records).
 import { Activity, BedDouble, IdCard, ShieldCheck, UserRound } from "lucide-react";
 
 import { RoomModal } from "@/components/dashboard/content/super-admin/rooms/RoomModal";
@@ -15,7 +15,7 @@ import {
   getAttendancePercent,
   isAllocated,
   type StudentRow,
-} from "@/lib/super-admin-students-mock";
+} from "@/lib/super-admin-students";
 
 function Section({
   title,
@@ -55,7 +55,7 @@ export function StudentDetailsModal({ student, onClose }: { student: StudentRow;
   return (
     <RoomModal
       title={student.fullName}
-      description={`${student.registerNumber} · ${student.department}`}
+      description={[student.registerNumber, student.department].filter(Boolean).join(" · ") || student.email}
       icon={<UserRound className="h-[18px] w-[18px]" />}
       onClose={onClose}
     >
@@ -63,11 +63,11 @@ export function StudentDetailsModal({ student, onClose }: { student: StudentRow;
         <Section title="Personal Details" icon={<IdCard className="h-3.5 w-3.5" />}>
           <dl className="grid grid-cols-1 gap-x-4 gap-y-2.5 sm:grid-cols-2">
             <Item label="Full Name">{student.fullName}</Item>
-            <Item label="Register Number">{student.registerNumber}</Item>
+            <Item label="Register Number">{student.registerNumber ?? NOT_SET}</Item>
             <Item label="College Email">{student.email}</Item>
             <Item label="Phone Number">{student.phone ?? NOT_SET}</Item>
-            <Item label="Department">{student.department}</Item>
-            <Item label="Academic Year">{student.year}</Item>
+            <Item label="Department">{student.department ?? NOT_SET}</Item>
+            <Item label="Academic Year">{student.year ?? NOT_SET}</Item>
           </dl>
         </Section>
 
@@ -129,10 +129,6 @@ export function StudentDetailsModal({ student, onClose }: { student: StudentRow;
             <Item label="Account Created">{formatDate(student.createdAt) ?? NOT_SET}</Item>
           </dl>
         </Section>
-
-        <p className="text-[11px] font-medium text-heading/40">
-          Preview only — sample student, not loaded from the database.
-        </p>
 
         <button
           type="button"

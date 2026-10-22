@@ -4,7 +4,7 @@
 // table, the mobile cards and the details modal.
 import { cn } from "@/lib/cn";
 import { getInitials } from "@/lib/user-display";
-import type { StudentStatus } from "@/lib/super-admin-students-mock";
+import type { StudentStatus } from "@/lib/super-admin-students";
 
 export function StudentAvatar({ name, className }: { name: string; className?: string }) {
   return (

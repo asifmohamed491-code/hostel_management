@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 // app/dashboard/, DashboardLayout (Sidebar, Topbar, background) and
 // middleware.ts (Super Admin only) apply automatically; no rewrite needed.
 //
-// UI PHASE: renders sample data only (lib/super-admin-students-mock.ts).
+// Live data: the page loads students from GET /api/super-admin/students.
 export default function ViewStudentsPage() {
   return <SuperAdminStudents />;
 }
